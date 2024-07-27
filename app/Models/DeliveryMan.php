@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\CentralLogics\Helpers;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\DB;
@@ -21,7 +22,6 @@ class DeliveryMan extends Authenticatable
         'earning'=>'float',
         'restaurant_id'=>'integer',
         'current_orders'=>'integer',
-        'vehicle_id'=>'integer',
         'shift_id' => 'integer',
     ];
 
@@ -29,6 +29,8 @@ class DeliveryMan extends Authenticatable
         'password',
         'auth_token',
     ];
+
+    protected $appends = ['image_full_url','identity_image_full_url'];
 
     public function wallet()
     {
@@ -144,8 +146,41 @@ class DeliveryMan extends Authenticatable
         return $query->where('type','zone_wise');
     }
 
+    public function getImageFullUrlAttribute(){
+        $value = $this->image;
+        if (count($this->storage) > 0) {
+            foreach ($this->storage as $storage) {
+                if ($storage['key'] == 'image') {
+                    return Helpers::get_full_url('delivery-man',$value,$storage['value']);
+                }
+            }
+        }
+
+        return Helpers::get_full_url('delivery-man',$value,'public');
+    }
+    public function getIdentityImageFullUrlAttribute(){
+        $images = [];
+        $value = is_array($this->identity_image)?$this->identity_image:json_decode($this->identity_image,true);
+        if ($value){
+            foreach ($value as $item){
+                $item = is_array($item)?$item:(is_object($item) && get_class($item) == 'stdClass' ? json_decode(json_encode($item), true):['img' => $item, 'storage' => 'public']);
+                $images[] = Helpers::get_full_url('delivery-man',$item['img'],$item['storage']);
+            }
+        }
+
+        return $images;
+    }
+
+    public function storage()
+    {
+        return $this->morphMany(Storage::class, 'data');
+    }
+
     protected static function booted()
     {
+        // static::addGlobalScope('storage', function ($builder) {
+        //     $builder->with('storage');
+        // });
         static::addGlobalScope(new ZoneScope);
     }
     public function incentives()
@@ -156,5 +191,26 @@ class DeliveryMan extends Authenticatable
     public function incentive()
     {
         return $this->hasOne(IncentiveLog::class)->whereDate('date', now()->format('Y-m-d'));
+    }
+
+    protected static function boot()
+    {
+        parent::boot();
+        static::saved(function ($model) {
+            if($model->isDirty('image')){
+                $value = Helpers::getDisk();
+
+                DB::table('storages')->updateOrInsert([
+                    'data_type' => get_class($model),
+                    'data_id' => $model->id,
+                    'key' => 'image',
+                ], [
+                    'value' => $value,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+        });
+
     }
 }

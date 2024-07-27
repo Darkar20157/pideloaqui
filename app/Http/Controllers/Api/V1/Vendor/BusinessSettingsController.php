@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers\Api\V1\Vendor;
 
+use App\Models\Category;
+use App\Models\Characteristic;
+use App\Models\Cuisine;
 use App\Models\Tag;
 use App\Models\Translation;
 use Illuminate\Http\Request;
@@ -140,6 +143,20 @@ class BusinessSettingsController extends Controller
             }
         }
 
+        $characteristic_ids = [];
+        if ($request->characteristics != null) {
+            $characteristics = explode(",", $request->characteristics);
+        }
+        if(isset($characteristics)){
+            foreach ($characteristics as $key => $value) {
+                $characteristic = Characteristic::firstOrNew(
+                    ['characteristic' => $value]
+                );
+                $characteristic->save();
+                array_push($characteristic_ids,$characteristic->id);
+            }
+        }
+
         $restaurant->order_subscription_active = $request->order_subscription_active;
         $restaurant->delivery = $request->delivery;
         $restaurant->take_away = $request->take_away;
@@ -178,6 +195,7 @@ class BusinessSettingsController extends Controller
         $restaurant->save();
 
         $restaurant->tags()->sync($tag_ids);
+        $restaurant->characteristics()->sync($characteristic_ids);
 
 
         $conf = RestaurantConfig::firstOrNew(
@@ -187,6 +205,9 @@ class BusinessSettingsController extends Controller
         $conf->customer_order_date = $request->customer_order_date ?? 0;
         $conf->customer_date_order_sratus = $request->customer_date_order_sratus ?? 0;
         $conf->halal_tag_status = $request->halal_tag_status ?? 0;
+        $conf->extra_packaging_status = $request->extra_packaging_status ?? 0;
+        $conf->is_extra_packaging_active = $request->is_extra_packaging_active ?? 0;
+        $conf->extra_packaging_amount = $request->extra_packaging_amount;
         $conf->save();
 
 
@@ -265,5 +286,14 @@ class BusinessSettingsController extends Controller
         }
         $schedule->delete();
         return response()->json(['message'=>translate('messages.Schedule removed successfully')], 200);
+    }
+
+    function suggestion_list(Request $request)
+    {
+        $cuisineNames = Cuisine::pluck('name')->toArray();
+        $categoryNames = Category::pluck('name')->toArray();
+        $combinedNames = array_merge($cuisineNames, $categoryNames);
+
+        return response()->json($combinedNames,200);
     }
 }

@@ -61,10 +61,16 @@ class CampaignController extends Controller
         {
             $admin= Admin::where('role_id', 1)->first();
             $restaurant= Restaurant::where('id', $restaurant )->with('vendor')->first();
-            if(config('mail.status') && Helpers::get_mail_status('campaign_request_mail_status_admin') == '1') {
+            $notification_status= Helpers::getNotificationStatusData('admin','campaign_join_request');
+
+            if($notification_status?->mail_status == 'active' &&  config('mail.status') && Helpers::get_mail_status('campaign_request_mail_status_admin') == '1') {
                 Mail::to($admin->email)->send(new \App\Mail\CampaignRequestMail($restaurant?->name));
-            }
-            if(config('mail.status') && Helpers::get_mail_status('campaign_request_mail_status_restaurant') == '1') {
+                }
+                $notification_status= null;
+                $restaurant_notification_status= null;
+                $notification_status= Helpers::getNotificationStatusData('restaurant','restaurant_campaign_join_request');
+                $restaurant_notification_status= Helpers::getRestaurantNotificationStatusData($restaurant?->id,'restaurant_campaign_join_request');
+            if($notification_status?->mail_status == 'active' && $restaurant_notification_status?->mail_status == 'active' &&  config('mail.status') && Helpers::get_mail_status('campaign_request_mail_status_restaurant') == '1') {
                 Mail::to($restaurant?->vendor?->email)->send(new \App\Mail\VendorCampaignRequestMail($restaurant?->name,'pending'));
             }
         }

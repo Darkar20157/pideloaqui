@@ -60,9 +60,10 @@
         <div class="container">
             <div class="header-wrapper">
                 @php($logo = \App\CentralLogics\Helpers::get_settings('logo'))
+                @php($logo_storage = \App\CentralLogics\Helpers::get_settings_storage('logo'))
                 <div class="logo">
                     <a href="/">
-                        <img src="{{ dynamicStorage('storage/app/public/business/' . $logo) }}" alt="">
+                        <img src="{{ \App\CentralLogics\Helpers::get_full_url('business',$logo,$logo_storage) }}" alt="">
                     </a>
                 </div>
                 <div class="nav-toggle d-lg-none">
@@ -289,8 +290,9 @@
                         <div class="footer-widget">
                             <div class="footer-logo">
                                 @php($logo = \App\CentralLogics\Helpers::get_settings('logo'))
+                                @php($logo_storage = \App\CentralLogics\Helpers::get_settings_storage('logo'))
                                 <a href="{{ route('home') }}">
-                                    <img src="{{ dynamicStorage('storage/app/public/business/' . $logo) }}" alt="">
+                                    <img src="{{ \App\CentralLogics\Helpers::get_full_url('business',$logo,$logo_storage) }}" alt="">
                                 </a>
                             </div>
                             <div class="txt">

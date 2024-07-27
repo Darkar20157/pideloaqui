@@ -8,9 +8,9 @@
 </div>
 <div class="modal-body px-4 px-sm-5">
     <div class="mb-4 text-center">
-        @php($logo=\App\Models\BusinessSetting::where('key','logo')->first()->value)
+        @php($logo=\App\Models\BusinessSetting::where('key','logo')->first())
         <img class="dark-support onerror-image"   id="viewer"  width="200"
-        src="{{\App\CentralLogics\Helpers::onerror_image_helper($logo, dynamicStorage('storage/app/public/business/'.$logo), dynamicAsset('public/assets/admin/img/favicon.png'), 'business/') }}"
+        src="{{ \App\CentralLogics\Helpers::get_full_url('business',$logo->value,$logo?->storage[0]?->value ?? 'public', 'favicon') }}"
         data-onerror-image="{{ dynamicAsset('public/assets/admin/img/favicon.png') }}" alt="image">
 
 

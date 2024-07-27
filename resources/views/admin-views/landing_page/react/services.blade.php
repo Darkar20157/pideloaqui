@@ -129,7 +129,7 @@
                     </div>
                     <div class="btn--container justify-content-end mt-3">
                         <button type="reset" class="btn btn--reset">{{translate('Reset')}}</button>
-                        <button type="submit"   class="btn btn--primary mb-2">{{translate('save')}}</button>
+                        <button type="submit"   class="btn btn--primary">{{translate('save')}}</button>
                     </div>
                 </div>
             </div>
@@ -204,12 +204,7 @@
                                     </div>
                                 </td>
                                 <td>
-                                    <img  src="{{ \App\CentralLogics\Helpers::onerror_image_helper(
-                                            $service?->image,
-                                            dynamicStorage('storage/app/public/react_service_image').'/'.$service?->image,
-                                            dynamicAsset('/public/assets/admin/img/upload.png'),
-                                            'react_service_image/'
-                                        ) }}"
+                                    <img  src="{{ $service?->image_full_url ?? dynamicAsset('/public/assets/admin/img/aspect-1.png')}}"
                                           data-onerror-image="{{dynamicAsset('/public/assets/admin/img/upload.png')}}"
                                           class="__size-105 onerror-image" alt="">
                                 </td>

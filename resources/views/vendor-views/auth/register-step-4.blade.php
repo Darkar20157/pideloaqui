@@ -33,7 +33,7 @@
             <div class="card-body">
                 <div class="succeed--status">
                     <img class="img"
-                    src="{{\App\CentralLogics\Helpers::onerror_image_helper($logo, dynamicStorage('storage/app/public/restaurant/'.$logo), dynamicAsset('public/assets/admin/img/100x100/food-default-image.png'), 'restaurant/') }}"
+                    src="{{ $logo }}"
                     alt="image">
                     <h4 class="title">{{ translate('Congratulations!') }}</h4>
                     <h6 class="subtitle">

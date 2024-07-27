@@ -91,7 +91,7 @@
                 </div>
             </td>
             <td class="text-center mw--85px">
-                {{ \App\CentralLogics\Helpers::number_format_short($order->details->sum('discount_on_food')) }}
+                {{ \App\CentralLogics\Helpers::number_format_short($order->details()->sum(DB::raw('discount_on_food * quantity'))) }}
             </td>
             <td class="text-center mw--85px">
                 {{ \App\CentralLogics\Helpers::number_format_short($order['coupon_discount_amount']) }}

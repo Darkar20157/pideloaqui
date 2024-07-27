@@ -96,15 +96,34 @@ class AccountTransactionController extends Controller
         try
         {
             DB::beginTransaction();
-            $account_transaction->save();
-            $data?->wallet?->decrement('collected_cash', $request['amount']);
+                $account_transaction->save();
+                $data?->wallet?->decrement('collected_cash', $request['amount']);
             AdminWallet::where('admin_id', Admin::where('role_id', 1)->first()->id)->increment('manual_received', $request['amount']);
-            if($request['type']=='deliveryman' && $request['deliveryman_id']){
-                if (config('mail.status') && Helpers::get_mail_status('cash_collect_mail_status_dm') == '1') {
+            DB::commit();
+            $notification_status=Helpers::getNotificationStatusData('deliveryman','deliveryman_collect_cash');
+            $deliveryman_push_notification_status=Helpers::getNotificationStatusData('deliveryman','deliveryman_collect_cash');
+                if( $request['type'] == 'deliveryman' && $request['deliveryman_id'] && $deliveryman_push_notification_status?->push_notification_status  == 'active' && $data->fcm_token){
+                    $notification_data = [
+                        'title' => translate('messages.Cash_Collected'),
+                        'description' => translate('messages.Your_hand_in_cash_has_been_collected_by_admin'),
+                        'order_id' => '',
+                        'image' => '',
+                        'type' => 'cash_collect'
+                    ];
+                    Helpers::send_push_notif_to_device($data->fcm_token, $data);
+                    DB::table('user_notifications')->insert([
+                        'data' => json_encode($notification_data),
+                        'delivery_man_id' => $data->id,
+                        'created_at' => now(),
+                        'updated_at' => now()
+                    ]);
+                }
+
+
+                if ( $notification_status?->mail_status == 'active' && $request['type'] == 'deliveryman' && $request['deliveryman_id'] && config('mail.status') && Helpers::get_mail_status('cash_collect_mail_status_dm') == '1') {
                     Mail::to($data['email'])->send(new \App\Mail\CollectCashMail($account_transaction,$data['f_name']));
                 }
-            }
-            DB::commit();
+
         }
         catch(\Exception $e)
         {

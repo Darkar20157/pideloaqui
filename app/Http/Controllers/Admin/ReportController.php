@@ -685,6 +685,7 @@ class ReportController extends Controller
         $restaurant = is_numeric($restaurant_id) ? Restaurant::findOrFail($restaurant_id) : null;
         $customer_id = $request->query('customer_id', 'all');
         $customer = is_numeric($customer_id) ? User::findOrFail($customer_id) : null;
+        $type = $request->query('expense_type', 'all');
 
         $expense = Expense::with('order','order.customer:id,f_name,l_name','user')->where('created_by','admin')
             ->when(isset($zone) || isset($restaurant) || isset($customer), function ($query) use ($zone,$restaurant,$customer) {
@@ -704,6 +705,10 @@ class ReportController extends Controller
                     });
                 });
             })
+            ->when(isset($type) &&  $type != 'all', function ($query) use ($type) {
+                return $query->where('type',$type);
+            })
+
             ->applyDateFilter($filter, $from, $to)
             ->when( isset($key), function($query) use($key){
                 $query->where(function ($q) use ($key) {
@@ -717,7 +722,7 @@ class ReportController extends Controller
 
 //        dd($expense);
 
-        return view('admin-views.report.expense-report', compact('expense','zone', 'restaurant','filter','customer','from','to'));
+        return view('admin-views.report.expense-report', compact('expense','zone', 'restaurant','filter','customer','from','to' ,'type'));
     }
 
 

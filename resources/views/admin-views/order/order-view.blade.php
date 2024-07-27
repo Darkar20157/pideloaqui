@@ -82,7 +82,7 @@ $max_processing_time = $order->restaurant?explode('-', $order->restaurant['deliv
                                 @endif
                                 <!-- Static -->
                                 <div class="d-sm-none d-flex flex-wrap ml-auto align-items-center justify-content-end initial-39-2">
-                                    @if (!$subscription && !$editing  && $order->payment_method == 'cash_on_delivery'  &&  in_array($order->order_status, ['pending', 'confirmed', 'processing', 'accepted']) && $order->restaurant)
+                                    @if (!$subscription && !$editing && $order?->ref_bonus_amount == 0 && $order->payment_method == 'cash_on_delivery'  &&  in_array($order->order_status, ['pending', 'confirmed', 'processing', 'accepted']) && $order->restaurant)
                                             <button class="btn bn--primary btn-outline-primary m-1 print--btn edit-order" type="button">
                                                 <i class="tio-edit"></i> <span>{{ translate('messages.edit_order') }}</span>
                                             </button>
@@ -434,6 +434,7 @@ $max_processing_time = $order->restaurant?explode('-', $order->restaurant['deliv
                                     if (!$editing) {
                                         $deleted_food = $detail->food == null?1:0;
                                         $detail->food = json_decode($detail->food_details, true);
+                                        $food = \App\Models\Food::where(['id' => $detail->food['id']])->first();
                                     }
                                     ?>
                                     <!-- Media -->
@@ -460,12 +461,7 @@ $max_processing_time = $order->restaurant?explode('-', $order->restaurant['deliv
                                                             <span class="avatar-status avatar-lg-status avatar-status-dark"><i
                                                                     class="tio-edit"></i></span>
                                                                 <img class="img-fluid rounded onerror-image"
-                                                                     src="{{ \App\CentralLogics\Helpers::onerror_image_helper(
-                                                                        $detail->food['image'] ?? '',
-                                                                        dynamicStorage('storage/app/public/product').'/'.$detail->food['image'],
-                                                                        dynamicAsset('public/assets/admin/img/100x100/food-default-image.png'),
-                                                                        'product/'
-                                                                    ) }}"
+                                                                     src="{{ $food['image_full_url'] ?? dynamicAsset('public/assets/admin/img/100x100/food-default-image.png') }}"
                                                                      data-onerror-image="{{dynamicAsset('public/assets/admin/img/100x100/food-default-image.png')}}"
                                                                 alt="Image Description">
                                                         @endif
@@ -475,14 +471,9 @@ $max_processing_time = $order->restaurant?explode('-', $order->restaurant['deliv
                                                                 <a class="avatar avatar-xl mr-3"
                                                                 href="{{ route('admin.food.view', $detail->food['id']) }}">
                                                                     <img class="img-fluid rounded onerror-image"
-                                                                         src="{{ \App\CentralLogics\Helpers::onerror_image_helper(
-                                                                            $detail->food['image'] ?? '',
-                                                                            dynamicStorage('storage/app/public/product').'/'.$detail->food['image'],
-                                                                            dynamicAsset('public/assets/admin/img/100x100/food-default-image.png'),
-                                                                            'product/'
-                                                                        ) }}"
-                                                                         data-onerror-image="{{dynamicAsset('public/assets/admin/img/100x100/food-default-image.png')}}"
-                                                                         alt="Image Description">
+                                                                        src="{{ $food['image_full_url'] ?? dynamicAsset('public/assets/admin/img/100x100/food-default-image.png') }}"
+                                                                        data-onerror-image="{{dynamicAsset('public/assets/admin/img/100x100/food-default-image.png')}}"
+                                                                        alt="Image Description">
                                                                     </a>
                                                             @else
                                                                 <div class="avatar avatar-xl mr-3">
@@ -561,6 +552,7 @@ $max_processing_time = $order->restaurant?explode('-', $order->restaurant['deliv
                                     if (!$editing) {
                                         $deleted_food = $detail->campaign == null?1:0;
                                         $detail->campaign = json_decode($detail->food_details, true);
+                                        $campaign = \App\Models\ItemCampaign::where(['id' => $detail->campaign['id']])->first();
                                     }
                                     ?>
                                     <!-- Media -->
@@ -587,12 +579,7 @@ $max_processing_time = $order->restaurant?explode('-', $order->restaurant['deliv
                                                             <span class="avatar-status avatar-lg-status avatar-status-dark">
                                                             <i class="tio-edit"></i></span>
                                                                 <img class="img-fluid onerror-image"
-                                                                     src="{{ \App\CentralLogics\Helpers::onerror_image_helper(
-                                                                            $detail->campaign['image'] ?? '',
-                                                                            dynamicStorage('storage/app/public/campaign').'/'.$detail->campaign['image'],
-                                                                            dynamicAsset('public/assets/admin/img/100x100/food-default-image.png'),
-                                                                            'campaign/'
-                                                                        ) }}"
+                                                                     src="{{ $campaign['image_full_url'] ?? dynamicAsset('public/assets/admin/img/100x100/food-default-image.png') }}"
                                                                      data-onerror-image="{{dynamicAsset('public/assets/admin/img/100x100/food-default-image.png')}}"
                                                                      alt="Image Description">
                                                             @endif
@@ -602,12 +589,7 @@ $max_processing_time = $order->restaurant?explode('-', $order->restaurant['deliv
                                                     <a class="avatar avatar-xl mr-3"
                                                     href="{{ route('admin.campaign.view', ['item', $detail->campaign['id']]) }}">
                                                         <img class="img-fluid rounded onerror-image"
-                                                             src="{{ \App\CentralLogics\Helpers::onerror_image_helper(
-                                                                    $detail->campaign['image'] ?? '',
-                                                                    dynamicStorage('storage/app/public/campaign').'/'.$detail->campaign['image'],
-                                                                    dynamicAsset('public/assets/admin/img/100x100/food-default-image.png'),
-                                                                    'campaign/'
-                                                                ) }}"
+                                                             src="{{ $campaign['image_full_url'] ?? dynamicAsset('public/assets/admin/img/100x100/food-default-image.png') }}"
                                                              data-onerror-image="{{dynamicAsset('public/assets/admin/img/100x100/food-default-image.png')}}"
                                                              alt="Image Description">
                                                         </a>
@@ -700,7 +682,9 @@ $max_processing_time = $order->restaurant?explode('-', $order->restaurant['deliv
 
                         <?php
                         $coupon_discount_amount = $order['coupon_discount_amount'];
-                        $total_price = $product_price + $total_addon_price - $restaurant_discount_amount - $coupon_discount_amount -$order['additional_charge'];
+                        $ref_bonus_amount = $order['ref_bonus_amount'];
+                        $extra_packaging_amount = $order['extra_packaging_amount'];
+                        $total_price = $product_price + $total_addon_price - $restaurant_discount_amount - $coupon_discount_amount -$order['additional_charge']  - $ref_bonus_amount - $extra_packaging_amount;
                         $total_tax_amount = $order['total_tax_amount'];
                         $deliverman_tips = $order['dm_tips'];
                         $tax_a=$total_tax_amount;
@@ -776,6 +760,15 @@ $max_processing_time = $order->restaurant?explode('-', $order->restaurant['deliv
                                     <dd class="col-6 text-right">
                                         - {{ \App\CentralLogics\Helpers::format_currency($coupon_discount_amount) }}
                                     </dd>
+
+                                    @if ($ref_bonus_amount > 0)
+                                    <dt class="col-6">{{ translate('messages.Referral_Discount') }}:</dt>
+                                    <dd class="col-6 text-right">
+                                        - {{ \App\CentralLogics\Helpers::format_currency($ref_bonus_amount) }}
+                                    </dd>
+                                    @endif
+
+
                                     @if ($order->tax_status == 'excluded' || $order->tax_status == null  )
                                     <dt class="col-6">{{ translate('messages.vat/tax') }}:</dt>
                                     <dd class="col-6 text-right">
@@ -807,10 +800,16 @@ $max_processing_time = $order->restaurant?explode('-', $order->restaurant['deliv
                                         @endif
 
 
+                                        @if ($extra_packaging_amount > 0)
+                                        <dt class="col-6">{{ translate('messages.Extra_Packaging_Amount') }}:</dt>
+                                        <dd class="col-6 text-right">
+                                            + {{ \App\CentralLogics\Helpers::format_currency($extra_packaging_amount) }}
+                                        </dd>
+                                        @endif
 
                                     <dt class="col-6">{{ translate('messages.total') }}:</dt>
                                     <dd class="col-6 text-right">
-                                        {{ \App\CentralLogics\Helpers::format_currency($product_price + $del_c + $tax_a + $total_addon_price + $deliverman_tips  + $additional_charge - $coupon_discount_amount - $restaurant_discount_amount) }}
+                                        {{ \App\CentralLogics\Helpers::format_currency($product_price + $del_c + $tax_a + $total_addon_price + $deliverman_tips  + $additional_charge - $coupon_discount_amount - $restaurant_discount_amount - $ref_bonus_amount + $extra_packaging_amount) }}
                                     </dd>
 
                                     @if ($order?->payments)
@@ -946,17 +945,13 @@ $max_processing_time = $order->restaurant?explode('-', $order->restaurant['deliv
                                 @php( $data=  (isset($order->refund->image)) ? json_decode($order->refund->image,true)  : 0 )
                                 @if ($data)
                                     @foreach($data as $key=>$img)
+                                    @php($img = is_array($img)?$img:['img'=>$img,'storage'=>'public'])
                                     <div class="col-3">
                                         <img class="img__aspect-1 rounded border w-100 onerror-image"
                                              data-toggle="modal"
                                              data-target="#imagemodal{{ $key }}"
                                              data-onerror-image="{{ dynamicAsset('public/assets/admin/img/160x160/img2.jpg') }}"
-                                             src="{{ \App\CentralLogics\Helpers::onerror_image_helper(
-                                                $img ?? '',
-                                                dynamicStorage('storage/app/public/refund').'/'.$img,
-                                                dynamicAsset('public/assets/admin/img/160x160/img2.jpg'),
-                                                'refund/'
-                                             ) }}">
+                                             src="{{ \App\CentralLogics\Helpers::get_full_url('refund',$img['img'],$img['storage']) }}">
                                 </div>
                                     <div class="modal fade" id="imagemodal{{ $key }}" tabindex="-1" role="dialog"
                                     aria-labelledby="myModalLabel{{ $key }}" aria-hidden="true">
@@ -970,12 +965,14 @@ $max_processing_time = $order->restaurant?explode('-', $order->restaurant['deliv
                                                         class="sr-only">{{ translate('messages.cancel') }}</span></button>
                                             </div>
                                             <div class="modal-body">
-                                                <img src="{{dynamicStorage('storage/app/public/refund').'/'.$img}}"
+                                                <img src="{{ \App\CentralLogics\Helpers::get_full_url('refund',$img['img'],$img['storage']) }}"
                                                     class="initial--22 w-100">
                                             </div>
+                                            @php($storage = $img['storage']??'public')
+                                            @php($file = $storage == 's3'?base64_encode('refund/' . $img['img']):base64_encode('public/refund/' . $img['img']))
                                             <div class="modal-footer">
                                                 <a class="btn btn-primary"
-                                                    href="{{ route('admin.file-manager.download', base64_encode('public/refund/' . $img)) }}"><i
+                                                    href="{{ route('admin.file-manager.download', [$file,$storage]) }}"><i
                                                         class="tio-download"></i> {{ translate('messages.download') }}
                                                 </a>
                                             </div>
@@ -1210,12 +1207,7 @@ $max_processing_time = $order->restaurant?explode('-', $order->restaurant['deliv
                                                 href="{{ route('admin.delivery-man.preview', [$order->delivery_man['id']]) }}">
                                                 <div class="avatar avatar-circle">
                                                     <img class="avatar-img w-75px onerror-image"
-                                                         src="{{ \App\CentralLogics\Helpers::onerror_image_helper(
-                                                            $order->delivery_man->image ?? '',
-                                                            dynamicStorage('storage/app/public/delivery-man/') .'/'. ($order->delivery_man->image ?? ''),
-                                                            dynamicAsset('public/assets/admin/img/160x160/img3.png'),
-                                                            'delivery-man/'
-                                                         ) }}"
+                                                         src="{{ $order?->delivery_man?->image_full_url ?? dynamicAsset('public/assets/admin/img/160x160/img3.png') }}"
                                                          alt="Image Description"
                                                          data-onerror-image="{{ dynamicAsset('public/assets/admin/img/160x160/img3.png') }}">
                                                 </div>
@@ -1276,12 +1268,7 @@ $max_processing_time = $order->restaurant?explode('-', $order->restaurant['deliv
                                                 href="{{ route('admin.customer.view', [$order->customer['id']]) }}">
                                                 <div class="avatar avatar-circle">
                                                     <img class="avatar-img onerror-image"
-                                                         src="{{ \App\CentralLogics\Helpers::onerror_image_helper(
-                                                            $order->customer->image ?? '',
-                                                            dynamicStorage('storage/app/public/profile/') .'/'. ($order->customer->image ?? ''),
-                                                            dynamicAsset('public/assets/admin/img/160x160/img1.png'),
-                                                            'profile/'
-                                                         ) }}"
+                                                         src="{{ $order->customer?->image_full_url ?? dynamicAsset('public/assets/admin/img/160x160/img1.png') }}"
                                                          alt="Image Description"
                                                          data-onerror-image="{{ dynamicAsset('public/assets/admin/img/160x160/img1.png') }}">
 
@@ -1391,9 +1378,10 @@ $max_processing_time = $order->restaurant?explode('-', $order->restaurant['deliv
                                         <label class="input-label"for="order_proof">{{ translate('messages.image') }} : </label>
                                         <div class="row g-3">
                                                 @foreach ($data as $key => $img)
+                                                @php($img = is_array($img)?$img:['img'=>$img,'storage'=>'public'])
                                                     <div class="col-3">
                                                             <img class="img__aspect-1 rounded border w-100" data-toggle="modal"  data-target="#imagemodal{{ $key }}"
-                                                            src="{{\App\CentralLogics\Helpers::onerror_image_helper($img, dynamicStorage('storage/app/public/order/'.$img), dynamicAsset('public/assets/admin/img/160x160/img2.jpg'), 'order/') }}"
+                                                            src="{{\App\CentralLogics\Helpers::get_full_url('order',$img['img'],$img['storage']) }}"
                                                             alt="image">
 
                                                     </div>
@@ -1412,12 +1400,14 @@ $max_processing_time = $order->restaurant?explode('-', $order->restaurant['deliv
                                                                             class="sr-only">{{ translate('messages.cancel') }}</span></button>
                                                                 </div>
                                                                 <div class="modal-body">
-                                                                    <img src="{{ dynamicStorage('storage/app/' . 'public/order/' . $img) }}"
+                                                                    <img src="{{\App\CentralLogics\Helpers::get_full_url('order',$img['img'],$img['storage']) }}"
                                                                         class="initial--22 w-100">
                                                                 </div>
+                                                                @php($storage = $img['storage'] ?? 'public')
+                                                                @php($file = $storage == 's3'?base64_encode('order/' . $img['img']):base64_encode('public/order/' . $img['img']))
                                                                 <div class="modal-footer">
                                                                     <a class="btn btn-primary"
-                                                                        href="{{ route('admin.file-manager.download', base64_encode('public/order/' . $img)) }}"><i
+                                                                       href="{{ route('admin.file-manager.download', [$file,$storage]) }}"><i
                                                                             class="tio-download"></i>
                                                                         {{ translate('messages.download') }}
                                                                     </a>
@@ -1451,7 +1441,7 @@ $max_processing_time = $order->restaurant?explode('-', $order->restaurant['deliv
                                             href="{{ route('admin.restaurant.view', [$order->restaurant['id']]) }}">
                                             <div class="avatar avatar-circle">
                                                     <img class="avatar-img w-75px"
-                                                    src="{{\App\CentralLogics\Helpers::onerror_image_helper($order?->restaurant?->logo, dynamicStorage('storage/app/public/restaurant/'.$order?->restaurant?->logo), dynamicAsset('public/assets/admin/img/100x100/restaurant-default-image.png'), 'restaurant/') }}"
+                                                    src="{{ $order?->restaurant?->logo_full_url ?? dynamicAsset('public/assets/admin/img/100x100/restaurant-default-image.png') }}"
                                                     alt="image">
 
                                             </div>
@@ -1705,12 +1695,7 @@ $max_processing_time = $order->restaurant?explode('-', $order->restaurant['deliv
                                     <div class="d-flex align-items-center gap-2 justify-content-between">
                                             <div class="dm_list_selected media gap-2" data-id="{{ $selected_delivery_man['id'] }}">
                                                 <img class="avatar avatar-60 rounded-10"
-                                                src="{{ \App\CentralLogics\Helpers::onerror_image_helper(
-                                                    $selected_delivery_man['image'] ?? '',
-                                                    dynamicStorage('storage/app/public/delivery-man/') .'/'. ($selected_delivery_man['image'] ?? ''),
-                                                    dynamicAsset('public/assets/admin/img/160x160/img3.png'),
-                                                    'delivery-man/'
-                                                 ) }}"
+                                                src="{{ $selected_delivery_man['image_full_url'] ?? dynamicAsset('public/assets/admin/img/160x160/img3.png') }}"
                                                      alt="Image Description"
                                                      data-onerror-image="{{ dynamicAsset('public/assets/admin/img/160x160/img1.png') }}">
                                                     <div class="media-body d-flex gap-1 flex-column">
@@ -1739,12 +1724,7 @@ $max_processing_time = $order->restaurant?explode('-', $order->restaurant['deliv
                                             <div class="d-flex align-items-center gap-2 justify-content-between">
                                                     <div class="dm_list media gap-2" data-id="{{ $dm['id'] }}">
                                                         <img class="avatar avatar-60 rounded-10 onerror-image"
-                                                             src="{{ \App\CentralLogics\Helpers::onerror_image_helper(
-                                                                $dm['image'] ?? '',
-                                                                dynamicStorage('storage/app/public/delivery-man/') .'/'. ($dm['image'] ?? ''),
-                                                                dynamicAsset('public/assets/admin/img/160x160/img1.jpg'),
-                                                                'delivery-man/'
-                                                             ) }}"
+                                                             src="{{ $dm['image_full_url'] ?? dynamicAsset('public/assets/admin/img/160x160/img1.jpg') }}"
                                                              alt="{{ $dm['name'] }}"
                                                              data-onerror-image="{{ dynamicAsset('public/assets/admin/img/160x160/img1.jpg') }}">
                                                             <div class="media-body d-flex gap-1 flex-column">
@@ -1866,9 +1846,9 @@ $max_processing_time = $order->restaurant?explode('-', $order->restaurant['deliv
                                 @foreach ($proof as $key => $photo)
                                             <div class="spartan_item_wrapper min-w-100px max-w-100px">
                                                 <img class="img--square"
-                                                    src="{{ asset("storage/app/public/order/$photo") }}"
+                                                    src="{{ $order->order_proof_full_url[$key] }}"
                                                     alt="order image">
-                                                <a href="{{ route('admin.order.remove-proof-image', ['id' => $order['id'], 'name' => $photo]) }}"
+                                                <a href="{{ route('admin.order.remove-proof-image', ['id' => $order['id'], 'name' => $photo['img']]) }}"
                                                     class="spartan_remove_row"><i class="tio-add-to-trash"></i></a>
                                             </div>
                                         @endforeach
@@ -2199,6 +2179,7 @@ $max_processing_time = $order->restaurant?explode('-', $order->restaurant['deliv
         }
 
         function getVariantPrice() {
+            getCheckedInputs();
             if ($('#add-to-cart-form input[name=quantity]').val() > 0) {
                 $.ajaxSetup({
                     headers: {
@@ -2210,8 +2191,32 @@ $max_processing_time = $order->restaurant?explode('-', $order->restaurant['deliv
                     url: '{{ route('admin.pos.variant_price') }}',
                     data: $('#add-to-cart-form').serializeArray(),
                     success: function(data) {
-                        $('#add-to-cart-form #chosen_price_div').removeClass('d-none');
-                        $('#add-to-cart-form #chosen_price_div #chosen_price').html(data.price);
+                        if (data.error === 'quantity_error') {
+                            toastr.error(data.message);
+                        }
+                        else if(data.error === 'stock_out'){
+                            toastr.warning(data.message);
+                            if(data.type == 'addon'){
+                                $('#addon_quantity_button'+data.id).attr("disabled", true);
+                                $('#addon_quantity_input'+data.id).val(data.current_stock);
+                            }
+
+                            else{
+                                $('#quantity_increase_button').attr("disabled", true);
+                                $('#add_new_product_quantity').val(data.current_stock);
+                            }
+                            getVariantPrice();
+                        }
+
+                        else {
+                            $('#add-to-cart-form #chosen_price_div').removeClass('d-none');
+                            $('#add-to-cart-form #chosen_price_div #chosen_price').html(data.price);
+                            $('.add-To-Cart').removeAttr("disabled");
+                            $('.increase-button').removeAttr("disabled");
+                            $('#quantity_increase_button').removeAttr("disabled");
+
+                        }
+
                     }
                 });
             }
@@ -2233,6 +2238,13 @@ $max_processing_time = $order->restaurant?explode('-', $order->restaurant['deliv
             let currentValue = parseInt(addon_quantity_input.val(), 10);
             addon_quantity_input.val(currentValue + 1);
             getVariantPrice();
+        });
+
+        $(document).on('change', '[name="quantity"]', function (event) {
+            getVariantPrice();
+            if($('#option_ids').val() == ''){
+                $(this).attr('max', $(this).data('maximum_cart_quantity'));
+            }
         });
 
         $(document).on('click', '.add-To-Cart', function () {
@@ -2263,7 +2275,16 @@ $max_processing_time = $order->restaurant?explode('-', $order->restaurant['deliv
                         });
                         location.reload();
                         return false;
+
+                    } else if (data.data === 'stock_out') {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Cart',
+                            text: data.message
+                        });
+                        return false;
                     }
+
                     else if (data.data == 'variation_error') {
                         Swal.fire({
                             icon: 'error',
@@ -2525,7 +2546,7 @@ $max_processing_time = $order->restaurant?explode('-', $order->restaurant['deliv
                     return function() {
                         infowindow.setContent(
                             `<div class='float--left'><img class='js--design-1'
-                                src="{{\App\CentralLogics\Helpers::onerror_image_helper($order?->restaurant?->logo, dynamicStorage('storage/app/public/restaurant/'.$order?->restaurant?->logo), dynamicAsset('public/assets/admin/img/160x160/img1.jpg'), 'restaurant/') }}"
+                                src="{{ $order?->restaurant?->logo_full_url ?? dynamicAsset('public/assets/admin/img/160x160/img1.jpg') }}"
                                                     alt='image'></div><div class='text-break float--right p--10px'><b>{{ Str::limit($order->restaurant->name, 15, '...') }}</b><br/> {{ $order->restaurant->address }}</div>`
                         );
                         infowindow.open(map, Restaurantmarker);

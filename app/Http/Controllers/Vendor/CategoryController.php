@@ -12,7 +12,7 @@ class CategoryController extends Controller
     function index(Request $request)
     {
         $key = explode(' ', $request['search']) ?? null;
-        $categories=Category::where(['position'=>0])->latest()
+        $categories=Category::with('childes')->where(['position'=>0])->latest()
 
         ->when(isset($key) , function($query) use($key){
             $query->where(function ($q) use ($key) {

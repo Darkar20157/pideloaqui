@@ -30,6 +30,7 @@ class CouponController extends Controller
             foreach($coupons->items() as $item){
                 $item['data'] = json_decode($item['data'],true);
                 $item['customer_id'] = json_decode($item['customer_id'],true);
+                $item['restaurant_name'] = $request?->vendor?->restaurants[0]?->name;
                 array_push($storage, $item);
             }
 

@@ -211,45 +211,18 @@
                                             <div class="row mt-2">
                                                 <div class="col-md-6 col-lg-12">
 
-                                                    {{-- <div class="d-flex flex-column align-items-center gap-3">
-                                                        <p class="mb-0">{{ translate('Cuisine image') }}</p>
-
-                                                        <div class="image-box">
-                                                            <label for="image-input" class="d-flex flex-column align-items-center justify-content-center h-100 cursor-pointer gap-2">
-                                                            <img  id="update_cu_image" class="upload-icon initial-26" src="{{\App\CentralLogics\Helpers::onerror_image_helper($cu['image'], dynamicStorage('storage/app/public/cuisine/').'/'.$cu['image'], dynamicAsset('/public/assets/admin/img/upload-6.png'), 'cuisine/') }}" alt="Upload Icon">
-                                                            <img src="#" alt="Preview Image" class="preview-image">
-                                                            </label>
-                                                            <button type="button" class="delete_image">
-                                                            <i class="tio-delete"></i>
-                                                            </button>
-                                                            <input type="file" id="image-input" name="image" accept="image/*" hidden>
-                                                        </div>
-
-                                                        <p class="opacity-75 max-w220 mx-auto text-center">
-                                                            {{ translate('Image format - jpg png jpeg gif Image Size -maximum size 2 MB Image Ratio - 1:1')}}
-                                                        </p>
-                                                    </div> --}}
-
-
-
-
-                                                            <div class="form-group mb-0 text-center">
-                                                                <label class="form-label d-block mb-2">
-                                                                    {{translate('Image')}}  <span class="text--primary">(1:1)</span>
-                                                                </label>
-                                                                <label class="upload-img-3 m-0 d-block my-auto">
-                                                                    <div class="img">
-                                                                        <img data-onerror-image="{{dynamicAsset('/public/assets/admin/img/upload-6.png')}}" src="{{\App\CentralLogics\Helpers::onerror_image_helper($cu['image'], dynamicStorage('storage/app/public/cuisine/').'/'.$cu['image'], dynamicAsset('/public/assets/admin/img/upload-6.png'), 'cuisine/') }}"
-                                                                        class="vertical-img max-w-187px onerror-image viewer" alt="">
-                                                                    </div>
-                                                                    <input type="file"  name="image" hidden="">
-                                                                </label>
+                                                    <div class="form-group mb-0 text-center">
+                                                        <label class="form-label d-block mb-2">
+                                                            {{translate('Image')}}  <span class="text--primary">(1:1)</span>
+                                                        </label>
+                                                        <label class="upload-img-3 m-0 d-block my-auto">
+                                                            <div class="img">
+                                                                <img data-onerror-image="{{dynamicAsset('/public/assets/admin/img/upload-6.png')}}" src="{{ $cu['image_full_url'] }}"
+                                                                class="vertical-img max-w-187px onerror-image viewer" alt="">
                                                             </div>
-
-
-
-
-
+                                                            <input type="file"  name="image" hidden="">
+                                                        </label>
+                                                    </div>
                                                 </div>
                                             </div>
                                         <div class="col-12">
@@ -257,7 +230,7 @@
                                                 <div class="btn--container justify-content-end mt-3">
                                                     <!-- Static Button -->
                                                     <button
-                                                    data-image-src="{{\App\CentralLogics\Helpers::onerror_image_helper($cu['image'], dynamicStorage('storage/app/public/cuisine/').'/'.$cu['image'], dynamicAsset('/public/assets/admin/img/upload-6.png'), 'cuisine/') }}"
+                                                    data-image-src="{{ $cu['image_full_url'] }}"
                                                     type="reset" aria-label="Close" class="btn btn--reset reset-btn">{{translate('messages.reset')}}</button>
                                                     <!-- Static Button -->
                                                     <button type="submit" class="btn btn--primary">{{translate('messages.submit')}}</button>
@@ -348,7 +321,7 @@
 
                                         <div class="image-box">
                                             <label for="image-input2" class="d-flex flex-column align-items-center justify-content-center h-100 cursor-pointer gap-2">
-                                            <img width="30"  class="upload-icon" src="{{asset('public/assets/admin/img/upload-icon.png')}}" alt="Upload Icon">
+                                            <img width="30"  class="upload-icon" src="{{dynamicAsset('public/assets/admin/img/upload-icon.png')}}" alt="Upload Icon">
                                             <span class="upload-text">{{ translate('Upload Image')}}</span>
                                             <img src="#" alt="Preview Image" class="preview-image image_on_add">
                                             </label>

@@ -28,7 +28,7 @@ class CustomerLogic{
         $credit = 0.0;
         $admin_bonus = 0.0;
 
-        if(in_array($transaction_type, ['add_fund_by_admin','add_fund','order_refund','loyalty_point', 'referrer']))
+        if(in_array($transaction_type, ['add_fund_by_admin','add_fund','order_refund','loyalty_point', 'referrer','CashBack']))
         {
             $credit = $amount;
             if($transaction_type == 'add_fund')
@@ -147,6 +147,6 @@ class CustomerLogic{
 
         $bonus_amount = max([$p_bonus,$a_bonus]);
 
-        return $bonus_amount; 
+        return $bonus_amount;
     }
 }

@@ -22,13 +22,13 @@
                     <div class="card">
                         <div class="card-body px-0 pt-0">
                             <img  class="shop-details-banner-img"
-                            src="{{\App\CentralLogics\Helpers::onerror_image_helper($shop?->cover_photo, dynamicStorage('storage/app/public/restaurant/cover/'.$shop?->cover_photo), dynamicAsset('public/assets/admin/img/900x400/img1.jpg'), 'restaurant/cover/') }}"
+                            src="{{ $shop?->cover_photo_full_url ?? dynamicAsset('public/assets/admin/img/900x400/img1.jpg') }}"
                             alt="image">
 
                             <div class="shop-details-banner-content">
                                 <div class="shop-details-banner-content-thumbnail">
                                     <img class="thumbnail"
-                                    src="{{\App\CentralLogics\Helpers::onerror_image_helper($shop?->logo, dynamicStorage('storage/app/public/restaurant/'.$shop?->logo), dynamicAsset('public/assets/admin/img/160x160/img1.jpg'), 'restaurant/') }}"
+                                    src="{{ $shop?->logo_full_url ?? dynamicAsset('public/assets/admin/img/160x160/img1.jpg') }}"
                                     alt="image">
                                     <h3 class="mt-4 pt-3 mb-4 d-sm-none">{{$shop->name}}</h3>
                                 </div>

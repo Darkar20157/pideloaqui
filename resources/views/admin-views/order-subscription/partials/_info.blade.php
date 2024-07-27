@@ -114,9 +114,9 @@ $restaurant_discount_amount=0;
                         <a class="media" href="{{isset($detail->food_id) ? route('admin.food.view',[$detail->food['id']]) :  route('admin.campaign.view', ['food', $detail->campaign['id']])}}">
                             <img class="avatar avatar-xl mr-3 onerror-image"
                             @if (isset($detail->food['image']))
-                                src="{{\App\CentralLogics\Helpers::onerror_image_helper($detail->food['image'], dynamicStorage('storage/app/public/product/').'/'.$detail->food['image'], dynamicAsset('public/assets/admin/img/160x160/img2.jpg'), 'product/') }}"
+                                src="{{$detail->food['image_full_url'] }}"
                             @else
-                                src="{{\App\CentralLogics\Helpers::onerror_image_helper((isset($detail->campaign['image']) ? $detail->campaign['image'] :''), dynamicStorage('storage/app/public/campaign/').'/'.(isset($detail->campaign['image']) ? $detail->campaign['image'] :''), dynamicAsset('public/assets/admin/img/160x160/img2.jpg'), 'campaign/') }}"
+                                src="{{isset($detail->campaign['image']) ? $detail->campaign['image_full_url'] :dynamicAsset('public/assets/admin/img/160x160/img2.jpg')}}"
                             @endif
                             data-onerror-image="{{dynamicAsset('public/assets/admin/img/160x160/img2.jpg')}}" alt="{{isset($detail->food_id) ? $detail->food['name'] : $detail->campaign['name']}} image">
                             <div class="media-body align-self-center">

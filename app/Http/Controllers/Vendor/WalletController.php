@@ -66,7 +66,8 @@ class WalletController extends Controller
             try
             {
                 $admin= Admin::where('role_id', 1)->first();
-                if(config('mail.status') && Helpers::get_mail_status('withdraw_request_mail_status_admin') == '1') {
+                $notification_status= Helpers::getNotificationStatusData('admin','withdraw_request');
+                if($notification_status?->mail_status == 'active' &&  config('mail.status') && Helpers::get_mail_status('withdraw_request_mail_status_admin') == '1') {
                     $wallet_transaction = WithdrawRequest::where('vendor_id',Helpers::get_vendor_id())->latest()->first();
                     Mail::to($admin->email)->send(new \App\Mail\WithdrawRequestMail('admin_mail',$wallet_transaction));
                 }
@@ -277,7 +278,8 @@ class WalletController extends Controller
                 $data[] = [
                     'gateway' => $method->key_name,
                     'gateway_title' => $additional_data?->gateway_title,
-                    'gateway_image' => $additional_data?->gateway_image
+                    'gateway_image' => $additional_data?->gateway_image,
+                    'gateway_image_full_url' => Helpers::get_full_url('payment_modules/gateway_image',$additional_data?->gateway_image,$additional_data?->storage ?? 'public')
                 ];
             }
         }

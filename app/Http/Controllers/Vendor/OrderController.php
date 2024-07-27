@@ -168,7 +168,7 @@ class OrderController extends Controller
             'id.required' => 'Order id is required!'
         ]);
 
-        $order = Order::where(['id' => $request->id, 'restaurant_id' => Helpers::get_restaurant_id()])->with('subscription_logs')->first();
+        $order = Order::where(['id' => $request->id, 'restaurant_id' => Helpers::get_restaurant_id()])->with(['subscription_logs','details'])->first();
 
         if($order->delivered != null)
         {
@@ -292,6 +292,8 @@ class OrderController extends Controller
                             ]);
                     }
             }
+            Helpers::decreaseSellCount(order_details:$order->details);
+
         }
         if($request->order_status == 'delivered')
         {
@@ -522,7 +524,7 @@ class OrderController extends Controller
         if (!empty($request->file('order_proof'))) {
             foreach ($request->order_proof as $img) {
                 $image_name = Helpers::upload('order/', 'png', $img);
-                array_push($img_names, $image_name);
+                array_push($img_names, ['img'=>$image_name, 'storage'=> Helpers::getDisk()]);
             }
             $images = $img_names;
         }
@@ -544,9 +546,7 @@ class OrderController extends Controller
             Toastr::warning(translate('all_image_delete_warning'));
             return back();
         }
-        if (Storage::disk('public')->exists('order/' . $request['name'])) {
-            Storage::disk('public')->delete('order/' . $request['name']);
-        }
+        Helpers::check_and_delete('order/' , $request['image']);
         foreach ($proof as $image) {
             if ($image != $request['name']) {
                 array_push($array, $image);
@@ -580,21 +580,29 @@ class OrderController extends Controller
                 // $dm->decrement('assigned_order_count');
                 $dm->save();
 
-                $data = [
-                    'title' => translate('messages.order_push_title'),
-                    'description' => translate('messages.you_are_unassigned_from_a_order'),
-                    'order_id' => '',
-                    'image' => '',
-                    'type' => 'assign'
-                ];
-                Helpers::send_push_notif_to_device($dm->fcm_token, $data);
 
-                DB::table('user_notifications')->insert([
-                    'data' => json_encode($data),
-                    'delivery_man_id' => $dm->id,
-                    'created_at' => now(),
-                    'updated_at' => now()
-                ]);
+            $deliveryman_push_notification_status=Helpers::getNotificationStatusData('deliveryman','deliveryman_order_assign_unassign');
+                if( $deliveryman_push_notification_status?->push_notification_status  == 'active' && $dm->fcm_token){
+
+                    $data = [
+                        'title' => translate('messages.order_push_title'),
+                        'description' => translate('messages.you_are_unassigned_from_a_order'),
+                        'order_id' => '',
+                        'image' => '',
+                        'type' => 'assign'
+                    ];
+                    Helpers::send_push_notif_to_device($dm->fcm_token, $data);
+
+                    DB::table('user_notifications')->insert([
+                        'data' => json_encode($data),
+                        'delivery_man_id' => $dm->id,
+                        'created_at' => now(),
+                        'updated_at' => now()
+                    ]);
+                }
+
+
+
             }
             $order->delivery_man_id = $delivery_man_id;
             $order->order_status = in_array($order->order_status, ['pending', 'confirmed']) ? 'accepted' : $order->order_status;
@@ -612,7 +620,9 @@ class OrderController extends Controller
             delivery_man_name:"{$order?->delivery_man?->f_name} {$order?->delivery_man?->l_name}");
 
             try {
-                if ($value && $order->customer) {
+                $customer_push_notification_status=Helpers::getNotificationStatusData('customer','customer_order_notification');
+
+                if ($customer_push_notification_status?->push_notification_status  == 'active' && $value && $order?->customer?->cm_firebase_token) {
                     $fcm_token = $order->customer->cm_firebase_token;
                     $data = [
                         'title' => translate('messages.order_push_title'),
@@ -631,20 +641,25 @@ class OrderController extends Controller
                         'updated_at' => now()
                     ]);
                 }
-                $data = [
-                    'title' => translate('messages.order_push_title'),
-                    'description' => translate('messages.you_are_assigned_to_a_order'),
-                    'order_id' => $order['id'],
-                    'image' => '',
-                    'type' => 'assign'
-                ];
-                Helpers::send_push_notif_to_device($deliveryman->fcm_token, $data);
-                DB::table('user_notifications')->insert([
-                    'data' => json_encode($data),
-                    'delivery_man_id' => $deliveryman->id,
-                    'created_at' => now(),
-                    'updated_at' => now()
-                ]);
+
+                $deliveryman_push_notification_status=Helpers::getNotificationStatusData('deliveryman','deliveryman_order_assign_unassign');
+                if( $deliveryman_push_notification_status?->push_notification_status  == 'active' && $deliveryman->fcm_token){
+                    $data = [
+                        'title' => translate('messages.order_push_title'),
+                        'description' => translate('messages.you_are_assigned_to_a_order'),
+                        'order_id' => $order['id'],
+                        'image' => '',
+                        'type' => 'assign'
+                    ];
+                    Helpers::send_push_notif_to_device($deliveryman->fcm_token, $data);
+                    DB::table('user_notifications')->insert([
+                        'data' => json_encode($data),
+                        'delivery_man_id' => $deliveryman->id,
+                        'created_at' => now(),
+                        'updated_at' => now()
+                    ]);
+                }
+
             } catch (\Exception $e) {
                 info($e->getMessage());
                 Toastr::warning(translate('messages.push_notification_faild'));

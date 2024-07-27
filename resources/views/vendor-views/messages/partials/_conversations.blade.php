@@ -6,7 +6,7 @@
             <div class="chat-user-info-img">
                 <img class="avatar-img onerror-image"
                      data-onerror-image="{{dynamicAsset('public/assets/admin/img/160x160/img1.jpg')}}"
-                     src="{{\App\CentralLogics\Helpers::onerror_image_helper($user['image'], dynamicStorage('storage/app/public/profile/').'/'.$user['image'], dynamicAsset('public/assets/admin/img/160x160/img1.jpg'), 'profile/')}}"
+                     src="{{$user['image_full_url']}}"
                      alt="Image Description">
             </div>
             <div class="chat-user-info-content">
@@ -23,12 +23,14 @@
                 @if($con->sender_id != $vendor->id)
                     <div class="pt1 pb-1">
                         <div class="conv-reply-1">
-                            <h6>{{$con->message}}</h6>
+                            <h5>{{$con->message}}</h5>
                             @if($con->file!=null)
-                            @foreach (json_decode($con->file) as $img)
-                            <br>
-                                <img class="w-100"
-                                src="{{dynamicStorage('storage/app/public/conversation').'/'.$img}}">
+                                @foreach ($con->file_full_url as $img)
+                                    <br>
+                                    <img class="w-100"
+
+                                         src="{{$img }}"
+                                    >
                                 @endforeach
                             @endif
                         </div>
@@ -40,12 +42,13 @@
                 @else
                     <div class="pt-1 pb-1">
                         <div class="conv-reply-2">
-                            <h6>{{$con->message}}</h6>
+                            <h5>{{$con->message}}</h5>
                             @if($con->file!=null)
-                            @foreach (json_decode($con->file) as $img)
-                            <br>
-                                <img class="w-100"
-                                src="{{dynamicStorage('storage/app/public/conversation').'/'.$img}}">
+                                @foreach ($con->file_full_url as $img)
+                                    <br>
+                                    <img class="w-100"
+                                         src="{{ $img }}"
+                                    >
                                 @endforeach
                             @endif
                         </div>
@@ -70,15 +73,36 @@
 
         <form action="javascript:" method="post" id="reply-form-vnd" enctype="multipart/form-data">
             @csrf
+{{--            <div class="quill-custom_">--}}
+{{--                <label for="msg" class="layer-msg">--}}
+
+{{--                </label>--}}
+{{--                <textarea class="form-control pr--180" id="msg" rows = "1" name="reply"></textarea>--}}
+{{--                <div id="coba">--}}
+{{--                </div>--}}
+{{--                <button type="submit"--}}
+{{--                        class="btn btn-primary btn--primary con-reply-btn">{{translate('messages.send')}}--}}
+{{--                </button>--}}
+{{--            </div>--}}
             <div class="quill-custom_">
                 <label for="msg" class="layer-msg">
 
                 </label>
                 <textarea class="form-control pr--180" id="msg" rows = "1" name="reply"></textarea>
-                <div id="coba">
+                <div class="upload__box">
+                    <div class="upload__img-wrap"></div>
+                    <div id="file-upload-filename" class="upload__file-wrap"></div>
+                    <div class="upload-btn-grp">
+                        <label class="m-0">
+                            <img src="{{dynamicAsset('/public/assets/admin/img/gallery.png')}}" alt="">
+                            <input type="file" name="images[]" class="d-none upload_input_images" data-max_length="2" accept="image/*"  multiple="" >
+                        </label>
+{{--                        <label class="m-0 emoji-icon-hidden">--}}
+{{--                            <img src="{{dynamicAsset('/public/assets/admin/img/emoji.png')}}" alt="">--}}
+{{--                        </label>--}}
+                    </div>
                 </div>
-                <button type="submit"
-                        class="btn btn-primary btn--primary con-reply-btn">{{translate('messages.send')}}
+                <button type="submit" class="btn btn-primary btn--primary con-reply-btn">{{translate('messages.send')}}
                 </button>
             </div>
         </form>
@@ -88,7 +112,88 @@
 <script src="{{dynamicAsset('public/assets/admin')}}/js/view-pages/common.js"></script>
 <script>
     "use strict";
+    $(document).ready(function() {
+        $("#msg").emojioneArea({
+            pickerPosition: "top",
+            tonesStyle: "bullet",
+            events: {
+                keyup: function (editor, event) {
+                    console.log(editor.html());
+                    console.log(this.getText());
+                }
+            }
+        });
+    });
 
+    $(document).ready(function () {
+        // Image Upload
+        jQuery(document).ready(function () {
+            ImgUpload();
+        });
+        function ImgUpload() {
+            let imgWrap = "";
+            let imgArray = [];
+
+            $('.upload_input_images').each(function () {
+                $(this).on('change', function (e) {
+                    imgWrap = $(this).closest('.upload__box').find('.upload__img-wrap');
+                    let maxLength = $(this).attr('data-max_length');
+
+                    let files = e.target.files;
+                    let filesArr = Array.prototype.slice.call(files);
+                    let iterator = 0;
+                    filesArr.forEach(function (f, index) {
+
+                        if (!f.type.match('image.*')) {
+                            return;
+                        }
+
+                        if (imgArray.length > maxLength) {
+                            return false
+                        } else {
+                            let len = 0;
+                            for (let i = 0; i < imgArray.length; i++) {
+                                if (imgArray[i] !== undefined) {
+                                    len++;
+                                }
+                            }
+                            if (len > maxLength) {
+                                return false;
+                            } else {
+                                imgArray.push(f);
+
+                                let reader = new FileReader();
+                                reader.onload = function (e) {
+                                    let html = "<div class='upload__img-box'><div style='background-image: url(" + e.target.result + ")' data-number='" + $(".upload__img-close").length + "' data-file='" + f.name + "' class='img-bg'><div class='upload__img-close'></div></div></div>";
+                                    imgWrap.append(html);
+                                    iterator++;
+                                }
+                                reader.readAsDataURL(f);
+                            }
+                        }
+                    });
+                });
+            });
+
+            $('body').on('click', ".upload__img-close", function (e) {
+                let file = $(this).parent().data("file");
+                for (let i = 0; i < imgArray.length; i++) {
+                    if (imgArray[i].name === file) {
+                        imgArray.splice(i, 1);
+                        break;
+                    }
+                }
+                $(this).parent().parent().remove();
+            });
+        }
+
+        //File Upload
+        $('#file-upload').change(function(e){
+            let fileName = e.target.files[0].name;
+            $('#file-upload-filename').text(fileName)
+        });
+
+    });
     $(document).ready(function () {
         $('.scroll-down').animate({
             scrollTop: $('#scroll-here').offset().top
@@ -146,6 +251,7 @@
                 data: formData,
                 cache: false,
                 contentType: false,
+                processData: false,
                 processData: false,
                 success: function(data) {
                     if (data.errors && data.errors.length > 0) {

@@ -67,7 +67,7 @@
                         @foreach(json_decode($language) as $lang)
                                 <div class="form-group d-none lang_form" id="{{$lang}}-form">
                                     <label class="input-label" for="exampleFormControlInput1">{{translate('messages.name')}} ({{strtoupper($lang)}})</label>
-                                    <input type="text" name="name[]" class="form-control" placeholder="{{ translate('Ex:_Sub_Category_Name') }}" maxlength="191" oninvalid="document.getElementById('en-link').click()">
+                                    <input type="text" name="name[]" class="form-control" placeholder="{{ translate('Ex:_Sub_Category_Name') }}" maxlength="191"  >
                                 </div>
                                 <input type="hidden" name="lang[]" value="{{$lang}}">
                         @endforeach

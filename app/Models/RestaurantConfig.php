@@ -14,6 +14,9 @@ class RestaurantConfig extends Model
         'restaurant_id'=>'integer',
         'customer_date_order_sratus'=>'boolean',
         'instant_order'=>'boolean',
+        'extra_packaging_status'=>'boolean',
+        'is_extra_packaging_active'=>'boolean',
+        'extra_packaging_amount'=>'float',
     ];
     protected $guarded = ['id'];
 

@@ -4,12 +4,7 @@
         <div class="chat-user-info w-100 d-flex align-items-center">
             <div class="chat-user-info-img">
                 <img class="avatar avatar-lg mr-3 onerror-image"
-                     src="{{ \App\CentralLogics\Helpers::onerror_image_helper(
-                            $food['image'] ?? '',
-                            dynamicStorage('storage/app/public/product').'/'.$food['image'] ?? '',
-                            dynamicAsset('public/assets/admin/img/100x100/food-default-image.png'),
-                            'product/'
-                        ) }}"
+                     src="{{ $food['image_full_url'] ?? dynamicAsset('public/assets/admin/img/100x100/food-default-image.png') }}"
                      data-onerror-image="{{dynamicAsset('public/assets/admin/img/100x100/food-default-image.png')}}" alt="{{$food->name}} image">
             </div>
             <div class="chat-user-info-content">

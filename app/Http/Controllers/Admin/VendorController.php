@@ -89,6 +89,13 @@ class VendorController extends Controller
             'delivery_time_type'=>'required',
         ], [
             'f_name.required' => translate('messages.first_name_is_required'),
+            'password.min_length' => translate('The password must be at least :min characters long'),
+            'password.mixed' => translate('The password must contain both uppercase and lowercase letters'),
+            'password.letters' => translate('The password must contain letters'),
+            'password.numbers' => translate('The password must contain numbers'),
+            'password.symbols' => translate('The password must contain symbols'),
+            'password.uncompromised' => translate('The password is compromised. Please choose a different one'),
+            'password.custom' => translate('The password cannot contain white spaces.'),
             // 'additional_documents.max' => translate('You_can_chose_max_5_files_only'),
         ]);
 
@@ -179,7 +186,7 @@ class VendorController extends Controller
                         $file_name = Helpers::upload('additional_documents/', $file->getClientOriginalExtension(), $file);
                         $additional[] = $file_name ;
                     }
-                    $additional_documents[$key] = $additional;
+                    $additional[] = ['file'=>$file_name, 'storage'=> Helpers::getDisk()];
                 }
             }
             $restaurant->additional_documents = json_encode($additional_documents);
@@ -271,7 +278,14 @@ class VendorController extends Controller
             'cover_photo' => 'nullable|max:2048',
             'delivery_time_type'=>'required',
         ], [
-            'f_name.required' => translate('messages.first_name_is_required')
+            'f_name.required' => translate('messages.first_name_is_required'),
+            'password.min_length' => translate('The password must be at least :min characters long'),
+            'password.mixed' => translate('The password must contain both uppercase and lowercase letters'),
+            'password.letters' => translate('The password must contain letters'),
+            'password.numbers' => translate('The password must contain numbers'),
+            'password.symbols' => translate('The password must contain symbols'),
+            'password.uncompromised' => translate('The password is compromised. Please choose a different one'),
+            'password.custom' => translate('The password cannot contain white spaces.'),
         ]);
 
 
@@ -424,9 +438,7 @@ class VendorController extends Controller
             Toastr::warning(translate('messages.you_can_not_delete_this_restaurant_please_add_a_new_restaurant_to_delete'));
             return back();
         }
-        if (Storage::disk('public')->exists('restaurant/' . $restaurant['logo'])) {
-            Storage::disk('public')->delete('restaurant/' . $restaurant['logo']);
-        }
+        Helpers::check_and_delete('restaurant/' , $restaurant['logo']);
         $vendor = Vendor::findOrFail($restaurant?->vendor?->id);
         $restaurant?->delete();
         $vendor?->userinfo?->delete();
@@ -773,6 +785,32 @@ class VendorController extends Controller
 
         return response()->json($data);
     }
+    public function get_restaurant_ratings(Request $request)
+    {
+
+        $data=['review' => 4.7, 'rating' => 2];
+
+        if(!$request->restaurant_id){
+            return response()->json($data);
+        }
+
+
+        $restaurant =  Restaurant::where('id',$request->restaurant_id)->first();
+        if(!$restaurant){
+            return response()->json($data);
+        }
+        $review = (int) $restaurant->reviews_comments()->count();
+        $reviewsInfo = $restaurant->reviews()
+        ->selectRaw('avg(reviews.rating) as average_rating, count(reviews.id) as total_reviews, food.restaurant_id')
+        ->groupBy('food.restaurant_id')
+        ->first();
+
+        $rating = (float)  $reviewsInfo?->average_rating ?? 0;
+
+        $data=['review' => round($review,1), 'rating' => round($rating,1)];
+
+        return response()->json($data);
+    }
 
     public function status(Restaurant $restaurant, Request $request)
     {
@@ -780,36 +818,14 @@ class VendorController extends Controller
         $restaurant?->save();
         $vendor = $restaurant?->vendor;
 
-//        try {
-//            if ($request->status == 0) {
-//                $vendor->auth_token = null;
-//                if (isset($vendor->fcm_token)) {
-//                    $data = [
-//                        'title' => translate('messages.suspended'),
-//                        'description' => translate('messages.your_account_has_been_suspended'),
-//                        'order_id' => '',
-//                        'image' => '',
-//                        'type' => 'block'
-//                    ];
-//                    Helpers::send_push_notif_to_device($vendor->fcm_token, $data);
-//                    DB::table('user_notifications')->insert([
-//                        'data' => json_encode($data),
-//                        'vendor_id' => $vendor->id,
-//                        'created_at' => now(),
-//                        'updated_at' => now()
-//                    ]);
-//                }
-//            }
-//        } catch (\Exception $e) {
-//            info($e->getMessage());
-//            Toastr::warning(translate('messages.push_notification_faild'));
-//        }
 
         try {
             if ($request->status == 0) {
                 $vendor->auth_token = null;
+                $push_notification_status=Helpers::getNotificationStatusData('restaurant','restaurant_account_block');
+                $reataurant_push_notification_status=Helpers::getRestaurantNotificationStatusData($restaurant->id,'restaurant_account_block');
 
-                if (isset($vendor->fcm_token)) {
+                if ($push_notification_status?->push_notification_status  == 'active' && $reataurant_push_notification_status?->push_notification_status  == 'active' &&  isset($vendor->firebase_token)) {
                     $data = [
                         'title' => translate('messages.suspended'),
                         'description' => translate('messages.your_account_has_been_suspended'),
@@ -817,7 +833,7 @@ class VendorController extends Controller
                         'image' => '',
                         'type' => 'block'
                     ];
-                    Helpers::send_push_notif_to_device($vendor->fcm_token, $data);
+                    Helpers::send_push_notif_to_device($vendor->firebase_token, $data);
                     DB::table('user_notifications')->insert([
                         'data' => json_encode($data),
                         'vendor_id' => $vendor->id,
@@ -829,12 +845,44 @@ class VendorController extends Controller
 
 
                 $mail_status = Helpers::get_mail_status('suspend_mail_status_restaurant');
-                if ( config('mail.status') && $mail_status == '1') {
+                $notification_status= Helpers::getNotificationStatusData('restaurant','restaurant_account_block');
+                $restaurant_notification_status= Helpers::getRestaurantNotificationStatusData($restaurant?->id,'restaurant_account_block');
+
+                if ( $notification_status?->mail_status == 'active' && $restaurant_notification_status?->mail_status == 'active' && config('mail.status') && $mail_status == '1') {
                     Mail::to( $restaurant?->vendor?->email)->send(new \App\Mail\VendorStatus('suspended', $restaurant?->vendor?->f_name.' '.$restaurant?->vendor?->l_name));
-                }
-            }else{
+                    }
+                    }else{
+
+
+                        $push_notification_status=Helpers::getNotificationStatusData('restaurant','restaurant_account_unblock');
+                        $reataurant_push_notification_status=Helpers::getRestaurantNotificationStatusData($restaurant?->id,'restaurant_account_unblock');
+
+                        if ($push_notification_status?->push_notification_status  == 'active' && $reataurant_push_notification_status?->push_notification_status  == 'active' &&  isset($vendor->firebase_token)) {
+                            $data = [
+                                'title' => translate('Account_Activation'),
+                                'description' => translate('messages.your_account_has_been_activated'),
+                                'order_id' => '',
+                                'image' => '',
+                                'type' => 'unblock'
+                            ];
+                            Helpers::send_push_notif_to_device($vendor->firebase_token, $data);
+                            DB::table('user_notifications')->insert([
+                                'data' => json_encode($data),
+                                'vendor_id' => $vendor->id,
+                                'created_at' => now(),
+                                'updated_at' => now()
+                            ]);
+                        }
+
+
+
+
+                $notification_status=null;
+                $notification_status= Helpers::getNotificationStatusData('restaurant','restaurant_account_unblock');
+                $restaurant_notification_status=null;
+                $restaurant_notification_status= Helpers::getRestaurantNotificationStatusData($restaurant?->id,'restaurant_account_unblock');
                 $mail_status = Helpers::get_mail_status('unsuspend_mail_status_restaurant');
-                if ( config('mail.status') && $mail_status == '1') {
+                if ( $notification_status?->mail_status == 'active' && $restaurant_notification_status?->mail_status == 'active'  && config('mail.status') && $mail_status == '1') {
                     Mail::to( $restaurant?->vendor?->email)->send(new \App\Mail\VendorStatus('unsuspended', $restaurant?->vendor?->f_name.' '.$restaurant?->vendor?->l_name));
                 }
             }
@@ -1026,13 +1074,17 @@ class VendorController extends Controller
         $restaurant?->save();
         try {
             if($status==1){
+                $notification_status= Helpers::getNotificationStatusData('restaurant','restaurant_registration_approval');
+
                 $mail_status = Helpers::get_mail_status('approve_mail_status_restaurant');
-                if ( config('mail.status') && $mail_status == '1') {
+                if ( $notification_status?->mail_status == 'active' && config('mail.status') && $mail_status == '1') {
                     Mail::to( $restaurant?->vendor?->email)->send(new \App\Mail\VendorSelfRegistration('approved', $restaurant?->vendor?->f_name.' '.$restaurant?->vendor?->l_name));
-                }
-            }else{
+                    }
+                    }else{
+                $notification_status=  null ;
+                $notification_status= Helpers::getNotificationStatusData('restaurant','restaurant_registration_deny');
                 $mail_status = Helpers::get_mail_status('deny_mail_status_restaurant');
-                if ( config('mail.status') && $mail_status == '1') {
+                if ( $notification_status?->mail_status == 'active' && config('mail.status') && $mail_status == '1') {
                     Mail::to( $restaurant?->vendor?->email)->send(new \App\Mail\VendorSelfRegistration('denied', $restaurant?->vendor?->f_name.' '.$restaurant?->vendor?->l_name));
                 }
             }
@@ -1116,7 +1168,33 @@ class VendorController extends Controller
             $withdraw->save();
             try
             {
-                if(config('mail.status') && Helpers::get_mail_status('withdraw_approve_mail_status_restaurant') == '1') {
+
+                $push_notification_status=Helpers::getNotificationStatusData('restaurant','restaurant_withdraw_approve');
+                $reataurant_push_notification_status=Helpers::getRestaurantNotificationStatusData($withdraw->vendor?->restaurants[0]?->id,'restaurant_withdraw_approve');
+
+                if( $push_notification_status?->push_notification_status  == 'active' && $reataurant_push_notification_status?->push_notification_status  == 'active' && $withdraw->vendor?->firebase_token ){
+
+                    $data = [
+                        'title' => translate('Withdraw_approved'),
+                        'description' => translate('Withdraw_request_approved_by_admin'),
+                        'order_id' => '',
+                        'image' => '',
+                        'type' => 'withdraw',
+                        'order_status' => '',
+                    ];
+                    Helpers::send_push_notif_to_device($withdraw->vendor->firebase_token, $data);
+                    DB::table('user_notifications')->insert([
+                        'data' => json_encode($data),
+                        'vendor_id' => $withdraw->vendor_id,
+                        'created_at' => now(),
+                        'updated_at' => now()
+                    ]);
+                }
+
+                $notification_status= Helpers::getNotificationStatusData('restaurant','restaurant_withdraw_approve');
+                $restaurant_notification_status= Helpers::getRestaurantNotificationStatusData($withdraw->vendor?->restaurants[0]?->id,'restaurant_withdraw_approve');
+
+                if($notification_status?->mail_status == 'active' && $restaurant_notification_status?->mail_status == 'active' &&  config('mail.status') && Helpers::get_mail_status('withdraw_approve_mail_status_restaurant') == '1') {
                     Mail::to($withdraw->vendor->email)->send(new \App\Mail\WithdrawRequestMail('approved',$withdraw));
                 }
             }
@@ -1129,7 +1207,33 @@ class VendorController extends Controller
         } else if ($request->approved == 2) {
             try
             {
-                if(config('mail.status') && Helpers::get_mail_status('withdraw_deny_mail_status_restaurant') == '1') {
+
+                $push_notification_status=Helpers::getNotificationStatusData('restaurant','restaurant_campaign_join_rejaction');
+                $reataurant_push_notification_status=Helpers::getRestaurantNotificationStatusData($withdraw->vendor?->restaurants[0]?->id,'restaurant_campaign_join_rejaction');
+
+                if( $push_notification_status?->push_notification_status  == 'active' && $reataurant_push_notification_status?->push_notification_status  == 'active' && $withdraw->vendor?->firebase_token ){
+
+                    $data = [
+                        'title' => translate('Withdraw_rejected'),
+                        'description' => translate('Withdraw_request_rejected_by_admin'),
+                        'order_id' => '',
+                        'image' => '',
+                        'type' => 'withdraw',
+                        'order_status' => '',
+                    ];
+                    Helpers::send_push_notif_to_device($withdraw->vendor->firebase_token, $data);
+                    DB::table('user_notifications')->insert([
+                        'data' => json_encode($data),
+                        'vendor_id' => $withdraw->vendor_id,
+                        'created_at' => now(),
+                        'updated_at' => now()
+                    ]);
+                }
+
+                $notification_status= Helpers::getNotificationStatusData('restaurant','restaurant_withdraw_rejaction');
+                $restaurant_notification_status= Helpers::getRestaurantNotificationStatusData($withdraw->vendor?->restaurants[0]?->id,'restaurant_withdraw_rejaction');
+
+                if( $notification_status?->mail_status == 'active' && $restaurant_notification_status?->mail_status == 'active' && config('mail.status') && Helpers::get_mail_status('withdraw_deny_mail_status_restaurant') == '1') {
                     Mail::to($withdraw->vendor->email)->send(new \App\Mail\WithdrawRequestMail('denied',$withdraw));
                 }
             }
@@ -1354,7 +1458,12 @@ class VendorController extends Controller
                 DB::beginTransaction();
                     foreach($chunk_restaurants as $key=> $chunk_restaurant){
                     DB::table('vendors')->insert($chunk_vendors[$key]);
-                    DB::table('restaurants')->insert($chunk_restaurant);
+//                    DB::table('restaurants')->insert($chunk_restaurant);
+                        foreach ($chunk_restaurant as $restaurant) {
+                            $insertedId = DB::table('restaurants')->insertGetId($restaurant);
+                            Helpers::updateStorageTable(get_class(new Restaurant), $insertedId, $restaurant['logo']);
+                            Helpers::updateStorageTable(get_class(new Restaurant), $insertedId, $restaurant['cover_photo']);
+                        }
                 }
 
                 DB::table('restaurant_schedule')->insert(array_merge(...$data));
@@ -1485,7 +1594,18 @@ class VendorController extends Controller
                 DB::beginTransaction();
                 foreach($chunk_restaurants as $key=> $chunk_restaurant){
                     DB::table('vendors')->upsert($chunk_vendors[$key],['id','email','phone','password'],['f_name','l_name']);
-                    DB::table('restaurants')->upsert($chunk_restaurant,['id','email','phone','vendor_id',],['name','logo','cover_photo','latitude','longitude','address','zone_id','minimum_order','comission','tax','delivery_time','minimum_shipping_charge','per_km_shipping_charge','maximum_shipping_charge','schedule_order','status','self_delivery_system','veg','non_veg','free_delivery','take_away','delivery','reviews_section','pos_system','active','restaurant_model','food_section','order_subscription_active']);
+//                    DB::table('restaurants')->upsert($chunk_restaurant,['id','email','phone','vendor_id',],['name','logo','cover_photo','latitude','longitude','address','zone_id','minimum_order','comission','tax','delivery_time','minimum_shipping_charge','per_km_shipping_charge','maximum_shipping_charge','schedule_order','status','self_delivery_system','veg','non_veg','free_delivery','take_away','delivery','reviews_section','pos_system','active','restaurant_model','food_section','order_subscription_active']);
+                    foreach ($chunk_restaurant as $restaurant) {
+                        if (isset($restaurant['id']) && DB::table('food')->where('id', $restaurant['id'])->exists()) {
+                            DB::table('restaurants')->where('id', $restaurant['id'])->update($restaurant);
+                            Helpers::updateStorageTable(get_class(new Restaurant), $restaurant['id'], $restaurant['logo']);
+                            Helpers::updateStorageTable(get_class(new Restaurant), $restaurant['id'], $restaurant['cover_photo']);
+                        } else {
+                            $insertedId = DB::table('restaurants')->insertGetId($restaurant);
+                            Helpers::updateStorageTable(get_class(new Restaurant), $insertedId, $restaurant['logo']);
+                            Helpers::updateStorageTable(get_class(new Restaurant), $insertedId, $restaurant['cover_photo']);
+                        }
+                    }
                 }
                 DB::commit();
             } catch (\Exception $e) {

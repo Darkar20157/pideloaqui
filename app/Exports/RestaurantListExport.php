@@ -4,19 +4,20 @@ namespace App\Exports;
 
 
 use Illuminate\Contracts\View\View;
-use Maatwebsite\Excel\Concerns\Exportable;
 use Maatwebsite\Excel\Concerns\FromView;
 use Maatwebsite\Excel\Events\AfterSheet;
+use Maatwebsite\Excel\Concerns\Exportable;
 use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithStyles;
+use PhpOffice\PhpSpreadsheet\Style\Border;
 use Maatwebsite\Excel\Concerns\WithHeadings;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
 use Maatwebsite\Excel\Concerns\WithColumnWidths;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
-use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
-use PhpOffice\PhpSpreadsheet\Style\Border;
-use PhpOffice\PhpSpreadsheet\Style\Alignment;
-
+use PhpOffice\PhpSpreadsheet\Worksheet\MemoryDrawing;
+use App\CentralLogics\Helpers;
 
 class RestaurantListExport implements  FromView, ShouldAutoSize, WithStyles,WithColumnWidths ,WithHeadings, WithEvents
 {
@@ -86,17 +87,30 @@ class RestaurantListExport implements  FromView, ShouldAutoSize, WithStyles,With
 
     public function setImage($workSheet) {
         $this->data['data']->each(function($item,$index) use($workSheet) {
-            $drawing = new Drawing();
+            $tempImagePath = null;
+            if(!is_file(storage_path('app/public/restaurant/'.$item->logo) )){
+                $tempImagePath = Helpers::getTemporaryImageForExport($item->logo_full_url);
+                $imagePath = Helpers::getImageForExport($item->logo_full_url);
+
+                $drawing = new MemoryDrawing();
+                $drawing->setImageResource($imagePath);
+            }else{
+                $drawing = new Drawing();
+                $drawing->setPath(is_file(storage_path('app/public/restaurant/'.$item->logo))?storage_path('app/public/restaurant/'.$item->logo):public_path('/assets/admin/img/160x160/img2.jpg'));
+
+            }
             $drawing->setName($item->name);
             $drawing->setDescription($item->name);
-            $drawing->setPath(is_file(storage_path('app/public/restaurant/'.$item->logo))?storage_path('app/public/restaurant/'.$item->logo):public_path('/assets/admin/img/160x160/img2.jpg'));
             $drawing->setHeight(25);
             $index+=5;
             $drawing->setCoordinates("C$index");
-            $drawing->setOffsetX(3);
+            $drawing->setOffsetX(80);
             $drawing->setOffsetY(4);
             $drawing->setResizeProportional(true);
             $drawing->setWorksheet($workSheet);
+            if($tempImagePath){
+                imagedestroy($tempImagePath);
+            }
         });
     }
 

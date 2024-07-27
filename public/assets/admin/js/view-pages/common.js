@@ -126,6 +126,8 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 
+
+
 $(document).ready(function() {
     var $imageBox = undefined;
     $("#image-input, #image-input2, .image-input").on('change', function(e) {
@@ -383,14 +385,6 @@ $(document).on('click', '.confirm-Toggle', function () {
         }
     }
 
-    if(toggle_id === 'customer_loyalty_point'){
-        if ($("#customer_loyalty_point").is(':checked')) {
-            $(".loyalty-point-div").removeClass('d-none');
-        } else {
-            $(".loyalty-point-div").addClass('d-none');
-        }
-    }
-
     if(toggle_id === 'app_url_android_status'){
         if ($("#app_url_android_status").is(':checked')) {
             $("#app_url_android").removeAttr('readonly');
@@ -410,6 +404,66 @@ $(document).on('click', '.confirm-Toggle', function () {
             $("#web_app_url").removeAttr('readonly');
         } else {
             $("#web_app_url").attr('readonly', true);
+        }
+    }
+    if (toggle_id === "new_customer_discount_status") {
+        if ($("#new_customer_discount_status").is(":checked")) {
+            $("#new_customer_discount_amount").removeAttr("readonly").attr("required", true);
+            $("#new_customer_discount_amount_validity").removeAttr("readonly").attr("required", true);
+            $("#new_customer_discount_amount_type").removeAttr("disabled").attr("required", true);
+            $("#new_customer_discount_validity_type").removeAttr("disabled").attr("required", true);
+        } else {
+            $("#new_customer_discount_amount").attr("readonly", true).removeAttr("required");
+            $("#new_customer_discount_amount_validity").attr("readonly", true).removeAttr("required");
+            $("#new_customer_discount_amount_type").attr("disabled", true).removeAttr("required");
+            $("#new_customer_discount_validity_type").attr("disabled", true).removeAttr("required");
+        }
+    }
+    if (toggle_id === "customer_loyalty_point") {
+        if ($("#customer_loyalty_point").is(":checked")) {
+            $("#loyalty_point_exchange_rate").removeAttr("readonly").attr("required", true);
+            $("#item_purchase_point").removeAttr("readonly").attr("required", true);
+            $("#minimum_transfer_point").removeAttr("readonly").attr("required", true);
+
+        } else {
+            $("#loyalty_point_exchange_rate").attr("readonly", true).removeAttr("required");
+            $("#item_purchase_point").attr("readonly", true).removeAttr("required");
+            $("#minimum_transfer_point").attr("readonly", true).removeAttr("required");
+
+        }
+    }
+    if (toggle_id === "wallet_status") {
+        if ($("#wallet_status").is(":checked")) {
+            $(".text-muted").removeClass("text-muted");
+            $("#new_customer_discount_status").removeAttr("disabled");
+            $("#add_fund_status").removeAttr("disabled");
+            $("#ref_earning_status").removeAttr("disabled");
+            $("#refund_to_wallet").removeAttr("disabled");
+
+            $("#ref_earning_exchange_rate").removeAttr("readonly").attr("required", true);
+            $("#new_customer_discount_amount").removeAttr("readonly").attr("required", true);
+            $("#new_customer_discount_amount_validity").removeAttr("readonly").attr("required", true);
+            $("#new_customer_discount_amount_type").removeAttr("disabled").attr("required", true);
+            $("#new_customer_discount_validity_type").removeAttr("disabled").attr("required", true);
+        } else {
+            $("#new_customer_discount_status").attr("disabled", true).parent("label").addClass("text-muted");
+            $("#add_fund_status").attr("disabled", true).parent("label").addClass("text-muted");
+            $("#ref_earning_status").attr("disabled", true).parent("label").addClass("text-muted");
+            $("#refund_to_wallet").attr("disabled", true).parent("label").addClass("text-muted");
+
+            $("#ref_earning_exchange_rate").attr("readonly", true).removeAttr("required");
+            $("#new_customer_discount_amount").attr("readonly", true).removeAttr("required");
+            $("#new_customer_discount_amount_validity").attr("readonly", true).removeAttr("required");
+            $("#new_customer_discount_amount_type").attr("disabled", true).removeAttr("required");
+            $("#new_customer_discount_validity_type").attr("disabled", true).removeAttr("required");
+        }
+    }
+
+    if (toggle_id === "extra_packaging_status") {
+        if ($("#extra_packaging_status").is(":checked")) {
+            $("#extra_packaging_amount").removeAttr("readonly").attr("required", true);
+        } else {
+            $("#extra_packaging_amount").attr("readonly", true).removeAttr("required");
         }
     }
 });
@@ -447,4 +501,85 @@ $(document).on('click', '.print-Div', function () {
     }
 
 
+});
+
+
+document.addEventListener('DOMContentLoaded', function () {
+    let modalData = document.querySelectorAll('.new-dynamic-submit-model');
+    modalData.forEach(function (data) {
+        data.addEventListener('click', function (event) {
+            event.preventDefault();
+            const dataId = data.getAttribute('data-id');
+            const title = data.getAttribute('data-title');
+            const text = data.getAttribute('data-text');
+            const image = data.getAttribute('data-image');
+            const type = data.getAttribute('data-type');
+            const btn_class = data.getAttribute('data-btn_class');
+            const cancel_btn_text = data.getAttribute('data-2nd_btn_text');
+
+            $('#get-text-note').val('');
+            $('#modal-title').empty().append(title);
+            $('#modal-text').empty().append(text);
+            $('#image-src').attr('src',image);
+            $('#new-dynamic-submit-model').modal('show');
+            $('#new-dynamic-ok-button').addClass('btn-outline-danger');
+            $('#new-dynamic-ok-button-show').addClass('d-none');
+            $('#hide-buttons').addClass('d-none');
+
+
+            if(type === 'delete'){
+                $('#new-dynamic-ok-button').attr('toggle-ok-button', dataId);
+                $('#note-data').addClass('d-none');
+                $('#hide-buttons').removeClass('d-none');
+                }
+            else if(type === 'pause'){
+                $('#new-dynamic-ok-button').attr('toggle-ok-button', dataId);
+                $('#hide-buttons').removeClass('d-none');
+                $('#note-data').removeClass('d-none');
+                $('#get-text-note').attr('get-text-note-id', dataId);
+                }
+            else if(type === 'deny'){
+                $('#new-dynamic-ok-button').attr('toggle-ok-button', dataId);
+                $('#hide-buttons').removeClass('d-none');
+                $('#note-data').removeClass('d-none');
+                $('#get-text-note').attr('get-text-note-id', dataId);
+                $('#new-dynamic-ok-button').removeClass('btn-outline-danger').addClass(btn_class);
+                $('#cancel_btn_text').text(cancel_btn_text);
+
+                }
+            else if(type === 'resume'){
+                $('#new-dynamic-ok-button').attr('toggle-ok-button', dataId);
+                $('#hide-buttons').removeClass('d-none');
+                $('#note-data').addClass('d-none');
+                $('#new-dynamic-ok-button').removeClass('btn-outline-danger').addClass(btn_class);
+                }
+            else{
+                $('#note-data').addClass('d-none');
+                $('#hide-buttons').addClass('d-none');
+                $('#new-dynamic-ok-button-show').removeClass('d-none');
+            }
+        });
+    });
+});
+
+$(document).on('click', '.confirm-model', function () {
+    let Status_toggle = $('#new-dynamic-ok-button').attr('toggle-ok-button');
+    $('#'+Status_toggle+'_form').submit();
+});
+$(document).on('keyup', '#get-text-note', function () {
+    let text_data = $('#get-text-note').attr('get-text-note-id');
+    $('#'+text_data+'_note').val($(this).val());
+});
+
+
+document.addEventListener("DOMContentLoaded", function () {
+    const activeLink = document.querySelector(".nav-link.active");
+
+    if (activeLink) {
+        activeLink.scrollIntoView({
+            behavior: "smooth",
+            block: "nearest",
+            inline: "center",
+        });
+    }
 });

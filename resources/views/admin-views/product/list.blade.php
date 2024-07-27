@@ -253,23 +253,47 @@
 
                             <tbody id="set-rows">
                                 @foreach ($foods as $key => $food)
+                                @php( $stock_out = null)
+
                                     <tr>
                                         <td>{{ $key + $foods->firstItem() }}</td>
                                         <td>
                                             <a class="media align-items-center"
                                                 href="{{ route('admin.food.view', [$food['id']]) }}">
                                                 <img class="avatar avatar-lg mr-3 onerror-image"
-                                                     src="{{ \App\CentralLogics\Helpers::onerror_image_helper(
-                                                            $food['image'] ?? '',
-                                                            dynamicStorage('storage/app/public/product').'/'.$food['image'] ?? '',
-                                                            dynamicAsset('public/assets/admin/img/100x100/food-default-image.png'),
-                                                            'product/'
-                                                        ) }}"
-                                                     data-onerror-image="{{dynamicAsset('public/assets/admin/img/100x100/food-default-image.png')}}"
+                                                     src="{{ $food['image_full_url'] }}"
                                                      alt="{{ $food->name }} image">
                                                 <div class="media-body">
-                                                    <h5 class="text-hover-primary mb-0">
-                                                        {{ Str::limit($food['name'], 20, '...') }}</h5>
+                                                    <h5 class="text-hover-primary mb-0">{{ Str::limit($food['name'], 20, '...') }}
+                                                        @if ($food->stock_type != 'unlimited' &&  $food->item_stock <= 0 )
+                                                        @php( $stock_out = true)
+
+                                                        <span class="badge badge-soft-warning badge-pill font-medium">{{ translate('Out Of Stock') }}</span>
+                                                        <span class="input-label-secondary" data-toggle="tooltip" data-placement="right" data-original-title="{{translate('messages.Your_main_stock_is_out_of_stock.')}}"><img src="{{dynamicAsset('public/assets/admin/img/info-circle.svg')}}" alt="public/img"></span>
+                                                        @else
+
+                                                        <?php
+
+                                                            if(isset($food->variations)){
+                                                                foreach (json_decode($food->variations,true) as $item) {
+                                                                    if (isset($item['values']) && is_array($item['values'])) {
+                                                                        foreach ($item['values'] as $value) {
+                                                                            if(isset($value['stock_type']) && $value['stock_type'] != 'unlimited' &&   $value['current_stock'] <= 0){
+                                                                                $stock_out = true;
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                            ?>
+                                                            @if($stock_out)
+                                                            {{-- <span class="badge badge-soft-warning badge-pill font-medium">{{ translate('Out Of Stock') }}</span> --}}
+                                                            <span class="input-label-secondary" data-toggle="tooltip" data-placement="right" data-original-title="{{translate('messages.One_or_more_variations_are_out_of_stock.')}}"><img src="{{dynamicAsset('public/assets/admin/img/info-circle.svg')}}" alt="public/img"></span>
+
+                                                            @endif
+                                                        @endif
+
+                                                    </h5>
                                                 </div>
                                             </a>
                                         </td>
@@ -301,16 +325,22 @@
                                         </td>
                                         <td>
                                             <div class="btn--container justify-content-center">
-                                                <a class="btn btn-sm btn--primary btn-outline-primary action-btn"
-                                                    href="{{ route('admin.food.edit', [$food['id']]) }}"
-                                                    title="{{ translate('messages.edit_food') }}"><i
-                                                        class="tio-edit"></i>
-                                                </a>
-                                                <a class="btn btn-sm btn--warning btn-outline-warning action-btn form-alert" href="javascript:"
-                                                    data-id="food-{{ $food['id'] }}" data-message="{{ translate('messages.Want_to_delete_this_item') }}"
-                                                    title="{{ translate('messages.delete_food') }}"><i
-                                                        class="tio-delete-outlined"></i>
-                                                </a>
+                                                @if($stock_out)
+                                                    <a class="btn btn-sm btn--primary btn-outline-primary action-btn " href="#update-stock{{ $food['id'] }}" title="{{ translate('update_stock') }}" data-toggle="modal">
+                                                        <i class="tio-autorenew"></i>
+                                                    </a>
+                                                @endif
+                                                    <a class="btn btn-sm btn--primary btn-outline-primary action-btn"
+                                                        href="{{ route('admin.food.edit', [$food['id']]) }}"
+                                                        title="{{ translate('messages.edit_food') }}"><i
+                                                            class="tio-edit"></i>
+                                                    </a>
+                                                    <a class="btn btn-sm btn--warning btn-outline-warning action-btn form-alert" href="javascript:"
+                                                        data-id="food-{{ $food['id'] }}" data-message="{{ translate('messages.Want_to_delete_this_item') }}"
+                                                        title="{{ translate('messages.delete_food') }}"><i
+                                                            class="tio-delete-outlined"></i>
+                                                    </a>
+
                                             </div>
                                             <form action="{{ route('admin.food.delete', [$food['id']]) }}" method="post"
                                                 id="food-{{ $food['id'] }}">
@@ -318,6 +348,115 @@
                                             </form>
                                         </td>
                                     </tr>
+
+
+
+                                    {{-- Stock Update Modal --}}
+                                    <div class="modal fade" id="update-stock{{ $food['id'] }}">
+                                        <div class="modal-dialog max-w-450px">
+                                            <div class="modal-content">
+                                                <div class="modal-header px-2 pt-2">
+                                                    <div></div>
+                                                    <button type="button" data-dismiss="modal" class="btn p-0">
+                                                        <i class="tio-clear fs-24"></i>
+                                                    </button>
+                                                </div>
+                                                <div class="modal-body pt-2">
+                                                    <div class="table-rest-info mb-30 align-items-start">
+                                                        <img src="{{ $food['image_full_url'] }}" class="w-80px">
+                                                        <div class="info fs-12 text-body">
+                                                            <span class="d-block text-title fs-15 mb-2">
+                                                            {{ $food['name'] }}
+                                                                <span class="rating">
+                                                                    ({{ round($food->avg_rating,2) }}/5)
+                                                                </span>
+                                                                @if ($food->veg == 1)
+
+                                                                <span class="badge badge-soft-success rounded-pill">{{ translate('Veg') }}</span>
+                                                                @else
+                                                                <span class="badge badge-soft-danger rounded-pill">{{ translate('Non_Veg') }}</span>
+                                                                @endif
+                                                            </span>
+                                                            <div>
+                                                                {{ translate('Price') }} : <span class="font-medium">{{ \App\CentralLogics\Helpers::format_currency($food['price'])  }}</span> | {{ translate('Discount') }} : <span class="font-medium"> {{ $food->discount_type == 'percent' ?  $food->discount . ' %' :  \App\CentralLogics\Helpers::format_currency($food['discount'])   }}</span>
+                                                            </div>
+                                                            <div>
+                                                                {{ translate('Addons') }}: <span class="font-medium">
+                                                                    @forelse(\App\Models\AddOn::withOutGlobalScope(App\Scopes\RestaurantScope::class)->whereIn('id',json_decode($food['add_ons'],true))->get('name') as $addon)
+                                                                    {{$addon['name']  }}{{ !$loop->last ? ',' : '.' }}
+                                                                    @empty
+                                                                    {{ translate('No_addons_found.') }}
+                                                                    @endforelse
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <form action="{{ route('admin.food.updateStock') }}" method="POST" >
+                                                        @method("post")
+                                                        @csrf
+                                                        <input type="hidden" value="{{ $food->id }}"  name="food_id">
+                                                        <div class="__bg-F8F9FC-card text-left">
+                                                            <label class="input-label">
+                                                                {{ translate('Main_Stock') }}
+                                                            </label>
+                                                            <input type="number" step="1" name="item_stock" value="{{ $food->item_stock }}" required min="1" max="99999999999" class="form-control" placeholder="Ex : 50">
+                                                        </div>
+
+                                                        <div class="__bg-F8F9FC-card text-left">
+                                                    @if (isset($food->variations) && count(json_decode($food->variations,true)) >0 )
+
+                                                            <div class="row g-2">
+                                                                <div class="col-6">
+                                                                    <h5>{{ translate('Variation') }}</h5>
+                                                                </div>
+                                                                <div class="col-6">
+                                                                    <h5>{{ translate('Stock') }}</h5>
+                                                                </div>
+                                                            </div>
+                                                    @foreach (json_decode($food->variations,true) as $item)
+                                                        <div class="row g-1 mb-3">
+
+                                                            <div class="col-12">
+                                                                <h6 class="m-0">
+                                                                    {{ $item['name'] }}
+                                                                </h6>
+                                                            </div>
+
+                                                            @if (isset($item['values']) && is_array($item['values']))
+                                                                @foreach ($item['values'] as $value)
+                                                                    @if (isset($value['option_id']))
+                                                                    <div class="col-12">
+                                                                        <div class="row g-1 align-items-center">
+                                                                            <span class="col-6">{{  $value['label']  }} :</span>
+                                                                            <div class="col-6">
+                                                                                <input class="form-control" required value="{{ $value['current_stock'] }}" type="number" min="1" step="1" max="999999999" name="option[{{ $value['option_id'] }}]"  placeholder="Ex : 50">
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    @endif
+                                                                @endforeach
+
+                                                            @endif
+                                                        </div>
+                                                    @endforeach
+                                                @endif
+
+
+
+
+
+                                                        </div>
+
+                                                        <div class="d-flex justify-content-end gap-3 mt-3">
+                                                            <button type="submit" class="btn btn--primary">{{ translate('Update') }}</button>
+                                                        </div>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
                                 @endforeach
                             </tbody>
                         </table>
@@ -343,6 +482,19 @@
             </div>
         </div>
     </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 @endsection
 

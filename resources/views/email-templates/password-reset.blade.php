@@ -116,7 +116,7 @@
   <div style="width:595px;margin:auto; background-color:white;
               padding-top:40px;padding-bottom:40px;border-radius: 3px; text-align:center; ">
 
-      <img src="{{asset('/storage/app/public/business/'.$logo)}}" alt="{{$company_name}}" style="height: 15px; width:auto;">
+      <img src="{{dynamicStorage('/storage/app/public/business/'.$logo)}}" alt="{{$company_name}}" style="height: 15px; width:auto;">
 
       <div class="congrats-box">
           <span style="font-weight: 700;font-size: 25px;line-height: 135.5%;text-align: center;color: #727272; display:block;">{{translate('Password_reset_token')}}</span>

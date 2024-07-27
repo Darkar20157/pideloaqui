@@ -2,6 +2,7 @@
 
 namespace App\Exports;
 
+use App\CentralLogics\Helpers;
 use Illuminate\Contracts\View\View;
 use Maatwebsite\Excel\Concerns\FromView;
 use Maatwebsite\Excel\Events\AfterSheet;
@@ -12,9 +13,10 @@ use PhpOffice\PhpSpreadsheet\Style\Border;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
-use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
 use Maatwebsite\Excel\Concerns\WithColumnWidths;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
+use PhpOffice\PhpSpreadsheet\Worksheet\MemoryDrawing;
 
 class PushNotificationExport implements  FromView, ShouldAutoSize, WithStyles ,WithHeadings, WithEvents, WithColumnWidths
 {
@@ -78,19 +80,28 @@ class PushNotificationExport implements  FromView, ShouldAutoSize, WithStyles ,W
 
     public function setImage($workSheet) {
         $this->data['data']->each(function($item,$index) use($workSheet) {
-            $drawing = new Drawing();
-            // $drawing->setName($item->title);
-            // $drawing->setDescription($item->title);
-            $drawing->setPath(is_file(storage_path('app/public/notification/'.$item->image))?storage_path('app/public/notification/'.$item->image):public_path('/assets/admin/img/900x400/img1.jpg'));
+            $tempImagePath = null;
+            if(!is_file(storage_path('app/public/notification/'.$item->image) )){
+                $tempImagePath = Helpers::getTemporaryImageForExport($item->image_full_url);
+                $imagePath = Helpers::getImageForExport($item->image_full_url);
+
+                $drawing = new MemoryDrawing();
+                $drawing->setImageResource($imagePath);
+            }else{
+                $drawing = new Drawing();
+                $drawing->setPath(is_file(storage_path('app/public/notification/'.$item->image))?storage_path('app/public/notification/'.$item->image):public_path('/assets/admin/img/160x160/img1.jpg'));
+            }
+
             $drawing->setHeight(25);
-            // $drawing->setWidth(30);
             $index+=4;
             $drawing->setCoordinates("B$index");
             $drawing->setOffsetX(3);
             $drawing->setOffsetY(4);
             $drawing->setResizeProportional(true);
             $drawing->setWorksheet($workSheet);
-
+            if($tempImagePath){
+                imagedestroy($tempImagePath);
+            }
         });
     }
 

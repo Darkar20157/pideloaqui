@@ -143,12 +143,7 @@
                                         <a href="{{route('admin.restaurant.view',  ['restaurant'=>$dm->id, 'tab'=> 'pending-list'])}}" alt="view restaurant" class="table-rest-info">
                                             <img  class="onerror-image" data-onerror-image="{{dynamicAsset('public/assets/admin/img/100x100/food-default-image.png')}}"
 
-                                                  src="{{ \App\CentralLogics\Helpers::onerror_image_helper(
-                                                $dm['logo'] ?? '',
-                                                dynamicStorage('storage/app/public/restaurant').'/'.$dm['logo'] ?? '',
-                                                dynamicAsset('public/assets/admin/img/100x100/food-default-image.png'),
-                                                'restaurant/'
-                                            ) }}">
+                                                  src="{{ $dm['logo_full_url'] ?? dynamicAsset('public/assets/admin/img/100x100/food-default-image.png') }}">
                                             <div class="info">
                                                 <span class="d-block text-body">
                                                     {{Str::limit($dm->name,20,'...')}}<br>

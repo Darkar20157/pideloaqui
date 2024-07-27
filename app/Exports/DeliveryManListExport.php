@@ -3,21 +3,23 @@
 namespace App\Exports;
 
 
+use App\CentralLogics\Helpers;
 use Illuminate\Contracts\View\View;
-use Maatwebsite\Excel\Concerns\Exportable;
 use Maatwebsite\Excel\Concerns\FromView;
 use Maatwebsite\Excel\Events\AfterSheet;
+use Maatwebsite\Excel\Concerns\Exportable;
 use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithStyles;
+use PhpOffice\PhpSpreadsheet\Style\Border;
 use Maatwebsite\Excel\Concerns\WithHeadings;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
 use Maatwebsite\Excel\Concerns\WithColumnWidths;
-use Maatwebsite\Excel\Concerns\WithColumnFormatting;
 use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
-use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
-use PhpOffice\PhpSpreadsheet\Style\Border;
-use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use Maatwebsite\Excel\Concerns\WithColumnFormatting;
+use PhpOffice\PhpSpreadsheet\Worksheet\MemoryDrawing;
 
 class DeliveryManListExport implements  FromView, ShouldAutoSize, WithStyles,WithHeadings,WithColumnWidths ,WithEvents,WithColumnFormatting
 {
@@ -94,10 +96,18 @@ class DeliveryManListExport implements  FromView, ShouldAutoSize, WithStyles,Wit
 
     public function setImage($workSheet) {
         $this->data['delivery_men']->each(function($item,$index) use($workSheet) {
-            $drawing = new Drawing();
-            $drawing->setName($item->f_name);
-            $drawing->setDescription($item->f_name);
-            $drawing->setPath(is_file(storage_path('app/public/delivery-man/'.$item->image))?storage_path('app/public/delivery-man/'.$item->image):public_path('/assets/admin/img/160x160/img2.jpg'));
+            $tempImagePath = null;
+            if(!is_file(storage_path('app/public/delivery-man/'.$item->image) )){
+                $tempImagePath = Helpers::getTemporaryImageForExport($item->image_full_url);
+                $imagePath = Helpers::getImageForExport($item->image_full_url);
+
+                $drawing = new MemoryDrawing();
+                $drawing->setImageResource($imagePath);
+            }else{
+                $drawing = new Drawing();
+                $drawing->setPath(is_file(storage_path('app/public/delivery-man/'.$item->image))?storage_path('app/public/delivery-man/'.$item->image):public_path('/assets/admin/img/160x160/img2.jpg'));
+            }
+
             $drawing->setHeight(25);
             $index+=5;
             $drawing->setCoordinates("B$index");
@@ -105,6 +115,9 @@ class DeliveryManListExport implements  FromView, ShouldAutoSize, WithStyles,Wit
             $drawing->setOffsetY(4);
             $drawing->setResizeProportional(true);
             $drawing->setWorksheet($workSheet);
+            if($tempImagePath){
+                imagedestroy($tempImagePath);
+            }
         });
     }
 

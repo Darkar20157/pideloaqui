@@ -111,7 +111,84 @@
                                         </label>
                                     </div>
                                 </div>
+                                <div class="col-lg-4 col-sm-6">
+                                    @php($restaurant_review_reply = \App\Models\BusinessSetting::where('key', 'restaurant_review_reply')->first())
+                                    @php($restaurant_review_reply = $restaurant_review_reply ? $restaurant_review_reply->value : 0)
+                                    <div class="form-group mb-0">
 
+                                        <label
+                                            class="toggle-switch h--45px toggle-switch-sm d-flex justify-content-between border rounded px-3 py-0 form-control">
+                                            <span class="pr-1 d-flex align-items-center switch--label">
+                                                <span class="line--limit-1">
+                                                    {{ translate('Restaurant Can Reply Review') }}
+                                                </span>
+                                                <span class="form-label-secondary text-danger d-flex"
+                                                    data-toggle="tooltip" data-placement="right"
+                                                    data-original-title="{{ translate('If_enabled,_a_restaurant_can_reply_to_a_review') }}"><img
+                                                        src="{{ dynamicAsset('/public/assets/admin/img/info-circle.svg') }}"
+                                                        alt="{{ translate('messages.restaurant_review_reply') }}">
+                                                </span>
+                                            </span>
+                                            <input type="checkbox"
+
+                                            data-id="restaurant_review_reply1"
+                                            data-type="toggle"
+                                            data-image-on="{{ dynamicAsset('/public/assets/admin/img/modal/store-self-reg-on.png') }}"
+                                            data-image-off="{{ dynamicAsset('/public/assets/admin/img/modal/store-self-reg-off.png') }}"
+                                            data-title-on="{{ translate('Want_to_enable') }} <strong>{{ translate('restaurant Reply Review') }}</strong> ?"
+                                            data-title-off="{{ translate('Want_to_disable') }} <strong>{{ translate('restaurant Reply Review') }}</strong> ?"
+                                            data-text-on="<p>{{ translate('If_enabled,_a_restaurant_can_reply_to_a_review') }}</p>"
+                                            data-text-off="<p>{{ translate('If_disabled,_a_restaurant_can_not_reply_to_a_review') }}</p>"
+                                            class="toggle-switch-input dynamic-checkbox-toggle"
+
+                                            value="1"
+                                                name="restaurant_review_reply" id="restaurant_review_reply1"
+                                                {{ $restaurant_review_reply == 1 ? 'checked' : '' }}>
+                                            <span class="toggle-switch-label text">
+                                                <span class="toggle-switch-indicator"></span>
+                                            </span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div class="col-sm-6 col-lg-4">
+                                    @php($extra_packaging_charge = \App\Models\BusinessSetting::where('key', 'extra_packaging_charge')->first())
+                                    @php($extra_packaging_charge = $extra_packaging_charge ? $extra_packaging_charge->value : 0)
+                                    <div class="form-group mb-0">
+                                        <label
+                                            class="toggle-switch h--45px toggle-switch-sm d-flex justify-content-between border rounded px-3 py-0 form-control">
+                                            <span class="align-items-center d-flex flex-grow pr-1 switch--label w-0">
+                                                <span class="line--limit-1">
+                                                    {{ translate('messages.Restaurant Can Enable Extra Packaging Charge') }}
+                                                </span>
+                                                <span class="form-label-secondary text-danger d-flex"
+                                                      data-toggle="tooltip" data-placement="right"
+                                                      data-original-title="{{ translate('With_this_feature,_restaurant_will_get_the_option_to_offer_extra_packaging_charge_to_the_customer.') }}"><img
+                                                        src="{{ dynamicAsset('/public/assets/admin/img/info-circle.svg') }}"
+                                                        alt="{{ translate('messages.extra_packaging_charge_toggle') }}">
+                                                </span>
+                                            </span>
+                                            <input type="checkbox"
+
+                                                   data-id="extra_packaging_charge"
+                                                   data-type="toggle"
+                                                   data-image-on="{{ dynamicAsset('/public/assets/admin/img/modal/veg-on.png') }}"
+                                                   data-image-off="{{ dynamicAsset('/public/assets/admin/img/modal/veg-off.png') }}"
+                                                   data-title-on="{{ translate('want_to_enable') }} <strong>{{ translate('extra_packaging_charge') }}</strong>?"
+                                                   data-title-off="{{ translate('want_to_disable') }} <strong>{{ translate('extra_packaging_charge') }}</strong>?"
+                                                   data-text-on="<p>{{ translate('if_enabled,_restaurant_will_get_the_option_to_offer_extra_packaging_charge_to_the_customer') }}</p>"
+                                                   data-text-off="<p>{{ translate('if_disabled,_restaurant_will_not_get_the_option_to_offer_extra_packaging_charge_to_the_customer') }}</p>"
+                                                   class="toggle-switch-input dynamic-checkbox-toggle"
+
+                                                   value="1"
+                                                   name="extra_packaging_charge" id="extra_packaging_charge"
+                                                {{ $extra_packaging_charge == 1 ? 'checked' : '' }}>
+                                            <span class="toggle-switch-label text">
+                                                <span class="toggle-switch-indicator"></span>
+                                            </span>
+                                        </label>
+                                    </div>
+                                </div>
 
                                 <div class="col-lg-4 col-sm-6">
                                     @php($cash_in_hand_overflow = \App\Models\BusinessSetting::where('key', 'cash_in_hand_overflow_restaurant')->first())

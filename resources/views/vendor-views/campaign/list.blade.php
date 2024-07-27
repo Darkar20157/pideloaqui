@@ -76,7 +76,7 @@
                                         </td>
                                         <td>
                                             <div class="overflow-hidden">
-                                                <img class="initial-75 onerror-image" src="{{\App\CentralLogics\Helpers::onerror_image_helper($campaign['image'], dynamicStorage('storage/app/public/campaign').'/'.$campaign['image'], dynamicAsset('public/assets/admin/img/160x160/img2.jpg'), 'campaign/') }}"
+                                                <img class="initial-75 onerror-image" src="{{ $campaign['image_full_url'] }}"
                                                      data-onerror-image="{{dynamicAsset('public/assets/admin/img/160x160/img2.jpg')}}"  alt="image">
                                             </div>
                                         </td>

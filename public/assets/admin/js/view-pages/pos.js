@@ -144,7 +144,7 @@ $('.js-select2-custom').each(function () {
 $('#delivery_address').on('click', function() {
     initMap();
 });
-initMap();
+
 $( "#customer" ).change(function() {
     if($(this).val())
     {
@@ -182,12 +182,7 @@ function checkZone() {
         $('#restaurant_id').prop("disabled", false);
     }
 }
-document.addEventListener('DOMContentLoaded', function () {
-    let selectElement = document.querySelector('.discount-type');
-    selectElement.addEventListener('change', function () {
-        document.getElementById('discount_input').max = (this.value === 'percent' ? 100 : 1000000000);
-    });
-});
+
 
 $("#pos-div").on('keydown', function (e) {
     if (e.keyCode === 13 && !$(e.target).is("#search-form input")) {

@@ -15,7 +15,9 @@ $reviewsInfo = $product->rating()->first();
         <div class="page-header">
             <div class="d-flex flex-wrap justify-content-between align-items-center">
                 <h1 class="page-header-title text-break">
-                    {{$product['name']}}
+                    {{$product['name']}}   @if ($product->stock_type !== 'unlimited' && $product->item_stock <= 0 )
+                    <span class="ml-2 badge badge-soft-warning badge-pill font-medium">{{ translate('Out Of Stock') }}</span>
+                @endif
                 </h1>
                 <a href="{{route('admin.food.edit',[$product['id']])}}" class="btn btn--primary">
                     <i class="tio-edit"></i> {{translate('Edit_Info')}}
@@ -33,13 +35,7 @@ $reviewsInfo = $product->rating()->first();
                             <div class="col-lg-5 col-md-6 mb-3 mb-md-0">
                                 <div class="d-flex flex-wrap align-items-center food--media">
                                     <img class="avatar avatar-xxl avatar-4by3 mr-4 initial-53 onerror-image"
-                                         src="{{ \App\CentralLogics\Helpers::onerror_image_helper(
-                                                            $product['image'] ?? '',
-                                                            dynamicStorage('storage/app/public/product').'/'.$product['image'] ?? '',
-                                                            dynamicAsset('public/assets/admin/img/100x100/food-default-image.png'),
-                                                            'product/'
-                                                        ) }}"
-                                         data-onerror-image="{{dynamicAsset('public/assets/admin/img/100x100/food-default-image.png')}}"
+                                         src="{{ $product['image_full_url'] }}"
                                          alt="{{ $product->name }} image">
                                     <div class="d-block">
                                             <div class="rating--review">
@@ -238,12 +234,7 @@ $reviewsInfo = $product->rating()->first();
                             <img class="avatar-img initial-54 onerror-image"
                                  data-onerror-image="{{ dynamicAsset('public/assets/admin/img/160x160/img1.jpg') }}"
 
-                                 src="{{ \App\CentralLogics\Helpers::onerror_image_helper(
-                                        $product->restaurant->logo ?? '',
-                                        dynamicStorage('storage/app/public/restaurant').'/'.$product->restaurant->logo ?? '',
-                                        dynamicAsset('public/assets/admin/img/160x160/img1.jpg'),
-                                        'restaurant/'
-                                    ) }}"
+                                 src="{{ $product->restaurant->logo_full_url ?? dynamicAsset('public/assets/admin/img/160x160/img1.jpg') }}"
 
                                  alt="Image Description">
                             <div class="text-center">
@@ -272,7 +263,7 @@ $reviewsInfo = $product->rating()->first();
                             <tr>
                                 <th class="px-4 w-140px"><h4 class="m-0">{{ translate('Short_Description') }}</h4></th>
                                 <th class="px-4 w-120px"><h4 class="m-0">{{translate('messages.price')}}</h4></th>
-                                <th class="px-4 w-100px"><h4 class="m-0">{{translate('messages.variations')}}</h4></th>
+                                <th class="px-4 w-100px"><h4 class="m-0">{{translate('messages.Main_Stock')}}</h4></th>
                                 <th class="px-4 w-100px"><h4 class="m-0">{{ translate('Addons') }}</h4></th>
                                 <th class="px-4 w-100px"><h4 class="m-0">{{ translate('Tags') }}</h4></th>
                             </tr>
@@ -300,43 +291,16 @@ $reviewsInfo = $product->rating()->first();
                                     </span>
                                 </td>
                                 <td class="px-4">
-                                    @foreach(json_decode($product->variations,true) as $variation)
-                                    @if(isset($variation["price"]))
-                                    <span class="d-block mb-1 text-capitalize">
-                                        <strong>
-                                            {{ translate('please_update_the_food_variations.') }}
-                                        </strong>
-                                        </span>
-                                        @break
-                                        @else
-                                        <span class="d-block text-capitalize">
-                                                <strong>
-                                        {{$variation['name']}} -
-                                    </strong>
-                                    @if ($variation['type'] == 'multi')
-                                    {{ translate('messages.multiple_select') }}
-                                    @elseif($variation['type'] =='single')
-                                    {{ translate('messages.single_select') }}
-                                    @endif
-                                    @if ($variation['required'] == 'on')
-                                    - ({{ translate('messages.required') }})
-                                    @endif
-                                    </span>
+                                    @php($tock_out = null)
 
-                                    @if ($variation['min'] != 0 && $variation['max'] != 0)
-                                   ({{ translate('messages.Min_select') }}: {{ $variation['min'] }} - {{ translate('messages.Max_select') }}: {{ $variation['max'] }})
+                                    @if ($product->stock_type == 'unlimited')
+                                    <span class="badge badge-soft-info badge-pill font-medium">{{translate('unlimited')}}</span>
+                                    @elseif($product->item_stock > 0)
+                                    <span class="badge badge-soft-dark ml-2" >  {{ $product->item_stock }} </span>
+                                    @else
+                                    @php($tock_out = true)
+                                    <span class="badge badge-soft-warning badge-pill font-medium">{{ translate('Out Of Stock') }}</span>
                                     @endif
-
-                                        @if (isset($variation['values']))
-                                        @foreach ($variation['values'] as $value)
-                                          <span class="d-block text-capitalize">
-                                            &nbsp;   &nbsp; {{ $value['label']}} :
-                                            <strong>{{\App\CentralLogics\Helpers::format_currency( $value['optionPrice'])}}</strong>
-                                            </span>
-                                        @endforeach
-                                        @endif
-                                        @endif
-                                    @endforeach
                                 </td>
                                 <td class="px-4">
                                     @foreach(\App\Models\AddOn::withOutGlobalScope(App\Scopes\RestaurantScope::class)->whereIn('id',json_decode($product['add_ons'],true))->get() as $addon)
@@ -360,6 +324,87 @@ $reviewsInfo = $product->rating()->first();
             <!-- End Body -->
         </div>
         <!-- End Card -->
+
+
+
+
+
+
+
+    @if (count($product->newVariationOptions) > 0)
+        <div class="card mb-3">
+            <div class="card-header">
+                <div class="table-responsive datatable-custom">
+                    <table id="datatable" class="table table-borderless table-thead-bordered table-nowrap card-table"
+                        data-hs-datatables-options='{
+                        "columnDefs": [{
+                            "targets": [0, 3, 6],
+                            "orderable": false
+                        }],
+                        "order": [],
+                        "info": {
+                        "totalQty": "#datatableWithPaginationInfoTotalQty"
+                        },
+                        "search": "#datatableSearch",
+                        "entries": "#datatableEntries",
+                        "pageLength": 25,
+                        "isResponsive": false,
+                        "isShowPaging": false,
+                        "pagination": "datatablePagination"
+                    }'>
+                        <thead class="thead-light">
+                        <tr>
+                            <th>{{translate('messages.sl')}}</th>
+                            <th class="text-canter">{{translate('messages.Variation_Name')}}</th>
+                            <th  class="text-canter">{{translate('messages.Variation_Wise_Price')}}</th>
+                            <th  class="text-canter">{{translate('messages.Stock')}}
+                                @if ($tock_out == true)
+                                <span class="input-label-secondary" data-toggle="tooltip" data-placement="right" data-original-title="{{translate('messages.Your main stock is empty.Variations stock won\'t work if the main stock is empty.')}}"><img src="{{dynamicAsset('public/assets/admin/img/info-circle.svg')}}" alt="public/img"></span>
+                                @endif
+
+                            </th>
+                        </tr>
+                        </thead>
+
+                        <tbody class="">
+
+                        @foreach($product->newVariationOptions as $key => $variation)
+                            <tr>
+                                <td>{{ $key + 1 }}</td>
+                                <td>
+                                    <div>
+                                        {{ $variation?->variation?->name }}
+                                        <div>
+                                        <small>{{ $variation->option_name }} </small>
+                                        </div>
+
+                                    </div>
+
+                                </td>
+                                <td class="text-canter">
+                                    {{ \App\CentralLogics\Helpers::format_currency($variation?->option_price) }}
+                                </td>
+                                <td class="text-canter {{ $tock_out == true ? 'text-9EADC1' : '' }}   ">
+                                    @if ($variation?->stock_type == "unlimited")
+                                    <span class="badge badge-soft-info badge-pill font-medium">{{translate('unlimited')}}</span>
+                                    @elseif( $variation?->total_stock - $variation?->sell_count > 0 )
+                                    {{ $variation?->total_stock - $variation?->sell_count }}
+                                    @else
+                                    <span class="badge badge-soft-warning badge-pill font-medium">{{ translate('Out Of Stock') }}</span>
+                                    @endif
+                                </td>
+
+
+                            </tr>
+                        @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    @endif
+
 
         <!-- Card -->
         <div class="card">
@@ -421,6 +466,7 @@ $reviewsInfo = $product->rating()->first();
                         <th>{{translate('messages.reviewer')}}</th>
                         <th>{{translate('messages.review')}}</th>
                         <th>{{translate('messages.date')}}</th>
+                        <th class="w-20p text-center">{{translate('messages.restaurant_reply')}}</th>
                         <th>{{translate('messages.status')}}</th>
                     </tr>
                     </thead>
@@ -437,12 +483,7 @@ $reviewsInfo = $product->rating()->first();
                                             <img class="avatar-img onerror-image"
                                                  data-onerror-image="{{ dynamicAsset('public/assets/admin/img/160x160/img1.jpg') }}"  width="75" height="75"
 
-                                                 src="{{ \App\CentralLogics\Helpers::onerror_image_helper(
-                                                    $review->customer->image ?? '',
-                                                    dynamicStorage('storage/app/public/profile').'/'.$review->customer->image ?? '',
-                                                    dynamicAsset('public/assets/admin/img/160x160/img1.jpg'),
-                                                    'profile/'
-                                                ) }}"
+                                                 src="{{ $review->customer->image_full_url ?? dynamicAsset('public/assets/admin/img/160x160/img1.jpg') }}"
                                                 alt="Image Description">
                                         </div>
                                         <div class="ml-3">
@@ -462,13 +503,18 @@ $reviewsInfo = $product->rating()->first();
                                         {{$review->rating}} <i class="tio-star"></i>
                                     </label>
 
-                                    <p class="line--limit-1">
+                                    <p data-toggle="tooltip" data-placement="left"
+                                    data-original-title="{{$review['comment']}}"  class="line--limit-1">
                                         {{$review['comment']}}
                                     </p>
                                 </div>
                             </td>
                             <td>
-                                {{date('d M Y '.config('timeformat'),strtotime($review['created_at']))}}
+                                {{ \App\CentralLogics\Helpers::time_date_format($review->created_at)  }}
+                            </td>
+                            <td>
+                                <p class="text-wrap text-center" data-toggle="tooltip" data-placement="top"
+                                   data-original-title="{{ $review?->reply }}">{!! $review->reply?Str::limit($review->reply, 50, '...'): translate('messages.Not_replied_Yet') !!}</p>
                             </td>
                             <td>
                                 <label class="toggle-switch toggle-switch-sm" for="reviewCheckbox{{$review->id}}">

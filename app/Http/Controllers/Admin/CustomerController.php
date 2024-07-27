@@ -44,36 +44,6 @@ class CustomerController extends Controller
         $customer->status = $request->status;
         $customer->save();
 
-    //    try
-    //    {
-    //        if($request->status == 0)
-    //        {   $customer->tokens->each(function ($token, $key) {
-    //                $token->delete();
-    //            });
-    //            if(isset($customer->cm_firebase_token))
-    //            {
-    //                $data = [
-    //                    'title' => translate('messages.suspended'),
-    //                    'description' => translate('messages.your_account_has_been_blocked'),
-    //                    'order_id' => '',
-    //                    'image' => '',
-    //                    'type'=> 'block'
-    //                ];
-    //                Helpers::send_push_notif_to_device($customer->cm_firebase_token, $data);
-
-    //                DB::table('user_notifications')->insert([
-    //                    'data'=> json_encode($data),
-    //                    'user_id'=>$customer->id,
-    //                    'created_at'=>now(),
-    //                    'updated_at'=>now()
-    //                ]);
-    //            }
-    //        }
-    //    }
-    //    catch (\Exception $e) {
-    //        info($e->getMessage());
-    //        Toastr::warning(translate('messages.push_notification_faild'));
-    //    }
 
         try {
             if($request->status == 0)
@@ -81,7 +51,9 @@ class CustomerController extends Controller
                     $token->delete();
                 });
 
-                if(isset($customer->cm_firebase_token))
+                $notification_status= Helpers::getNotificationStatusData('customer','customer_account_block');
+
+                if($notification_status?->push_notification_status  == 'active' && isset($customer->cm_firebase_token))
                 {
                     $data = [
                         'title' => translate('messages.suspended'),
@@ -99,13 +71,38 @@ class CustomerController extends Controller
                         'updated_at'=>now()
                     ]);
                 }
+
                 $mail_status = Helpers::get_mail_status('suspend_mail_status_user');
-                if ( config('mail.status') && $mail_status == '1') {
+                if (  $notification_status?->mail_status == 'active' &&  config('mail.status') && $mail_status == '1') {
                     Mail::to( $customer->email)->send(new \App\Mail\UserStatus('suspended', $customer->f_name.' '.$customer->l_name));
-                }
-            }else{
+                    }
+                    }else{
+
+                        $notification_status=null;
+                        $notification_status= Helpers::getNotificationStatusData('customer','customer_account_unblock');
+
+                        if($notification_status?->push_notification_status  == 'active' && isset($customer->cm_firebase_token))
+                        {
+                            $data = [
+                                'title' => translate('messages.account_activation'),
+                                'description' => translate('messages.your_account_has_been_activated'),
+                                'order_id' => '',
+                                'image' => '',
+                                'type'=> 'unblock'
+                            ];
+                            Helpers::send_push_notif_to_device($customer->cm_firebase_token, $data);
+
+                            DB::table('user_notifications')->insert([
+                                'data'=> json_encode($data),
+                                'user_id'=>$customer->id,
+                                'created_at'=>now(),
+                                'updated_at'=>now()
+                            ]);
+                        }
+
+
                 $mail_status = Helpers::get_mail_status('unsuspend_mail_status_user');
-                if ( config('mail.status') && $mail_status == '1') {
+                if (  $notification_status?->mail_status == 'active' &&  config('mail.status') && $mail_status == '1') {
                     Mail::to( $customer->email)->send(new \App\Mail\UserStatus('unsuspended', $customer->f_name.' '.$customer->l_name));
                 }
             }
@@ -206,6 +203,21 @@ class CustomerController extends Controller
         ]);
         BusinessSetting::updateOrInsert(['key' => 'add_fund_status'], [
             'value' => $request['add_fund_status']??0
+        ]);
+        BusinessSetting::updateOrInsert(['key' => 'new_customer_discount_status'], [
+            'value' => $request['new_customer_discount_status']??0
+        ]);
+        BusinessSetting::updateOrInsert(['key' => 'new_customer_discount_amount'], [
+            'value' => $request['new_customer_discount_amount']??0
+        ]);
+        BusinessSetting::updateOrInsert(['key' => 'new_customer_discount_amount_type'], [
+            'value' => $request['new_customer_discount_amount_type']?? 'percentage'
+        ]);
+        BusinessSetting::updateOrInsert(['key' => 'new_customer_discount_amount_validity'], [
+            'value' => $request['new_customer_discount_amount_validity']?? 1
+        ]);
+        BusinessSetting::updateOrInsert(['key' => 'new_customer_discount_validity_type'], [
+            'value' => $request['new_customer_discount_validity_type']??'day'
         ]);
         Toastr::success(translate('messages.customer_settings_updated_successfully'));
         return back();

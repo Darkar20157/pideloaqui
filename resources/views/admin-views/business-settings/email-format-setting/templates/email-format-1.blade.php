@@ -6,13 +6,9 @@ $company_name = App\Models\BusinessSetting::where('key', 'business_name')->first
 
         <tr>
             <td class="main-table-td">
-                <img class="mail-img-1 onerror-image" data-onerror-image="{{ dynamicAsset('/public/assets/admin/img/blank1.png') }}"
+                <img class="mail-img-1 onerror-image"
 
-                src="{{ \App\CentralLogics\Helpers::onerror_image_helper(
-                    data_get($data,'logo',null), dynamicStorage('storage/app/public/email_template').'/'.data_get($data,'logo',null) ,
-                    dynamicAsset('/public/assets/admin/img/blank1.png'),
-                    'email_template/'
-                ) }}"
+                src="{{ $data['logo_full_url'] ?? dynamicAsset('/public/assets/admin/img/blank1.png') }}"
 
                 id="logoViewer" alt="">
 
@@ -20,12 +16,7 @@ $company_name = App\Models\BusinessSetting::where('key', 'business_name')->first
                 <div class="mb-1" id="mail-body">{!! $data['body']?? translate('Hi_Sabrina,') !!}</div>
                 <img class="mb-2 mail-img-3 onerror-image" id="bannerViewer" data-onerror-image="{{ dynamicAsset('/public/assets/admin/img/blank2.png') }}"
 
-                src="{{ \App\CentralLogics\Helpers::onerror_image_helper(
-                    data_get($data,'image',null) ,
-                    dynamicStorage('storage/app/public/email_template').'/'.data_get($data,'image',null) ,
-                    dynamicAsset('/public/assets/admin/img/blank2.png'),
-                    'email_template/'
-                ) }}"
+                src="{{ $data['image_full_url'] ?? dynamicAsset('/public/assets/admin/img/blank1.png') }}"
 
                 alt="iamge">
                 <a href="#" class="cmn-btn" id="mail-button">{{ $data['button_name']??'Submit' }}</a>

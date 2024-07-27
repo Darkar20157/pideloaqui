@@ -13,9 +13,12 @@ use PhpOffice\PhpSpreadsheet\Style\Border;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
 use Maatwebsite\Excel\Concerns\WithColumnWidths;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
-use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
+use PhpOffice\PhpSpreadsheet\Worksheet\MemoryDrawing;
+use App\CentralLogics\Helpers;
+
 class RestaurantFoodExport implements  FromView, ShouldAutoSize, WithStyles,WithColumnWidths ,WithHeadings, WithEvents
 {
 
@@ -81,10 +84,18 @@ class RestaurantFoodExport implements  FromView, ShouldAutoSize, WithStyles,With
 
     public function setImage($workSheet) {
         $this->data['data']->each(function($item,$index) use($workSheet) {
-            $drawing = new Drawing();
-            // $drawing->setName($item->name);
-            // $drawing->setDescription($item->name);
-            $drawing->setPath(is_file(storage_path('app/public/product/'.$item->image))?storage_path('app/public/product/'.$item->image):public_path('/assets/admin/img/160x160/img2.jpg'));
+            $tempImagePath = null;
+            if(!is_file(storage_path('app/public/product/'.$item->image) )){
+                $tempImagePath = Helpers::getTemporaryImageForExport($item->image_full_url);
+                $imagePath = Helpers::getImageForExport($item->image_full_url);
+
+                $drawing = new MemoryDrawing();
+                $drawing->setImageResource($imagePath);
+            }else{
+                $drawing = new Drawing();
+                $drawing->setPath(is_file(storage_path('app/public/product/'.$item->image))?storage_path('app/public/product/'.$item->image):public_path('/assets/admin/img/160x160/img2.jpg'));
+            }
+
             $drawing->setHeight(25);
             $index+=4;
             $drawing->setCoordinates("B$index");
@@ -92,6 +103,9 @@ class RestaurantFoodExport implements  FromView, ShouldAutoSize, WithStyles,With
             $drawing->setOffsetY(4);
             $drawing->setResizeProportional(true);
             $drawing->setWorksheet($workSheet);
+            if($tempImagePath){
+                imagedestroy($tempImagePath);
+            }
         });
     }
 

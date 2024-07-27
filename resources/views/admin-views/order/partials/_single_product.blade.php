@@ -1,16 +1,9 @@
-@php
-    use App\CentralLogics\Helpers;
-@endphp
+@php use App\CentralLogics\Helpers; @endphp
 <div class="product-card cursor-pointer card quick-View" data-id="{{$product->id}}">
     <div class="card-header inline_product clickable p-0 initial-50">
         <div class="d-flex align-items-center justify-content-center d-block">
             <img class="w-100 rounded onerror-image"
-                 src="{{ Helpers::onerror_image_helper(
-                        data_get($product,'image'),
-                        dynamicStorage('storage/app/public/product').'/'.data_get($product,'image'),
-                        dynamicAsset('public/assets/admin/img/100x100/food-default-image.png'),
-                        'product/'
-                    ) }}"
+                 src="{{ data_get($product,'image_full_url') ?? dynamicAsset('public/assets/admin/img/100x100/food-default-image.png') }}"
                  data-onerror-image="{{ dynamicAsset('public/assets/admin/img/100x100/food-default-image.png') }}"
                  data-zoom="{{ dynamicStorage('storage/app/public/product') }}/{{ data_get($product,'image') }}"
                  alt="Product image">

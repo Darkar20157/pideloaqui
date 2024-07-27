@@ -89,7 +89,7 @@
                                                 <input type="text" name="meta_title[]" id="default_title"
                                                     class="form-control" placeholder="{{ translate('messages.meta_title') }}" value="{{$restaurant->getRawOriginal('meta_title')}}"
 
-                                                    oninvalid="document.getElementById('en-link').click()">
+                                                     >
                                             </div>
                                             <input type="hidden" name="lang[]" value="default">
                                             <div class="form-group mb-0">
@@ -122,7 +122,7 @@
                                                         </label>
                                                         <input type="text" name="meta_title[]" id="{{ $lang }}_title"
                                                             class="form-control" value="{{ $translate[$lang]['meta_title']??'' }}" placeholder="{{ translate('messages.meta_title') }}"
-                                                            oninvalid="document.getElementById('en-link').click()">
+                                                             >
                                                     </div>
                                                     <input type="hidden" name="lang[]" value="{{ $lang }}">
                                                     <div class="form-group mb-0">
@@ -169,7 +169,7 @@
                                                 </label>
                                                 <div class="text-center">
                                                     <img class="img--110 min-height-170px min-width-170px onerror-image"   id="viewer"
-                                                        src="{{\App\CentralLogics\Helpers::onerror_image_helper($restaurant?->meta_image, dynamicStorage('storage/app/public/restaurant').'/'.$restaurant->meta_image, dynamicAsset('public/assets/admin/img/upload.png'), 'restaurant/') }}"
+                                                        src="{{ restaurant?->meta_image_full_url ?? dynamicAsset('public/assets/admin/img/upload.png') }}"
                                                         data-onerror-image="{{ dynamicAsset('public/assets/admin/img/upload.png') }}" alt="image">
                                                 </div>
                                                 <input type="file" name="meta_image" id="customFileEg1" class="custom-file-input"

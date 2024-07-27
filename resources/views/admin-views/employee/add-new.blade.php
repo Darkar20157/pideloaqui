@@ -113,7 +113,7 @@
 
                                         <div class="image-box">
                                             <label for="image-input" class="d-flex flex-column align-items-center justify-content-center h-100 cursor-pointer gap-2">
-                                            <img width="30" class="upload-icon" src="{{asset('public/assets/admin/img/upload-icon.png')}}" alt="Upload Icon">
+                                            <img width="30" class="upload-icon" src="{{dynamicAsset('public/assets/admin/img/upload-icon.png')}}" alt="Upload Icon">
                                             <span class="upload-text">{{ translate('Upload Image')}}</span>
                                             <img src="#" alt="Preview Image" class="preview-image">
                                             </label>

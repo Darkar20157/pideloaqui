@@ -58,7 +58,7 @@
                             @foreach(json_decode($language) as $lang)
                                 <div class="form-group d-none lang_form" id="{{$lang}}-form">
                                     <label class="input-label" for="exampleFormControlInput1">{{translate('messages.name')}} ({{strtoupper($lang)}})</label>
-                                    <input type="text" name="name[]" class="form-control" placeholder="{{ translate('messages.Ex_:_water') }}" maxlength="191" oninvalid="document.getElementById('en-link').click()">
+                                    <input type="text" name="name[]" class="form-control" placeholder="{{ translate('messages.Ex_:_water') }}" maxlength="191"  >
                                 </div>
                                 <input type="hidden" name="lang[]" value="{{$lang}}">
                             @endforeach
@@ -83,6 +83,24 @@
                             <div class="form-group">
                                 <label class="input-label" for="exampleFormControlInput1">{{translate('messages.price')}}</label>
                                 <input type="number" min="0" max="999999999999.99" name="price" step="0.01" value="{{old('price')}}" class="form-control" placeholder="100" required>
+                            </div>
+                        </div>
+                        <div class="col-lg-4">
+                            <div class="form-group mb-0">
+                                <label class="input-label"
+                                    for="exampleFormControlInput1">{{ translate('messages.Stock_Type') }}
+                                </label>
+                                <select name="stock_type" id="stock_type" class="form-control js-select2-custom">
+                                    <option value="unlimited">{{ translate('messages.Unlimited_Stock') }}</option>
+                                    <option value="limited">{{ translate('messages.Limited_Stock')  }}</option>
+                                    <option value="daily">{{ translate('messages.Daily_Stock')  }}</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-lg-4 hide_this">
+                            <div class="form-group">
+                                <label class="input-label" for="addon_stock">{{translate('messages.Addon_Stock')}}</label>
+                                <input type="number" min="0" id="addon_stock" max="999999999999" name="addon_stock"  readonly value="{{old('addon_stock')}}" class="form-control stock_disable" placeholder="{{ translate('messages.Unlimited') }}" required>
                             </div>
                         </div>
                     </div>
@@ -168,6 +186,9 @@
                             <th class="w-20p">{{translate('messages.name')}}</th>
                             <th class="w-20p">{{translate('messages.price')}}</th>
                             <th class="w-26p">{{translate('messages.restaurant')}}</th>
+                            <th class="w-20p">{{translate('messages.Stock_Type')}}</th>
+                            <th class="w-20p">{{translate('messages.Stock')}}</th>
+                            {{-- <th class="w-26p">{{translate('messages.Available_stock')}}</th> --}}
                             <th class="w-12p">{{translate('messages.status')}}</th>
                             <th class="text-center w-12p">{{translate('messages.action')}}</th>
                         </tr>
@@ -189,6 +210,17 @@
                                 </td>
                                 <td  class="pl-3">{{Str::limit($addon->restaurant?$addon->restaurant->name:translate('messages.restaurant_deleted'),25,'...')}}</td>
                                 <td>
+                                    {{ translate($addon->stock_type) }}
+                                </td>
+                                <td>
+                                    {{  $addon->stock_type == 'unlimited'? translate('messages.Unlimited') :  $addon->addon_stock }}
+                                </td>
+                                {{-- <td>
+                                    {{  $addon->stock_type == 'unlimited'? translate('messages.Unlimited') :  $addon->addon_stock - $addon->sell_count }}
+                                </td> --}}
+
+
+                                <td>
                                     <label class="toggle-switch toggle-switch-sm" for="stausCheckbox{{$addon->id}}">
                                     <input type="checkbox" data-url="{{route('admin.addon.status',[$addon['id'],$addon->status?0:1])}}" class="toggle-switch-input redirect-url" id="stausCheckbox{{$addon->id}}" {{$addon->status?'checked':''}}>
                                         <span class="toggle-switch-label">
@@ -196,6 +228,8 @@
                                         </span>
                                     </label>
                                 </td>
+
+
                                 <td>
                                     <div class="btn--container justify-content-center">
                                         <a class="btn btn-sm btn--primary btn-outline-primary action-btn"
@@ -240,6 +274,22 @@
 @push('script_2')
     <script>
         "use strict";
+        $('#stock_type').on('change', function () {
+            stock_type($(this).val());
+        });
+
+        stock_type($('#stock_type').val());
+    function  stock_type(data){
+        if(data == 'unlimited') {
+                    $('.stock_disable').prop('readonly', true).prop('required', false).attr('placeholder', '{{ translate('Unlimited') }}').val('');
+                    $('.hide_this').addClass('d-none');
+                } else {
+                    $('.stock_disable').prop('readonly', false).prop('required', true).attr('placeholder', '{{ translate('messages.Ex:_100') }}');
+                     $('.hide_this').removeClass('d-none');
+                }
+    }
+
+
         $(document).on('ready', function () {
             // INITIALIZATION OF DATATABLES
             // =======================================================
@@ -359,6 +409,8 @@
 
         $('#reset_btn').click(function(){
             $('#restaurant_id').val(null).trigger('change');
+            $('#stock_type').val('unlimited').trigger('change');
+            stock_type('unlimited');
         })
     </script>
 @endpush

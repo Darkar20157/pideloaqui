@@ -39,8 +39,10 @@ $schedules = $subscription->schedules()->get();
                             if (isset($detail->food_id))
                             {
                                 $detail->food = json_decode($detail->food_details, true);
+                                $food = \App\Models\Food::where(['id' => $detail->food['id']])->first();
                             }else{
                                 $detail->campaign = json_decode($detail->food_details, true);
+                                $campaign = \App\Models\ItemCampaign::where(['id' => $detail->campaign['id']])->first();
                             }
                         @endphp
 
@@ -50,9 +52,9 @@ $schedules = $subscription->schedules()->get();
                             <a class="media align-items-center"  href="{{isset($detail->food_id) ? route('vendor.food.view',[$detail->food['id']]) :  '#'}}">
                             <img class="avatar avatar-lg mr-3"
                                 @if (isset($detail->food['image']))
-                                src="{{\App\CentralLogics\Helpers::onerror_image_helper($detail->food['image'], dynamicStorage('storage/app/public/product/'.$detail->food['image']), dynamicAsset('public/assets/admin/img/160x160/img2.jpg'), 'product/') }}"
+                                src="{{ $food->image_full_url }}"
                                 @else
-                                src="{{\App\CentralLogics\Helpers::onerror_image_helper(isset($detail?->campaign['image']) ? $detail->campaign['image'] :'' , dynamicStorage('storage/app/public/campaign/'.isset($detail->campaign['image']) ? $detail->campaign['image'] :'' ), dynamicAsset('public/assets/admin/img/160x160/img2.jpg'), 'campaign/') }}"
+                                src="{{ $campaign->image_full_url }}"
                                 @endif
                                 alt="{{isset($detail->food_id) ? $detail->food['name'] : $detail->campaign['name']}} image">
 

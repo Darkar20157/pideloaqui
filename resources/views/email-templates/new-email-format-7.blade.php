@@ -148,12 +148,12 @@
             <tr>
                 <td class="main-table-td">
                     <img class="mail-img-1" id="logoViewer"
-                    src="{{\App\CentralLogics\Helpers::onerror_image_helper(data_get($data,'logo'), dynamicStorage('storage/app/public/email_template/'.data_get($data,'logo')), dynamicAsset('/public/assets/admin/img/blank1.png'), 'email_template/') }}"
+                    src="{{ $data['logo_full_url'] ?? dynamicAsset('/public/assets/admin/img/blank1.png') }}"
                     alt="image">
                     <h2 id="mail-title" class="mt-2">{{ $title?? translate('Main_Title_or_Subject_of_the_Mail') }}</h2>
                     <div class="mb-1" id="mail-body">{!! $body?? translate('Hi_Sabrina,') !!}</div>
                     <img class="mb-2 mail-img-3" id="bannerViewer"
-                    src="{{\App\CentralLogics\Helpers::onerror_image_helper(data_get($data,'image'), dynamicStorage('storage/app/public/email_template/'.data_get($data,'image')), dynamicAsset('/public/assets/admin/img/blank2.png'), 'email_template/') }}"
+                    src="{{ $data['image_full_url'] ?? dynamicAsset('/public/assets/admin/img/blank1.png') }}"
                     alt="image">
 
                     <hr>
@@ -171,7 +171,7 @@
 
                 @if ($data?->button_url)
                     <span class="d-block text-center" style="margin-top: 16px">
-                    <a href="{{ $data['button_url']??'#' }}" class="cmn-btn" id="mail-button">{{ $data['button_name']??'Submit' }}</a>
+                    <a type="button"  href="{{ $data['button_url']??'#' }}" class="cmn-btn" id="mail-button">{{ $data['button_name']??'Submit' }}</a>
                     </span>
                     @endif
             </tr>

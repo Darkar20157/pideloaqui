@@ -175,7 +175,7 @@
                         <div class="card-body">
                             <div class="media align-items-center customer--information-single" href="javascript:">
                                 <div class="avatar avatar-circle">
-                                    <img class="avatar-img onerror-image" data-onerror-image="{{dynamicAsset('public/assets/admin/img/160x160/img1.jpg')}}" src="{{\App\CentralLogics\Helpers::onerror_image_helper($customer->image, dynamicStorage('storage/app/public/profile/').'/'.$customer->image, dynamicAsset('public/assets/admin/img/160x160/img1.jpg'), 'profile/') }}"
+                                    <img class="avatar-img onerror-image" data-onerror-image="{{dynamicAsset('public/assets/admin/img/160x160/img1.jpg')}}" src="{{ $customer->image_full_url }}"
                                          alt="Image Description">
                                 </div>
                                 <div class="media-body">

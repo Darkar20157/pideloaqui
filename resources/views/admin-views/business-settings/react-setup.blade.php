@@ -45,7 +45,7 @@
                         </div>
                     </div>
                     <div class="text-right">
-                        <button type="{{env('APP_MODE')!='demo'?'submit':'button'}}" class="btn btn--primary mb-2 call-demo">{{translate('messages.save')}}</button>
+                        <button type="{{env('APP_MODE')!='demo'?'submit':'button'}}" class="btn btn--primary call-demo">{{translate('messages.save')}}</button>
                     </div>
                 </form>
             </div>

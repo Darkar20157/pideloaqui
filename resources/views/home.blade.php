@@ -7,14 +7,14 @@
     <!-- ======= Footer Section ======= -->
     <!-- ======= Banner Section ======= -->
     <section class="banner-section"
-        style="background: url('{{dynamicStorage('storage/app/public/header_image')}}/{{$landing_data['header_bg_image']}}') no-repeat center center / cover">
+        style="background: url('{{$landing_data['header_bg_image_full_url']}}') no-repeat center center / cover">
 
         <!-- Main Banner Content -->
         <div class="container">
             <div class="banner-wrapper">
                 <div class="banner-thumb wow fadeInUp">
                     <img class="main-img"
-                    src="{{dynamicStorage('storage/app/public/header_image')}}/{{ $landing_data['header_content_image']   }}"
+                    src="{{ $landing_data['header_content_image_full_url']   }}"
 
                     alt="">
                     <div class="img-data-1">
@@ -132,7 +132,7 @@
                 </div>
                 <div class="col-lg-5 text-lg-end text-center wow fadeInLeft">
                     <img
-                    src="{{dynamicStorage('storage/app/public/about_us_image')}}/{{ $landing_data['about_us_image_content']  }}"
+                    src="{{ $landing_data['about_us_image_content_full_url']  }}"
                      alt="about" class="about-img">
                 </div>
             </div>
@@ -159,7 +159,7 @@
                 <div class="feature-item wow fadeInUp">
                     <div class="feature-item-icon">
                         <img
-                        src="{{ dynamicStorage('storage/app/public/feature_image') }}/{{ $feature_data['image'] }}" alt="">
+                        src="{{ $feature_data['image_full_url'] }}" alt="">
                     </div>
                     <h4 class="title">{{ $feature_data['title'] }}</h4>
                     <div class="txt">
@@ -199,7 +199,7 @@
                <li>
                    <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#order-your-food">
                        <img src="{{ dynamicAsset('public/assets/admin/img/order_platform_image.png') }}" alt="">
-                    
+
                        {{  translate('Order_your_food') }}
                    </button>
                </li>
@@ -2684,7 +2684,7 @@
 
                 <div class="choose-item wow animate__dropIn">
                                 <img
-                    src="{{dynamicStorage('storage/app/public/why_choose_us_image')}}/{{ $landing_data['why_choose_us_image_1'] }}"
+                    src="{{ $landing_data['why_choose_us_image_1_full_url'] }}"
                     alt="Image">
                     <div class="choose-item-content">
                         <div class="cont">
@@ -2700,7 +2700,7 @@
 
                 <div class="choose-item wow animate__dropIn">
                                 <img
-                    src="{{dynamicStorage('storage/app/public/why_choose_us_image')}}/{{ $landing_data['why_choose_us_image_2'] }}"
+                    src="{{ $landing_data['why_choose_us_image_2_full_url'] }}"
                     alt="Image">
                     <div class="choose-item-content">
                         <div class="cont">
@@ -2716,7 +2716,7 @@
 
                 <div class="choose-item wow animate__dropIn">
                                 <img
-                    src="{{dynamicStorage('storage/app/public/why_choose_us_image')}}/{{ $landing_data['why_choose_us_image_3'] }}"
+                    src="{{ $landing_data['why_choose_us_image_3_full_url'] }}"
                     alt="Image">
                     <div class="choose-item-content">
                         <div class="cont">
@@ -2730,7 +2730,7 @@
             @if (isset($landing_data['why_choose_us_image_4']))
                 <div class="choose-item wow animate__dropIn">
                                 <img
-                    src="{{dynamicStorage('storage/app/public/why_choose_us_image')}}/{{ $landing_data['why_choose_us_image_4'] }}"
+                    src="{{ $landing_data['why_choose_us_image_4_full_url'] }}"
                     alt="Image">
                     <div class="choose-item-content">
                         <div class="cont">
@@ -6042,7 +6042,7 @@
                 </div>
                 <div class="col-md-5 text-center">
                     <img class="cta-img wow fadeInUp"
-                    src="{{ dynamicStorage('storage/app/public/earn_money') }}/{{  $landing_data['earn_money_reg_image']  }}"
+                    src="{{  $landing_data['earn_money_reg_image_full_url']  }}"
                     alt="">
                 </div>
             </div>
@@ -6104,7 +6104,7 @@
                         <div id="sync2" class="owl-theme owl-carousel mb-4 mb-md-5">
                             @foreach ($landing_data['testimonials'] as $data)
                             <div class="img">
-                                <img src="{{dynamicStorage('storage/app/public/reviewer_image')}}/{{ $data['reviewer_image'] }}" alt="">
+                                <img src="{{ $data['reviewer_image_full_url'] }}" alt="">
                             </div>
                             @endforeach
                         </div>

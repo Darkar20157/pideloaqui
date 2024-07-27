@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Models\Food;
 use App\Models\Zone;
+use App\Models\AddOn;
 use App\Models\Order;
 use App\Models\Coupon;
 use App\Models\Refund;
@@ -21,6 +22,7 @@ use App\Models\RefundReason;
 use Illuminate\Http\Request;
 use App\CentralLogics\Helpers;
 use App\Models\BusinessSetting;
+use App\Models\VariationOption;
 use App\Scopes\RestaurantScope;
 use App\CentralLogics\OrderLogic;
 use App\Models\OrderCancelReason;
@@ -510,7 +512,9 @@ class OrderController extends Controller
             $order->save();
 
             try {
-                if(config('mail.status') && $order?->customer?->email && Helpers::get_mail_status('refund_request_deny_mail_status_user') == '1'){
+                $notification_status= Helpers::getNotificationStatusData('customer','customer_refund_request_rejaction');
+
+                if($notification_status?->mail_status == 'active' && config('mail.status') && $order?->customer?->email && Helpers::get_mail_status('refund_request_deny_mail_status_user') == '1'){
                     Mail::to($order->customer->email)->send(new RefundRejected($order->id));
                 }
             } catch (\Throwable $th) {
@@ -639,7 +643,7 @@ class OrderController extends Controller
         $request->validate([
             'reason'=>'required_if:order_status,canceled'
         ]);
-        $order = Order::Notpos()->with('subscription_logs')->find($request->id);
+        $order = Order::Notpos()->with(['subscription_logs','details'])->find($request->id);
 
         if (in_array($order->order_status, ['refunded', 'failed'])) {
             Toastr::warning(translate('messages.you_can_not_change_the_status_of_a_completed_order'));
@@ -756,7 +760,27 @@ class OrderController extends Controller
                         $dm->save();
                     }
                     try {
-                        if(config('mail.status') && $order?->customer?->email && Helpers::get_mail_status('refund_order_mail_status_user') == '1'){
+                        $notification_status= Helpers::getNotificationStatusData('customer','customer_refund_request_approval');
+
+                        if($notification_status?->push_notification_status  == 'active' && $order?->customer?->cm_firebase_token){
+                            $data = [
+                                'title' => translate('messages.order_refunded'),
+                                'description' => translate('messages.Your_refund_request_has_been_approved'),
+                                'order_id' => $order->id,
+                                'image' => '',
+                                'type' => 'order_status',
+                                'order_status' => $order->order_status,
+                            ];
+                            Helpers::send_push_notif_to_device($order?->customer?->cm_firebase_token, $data);
+                            DB::table('user_notifications')->insert([
+                                'data' => json_encode($data),
+                                'user_id' => $order->user_id,
+                                'created_at' => now(),
+                                'updated_at' => now()
+                            ]);
+                        }
+
+                        if($notification_status?->mail_status == 'active' && config('mail.status') && $order?->customer?->email && Helpers::get_mail_status('refund_order_mail_status_user') == '1'){
                             Mail::to($order->customer->email)->send(new \App\Mail\RefundedOrderMail($order->id));
                         }
                     } catch (\Throwable $th) {
@@ -787,6 +811,7 @@ class OrderController extends Controller
                 $dm->current_orders = $dm->current_orders > 1 ? $dm->current_orders - 1 : 0;
                 $dm->save();
             }
+            Helpers::decreaseSellCount(order_details:$order->details);
 
             Helpers::increment_order_count($order->restaurant);
             OrderLogic::refund_before_delivered($order);
@@ -832,21 +857,27 @@ class OrderController extends Controller
                 // $dm->decrement('assigned_order_count');
                 $dm->save();
 
-                $data = [
-                    'title' => translate('messages.order_push_title'),
-                    'description' => translate('messages.you_are_unassigned_from_a_order'),
-                    'order_id' => '',
-                    'image' => '',
-                    'type' => 'assign'
-                ];
-                Helpers::send_push_notif_to_device($dm->fcm_token, $data);
 
-                DB::table('user_notifications')->insert([
-                    'data' => json_encode($data),
-                    'delivery_man_id' => $dm->id,
-                    'created_at' => now(),
-                    'updated_at' => now()
-                ]);
+                $deliveryman_push_notification_status=Helpers::getNotificationStatusData('deliveryman','deliveryman_order_assign_unassign');
+
+                if($deliveryman_push_notification_status?->push_notification_status  == 'active' && $dm->fcm_token ){
+                    $data = [
+                        'title' => translate('messages.order_push_title'),
+                        'description' => translate('messages.you_are_unassigned_from_a_order'),
+                        'order_id' => '',
+                        'image' => '',
+                        'type' => 'assign'
+                    ];
+                    Helpers::send_push_notif_to_device($dm->fcm_token, $data);
+
+                    DB::table('user_notifications')->insert([
+                        'data' => json_encode($data),
+                        'delivery_man_id' => $dm->id,
+                        'created_at' => now(),
+                        'updated_at' => now()
+                    ]);
+
+                }
             }
             $order->delivery_man_id = $delivery_man_id;
             $order->order_status = in_array($order->order_status, ['pending', 'confirmed']) ? 'accepted' : $order->order_status;
@@ -865,11 +896,12 @@ class OrderController extends Controller
 
 
             try {
+                $notification_status= Helpers::getNotificationStatusData('customer','customer_order_notification');
 
                 $fcm_token= ($order->is_guest == 0 ? $order?->customer?->cm_firebase_token : $order?->guest?->fcm_token )?? null;
-                if ($value && $fcm_token) {
+                if ($notification_status?->push_notification_status  == 'active' && $value && $fcm_token) {
                     $data = [
-                        'title' => translate('messages.order_push_title'),
+                        'title' => translate('messages.Order_notification'),
                         'description' => $value,
                         'order_id' => $order['id'],
                         'image' => '',
@@ -885,20 +917,28 @@ class OrderController extends Controller
                         'updated_at' => now()
                     ]);
                 }
-                $data = [
-                    'title' => translate('messages.order_push_title'),
-                    'description' => translate('messages.you_are_assigned_to_a_order'),
-                    'order_id' => $order['id'],
-                    'image' => '',
-                    'type' => 'assign'
-                ];
-                Helpers::send_push_notif_to_device($deliveryman->fcm_token, $data);
-                DB::table('user_notifications')->insert([
-                    'data' => json_encode($data),
-                    'delivery_man_id' => $deliveryman->id,
-                    'created_at' => now(),
-                    'updated_at' => now()
-                ]);
+                $deliveryman_push_notification_status=Helpers::getNotificationStatusData('deliveryman','deliveryman_order_assign_unassign');
+                if($deliveryman_push_notification_status?->push_notification_status  == 'active' && $deliveryman->fcm_token ){
+
+                    $data = [
+                        'title' => translate('messages.order_push_title'),
+                        'description' => translate('messages.you_are_assigned_to_a_order'),
+                        'order_id' => $order['id'],
+                        'image' => '',
+                        'type' => 'assign'
+                    ];
+                    Helpers::send_push_notif_to_device($deliveryman->fcm_token, $data);
+                    DB::table('user_notifications')->insert([
+                        'data' => json_encode($data),
+                        'delivery_man_id' => $deliveryman->id,
+                        'created_at' => now(),
+                        'updated_at' => now()
+                    ]);
+
+                }
+
+
+
             } catch (\Exception $e) {
                 info($e->getMessage());
                 Toastr::warning(translate('messages.push_notification_faild'));
@@ -983,6 +1023,17 @@ class OrderController extends Controller
     public function add_to_cart(Request $request)
     {
 
+        $old_selected_addons=[];
+        $old_selected_variations=[];
+        $old_selected_without_variation = $request?->old_selected_without_variation ?? 0;
+
+        if($request?->old_selected_variations){
+            $old_selected_variations= json_decode($request->old_selected_variations,true)?? [];
+        }
+        if($request?->old_selected_addons){
+            $old_selected_addons= json_decode($request->old_selected_addons,true)?? [];
+        }
+
         if ($request->item_type == 'food') {
             $product = Food::withOutGlobalScope(RestaurantScope::class)->find($request->id);
         } else {
@@ -1044,16 +1095,32 @@ class OrderController extends Controller
         $data["tax_amount"] = Helpers::tax_calculate(food:$product,price:$price);
         $add_ons = [];
         $add_on_qtys = [];
-
+        $add_on_ids=[];
         if ($request['addon_id']) {
             foreach ($request['addon_id'] as $id) {
+                $add_on_ids[]= $id;
                 $addon_price += $request['addon-price' . $id] * $request['addon-quantity' . $id];
                 $add_on_qtys[] = $request['addon-quantity' . $id];
             }
             $add_ons = $request['addon_id'];
         }
 
-        $addon_data = Helpers::calculate_addon_price(addons:\App\Models\AddOn::withOutGlobalScope(RestaurantScope::class)->whereIn('id', $add_ons)->get(), add_on_qtys:$add_on_qtys);
+        if ($request->item_type == 'food') {
+                $addonAndVariationStock= Helpers::addonAndVariationStockCheck(product:$product,  quantity: $request->quantity,add_on_qtys:$add_on_qtys, variation_options:explode(',',$request?->option_ids),add_on_ids:$add_on_ids, old_selected_variations:$old_selected_variations ,old_selected_without_variation:$old_selected_without_variation ,old_selected_addons:$old_selected_addons );
+                if(data_get($addonAndVariationStock, 'out_of_stock') != null) {
+                    return response()->json([
+                    'data' => 'stock_out',
+                    'message' => data_get($addonAndVariationStock, 'out_of_stock'),
+                    'current_stock' => data_get($addonAndVariationStock, 'current_stock'),
+                    'id'=> data_get($addonAndVariationStock, 'id'),
+                    'type'=> data_get($addonAndVariationStock, 'type'),
+                ],203);
+            }
+        }
+
+
+        $addon_data = Helpers::calculate_addon_price(addons:\App\Models\AddOn::withOutGlobalScope(RestaurantScope::class)->whereIn('id', $add_ons)->get(), add_on_qtys:$add_on_qtys ,old_selected_addons:$old_selected_addons);
+
         $data['add_ons'] = json_encode($addon_data['addons']);
         $data['total_add_on_price'] = $addon_data['total_add_on_price'];
         $cart = $request->session()->get('order_cart', collect([]));
@@ -1108,7 +1175,6 @@ class OrderController extends Controller
             $details['status'] = true;
             $cart->push($details);
         }
-
         if ($request->session()->has('order_cart')) {
             session()->forget('order_cart');
         } else {
@@ -1144,6 +1210,9 @@ class OrderController extends Controller
         if ($order->coupon_code) {
             $coupon = Coupon::where(['code' => $order->coupon_code])->first();
         }
+
+        try {
+            DB::beginTransaction();
         foreach ($cart as $c) {
 
             if ($c['status'] == true) {
@@ -1202,23 +1271,85 @@ class OrderController extends Controller
                         $c->food_details = json_encode($product);
                         $c->updated_at = now();
                         if (isset($c->id)) {
-                            OrderDetail::where('id', $c->id)->update(
-                                [
-                                    'food_id' => $c->food_id,
-                                    'item_campaign_id' => $c->item_campaign_id,
-                                    'food_details' => $c->food_details,
-                                    'quantity' => $c->quantity,
-                                    'price' => $c->price,
-                                    'tax_amount' => $c->tax_amount,
-                                    'discount_on_food' => $c->discount_on_food,
-                                    'discount_type' => $c->discount_type,
-                                    'variant' => $c->variant,
-                                    'variation' => $c->variation,
-                                    'add_ons' => $c->add_ons,
-                                    'total_add_on_price' => $c->total_add_on_price,
-                                    'updated_at' => $c->updated_at
-                                ]
-                            );
+
+                        $OrderDetail=  OrderDetail::where('id', $c->id)->first();
+                        $OrderDetail->food_id = $c->food_id;
+                        $OrderDetail->item_campaign_id = $c->item_campaign_id;
+                        $OrderDetail->food_details = $c->food_details;
+
+                        $old_quantity= $OrderDetail->quantity;
+
+                        if(gettype($c->variation) == 'string'){
+                            $variations = json_decode($c->variation, true) ?? [];
+                        } else if(gettype($c->variation) == 'array' ){
+                            $variations = $c->variation ?? [];
+                        }
+
+                        $optionIds=[];
+                        $oldOptionIds=[];
+                        if($OrderDetail){
+                            if($OrderDetail->variation != '[]'){
+                                foreach (json_decode($OrderDetail->variation, true) ?? [] as $value) {
+                                    foreach (data_get($value,'values' ,[]) as $item) {
+                                        if(data_get($item, 'option_id', null ) != null){
+                                            $oldOptionIds[] = data_get($item, 'option_id', null );
+                                        }
+                                    }
+                                }
+                                VariationOption::whereIn('id', $oldOptionIds)->where('sell_count','>=' ,$old_quantity )->decrement('sell_count' ,$old_quantity);
+
+                            } else{
+                                $product->sell_count >= $old_quantity ?   $product->decrement('sell_count' ,$old_quantity) : '';
+                            }
+
+                            foreach (json_decode($OrderDetail->add_ons, true) as $old_add_ons) {
+                                if(data_get($old_add_ons, 'id', null ) != null){
+                                AddOn::where('id',data_get($old_add_ons, 'id', null ))->where('sell_count','>=' ,$old_quantity )->decrement('sell_count' ,data_get($old_add_ons, 'quantity', 1 ));
+                                }
+                            }
+                        }
+
+
+                        if(count($variations) > 0){
+                            foreach ($variations as $value) {
+                                foreach (data_get($value,'values' ,[]) as $item) {
+                                    if(data_get($item, 'option_id', null ) != null){
+                                        $optionIds[] = data_get($item, 'option_id', null );
+                                    }
+                                }
+                            }
+
+                        }
+
+                        $add_on_qtys=[];
+                        $add_on_ids=[];
+                        foreach (json_decode($c->add_ons, true) as $add_ons) {
+                            if(data_get($add_ons, 'id', null ) != null){
+                                $add_on_ids[]=data_get($add_ons, 'id', null );
+                                $add_on_qtys[]=data_get($add_ons, 'quantity', 1 );
+                            }
+                        }
+
+
+                        $addonAndVariationStock= Helpers::addonAndVariationStockCheck(product:$product,quantity: $c->quantity,add_on_qtys:$add_on_qtys, variation_options:$optionIds,add_on_ids:$add_on_ids ,incrementCount:true);
+                        if(data_get($addonAndVariationStock, 'out_of_stock') != null) {
+                            Toastr::error(data_get($addonAndVariationStock, 'out_of_stock'));
+                            return back();
+                        }
+
+
+                        $OrderDetail->quantity = $c->quantity;
+                        $OrderDetail->price = $c->price;
+                        $OrderDetail->tax_amount = $c->tax_amount;
+                        $OrderDetail->discount_on_food = $c->discount_on_food;
+                        $OrderDetail->discount_type = $c->discount_type;
+                        $OrderDetail->variant = $c->variant;
+                        $OrderDetail->variation = $c->variation;
+                        $OrderDetail->add_ons = $c->add_ons;
+                        $OrderDetail->total_add_on_price = $c->total_add_on_price;
+                        $OrderDetail->updated_at = $c->updated_at;
+                        $OrderDetail->save();
+
                         } else {
                             $c->save();
                         }
@@ -1283,8 +1414,16 @@ class OrderController extends Controller
         $order->adjusment = $adjustment;
         $order->edited = true;
         $order->save();
+        DB::commit();
         session()->forget('order_cart');
+
         Toastr::success(translate('messages.order_updated_successfully'));
+
+        } catch (\Exception $exception) {
+            DB::rollBack();
+            info([$exception->getFile(),$exception->getLine(),$exception->getMessage()]);
+        }
+
         return back();
     }
 
@@ -1388,7 +1527,7 @@ class OrderController extends Controller
         if (!empty($request->file('order_proof'))) {
             foreach ($request->order_proof as $img) {
                 $image_name = Helpers::upload('order/', 'png', $img);
-                array_push($img_names, $image_name);
+                array_push($img_names, ['img'=>$image_name, 'storage'=> Helpers::getDisk()]);
             }
             $images = $img_names;
         }
@@ -1408,11 +1547,10 @@ class OrderController extends Controller
             Toastr::warning(translate('all_image_delete_warning'));
             return back();
         }
-        if (Storage::disk('public')->exists('order/' . $request['name'])) {
-            Storage::disk('public')->delete('order/' . $request['name']);
-        }
+        Helpers::check_and_delete('order/' , $request['name']);
         foreach ($proof as $image) {
-            if ($image != $request['name']) {
+            $image = is_array($image)?$image:(is_object($image) && get_class($image) == 'stdClass' ? json_decode(json_encode($image), true):['img' => $image, 'storage' => 'public']);
+            if ($image['img'] != $request['name']) {
                 array_push($array, $image);
             }
         }
@@ -1496,6 +1634,8 @@ class OrderController extends Controller
             $notification_title= translate('messages.Your_Offline_payment_was_approved') ;
             $mail_sattus = Helpers::get_mail_status('offline_payment_approve_mail_status_user');
             $mail_sattus_type =  'approved';
+            $notification_status= Helpers::getNotificationStatusData('customer','customer_offline_payment_approve');
+
 
             if( $order->restaurant->restaurant_model == 'subscription' && isset($order->restaurant->restaurant_sub)){
                 if ($order->restaurant->restaurant_sub->max_order != "unlimited" && $order->restaurant->restaurant_sub->max_order > 0 ) {
@@ -1508,6 +1648,8 @@ class OrderController extends Controller
             $notification_title= translate('messages.Your_Offline_payment_was_rejected') ;
             $mail_sattus_type =  'denied';
             $mail_sattus = Helpers::get_mail_status('offline_payment_deny_mail_status_user');
+            $notification_status= Helpers::getNotificationStatusData('customer','customer_offline_payment_deny');
+
         }
         try {
         $value = Helpers::text_variable_data_format(value:Helpers::order_status_update_message($notification_text,$order->customer?$order->customer->current_language_key:'en'),restaurant_name:$order->restaurant?->name,order_id:$order->id,user_name:"{$order?->customer?->f_name} {$order?->customer?->l_name}",delivery_man_name:"{$order?->delivery_man?->f_name} {$order?->delivery_man?->l_name}");
@@ -1522,7 +1664,7 @@ class OrderController extends Controller
             ];
 
             $fcm= ($order->is_guest == 0 ? $order?->customer?->cm_firebase_token : $order?->guest?->fcm_token) ?? null ;
-            if($fcm && $value ){
+            if($notification_status?->push_notification_status  == 'active' && $fcm && $value ){
                 Helpers::send_push_notif_to_device($fcm, $data);
                 DB::table('user_notifications')->insert([
                     'data' => json_encode($data),
@@ -1534,7 +1676,7 @@ class OrderController extends Controller
 
 
 
-            if($order?->customer?->email && config('mail.status') && $mail_sattus == '1'){
+            if($order?->customer?->email && config('mail.status') && $mail_sattus == '1' && $notification_status?->mail_status == 'active'){
                 Mail::to($order?->customer?->email)->send(new \App\Mail\UserOfflinePaymentMail($order?->customer?->f_name .' '.$order?->customer?->l_name,$mail_sattus_type));
             }
         }

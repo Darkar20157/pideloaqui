@@ -73,7 +73,7 @@
                 <td>{{$order->details->count() }}</td>
                 <td> {{ \App\CentralLogics\Helpers::number_format_short($order['order_amount']-$order['dm_tips']-$order['total_tax_amount']-$order['delivery_charge']+$order['coupon_discount_amount'] + $order['restaurant_discount_amount']) }}
                 </td>
-                <td> {{ \App\CentralLogics\Helpers::number_format_short($order->details->sum('discount_on_food')) }} </td>
+                <td> {{ \App\CentralLogics\Helpers::number_format_short($order->details()->sum(DB::raw('discount_on_food * quantity'))) }} </td>
                 <td> {{ \App\CentralLogics\Helpers::number_format_short($order['coupon_discount_amount']) }}</td>
                 <td> {{ \App\CentralLogics\Helpers::number_format_short($order['coupon_discount_amount'] + $order['restaurant_discount_amount']) }}</td>
                 <td> {{ \App\CentralLogics\Helpers::number_format_short($order['total_tax_amount']) }}</td>

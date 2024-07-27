@@ -49,7 +49,7 @@
                                             <input type="text" name="title[]" id="default_title"
                                                 class="form-control" placeholder="{{ translate('messages.new_banner') }}"
 
-                                                oninvalid="document.getElementById('en-link').click()">
+                                                 >
                                         </div>
                                         <input type="hidden" name="lang[]" value="default">
                                     </div>
@@ -63,7 +63,7 @@
                                             </label>
                                             <input type="text" name="title[]" id="{{ $lang }}_title"
                                                 class="form-control" placeholder="{{ translate('messages.new_banner') }}"
-                                                oninvalid="document.getElementById('en-link').click()">
+                                                 >
                                         </div>
                                         <input type="hidden" name="lang[]" value="{{ $lang }}">
                                     </div>
@@ -123,7 +123,7 @@
 
                                         <div class="image-box banner2">
                                             <label for="image-input" class="d-flex flex-column align-items-center justify-content-center h-100 cursor-pointer gap-2">
-                                                <img width="30" class="upload-icon" src="{{asset('public/assets/admin/img/upload-icon.png')}}" alt="Upload Icon">
+                                                <img width="30" class="upload-icon" src="{{dynamicAsset('public/assets/admin/img/upload-icon.png')}}" alt="Upload Icon">
                                                 <span class="upload-text">{{ translate('Upload Image')}}</span>
                                                 <img src="#" alt="Preview Image" class="preview-image">
                                             </label>
@@ -194,7 +194,7 @@
                                     <td>{{$key+$banners->firstItem()}}</td>
                                     <td>
                                         <span class="media align-items-center">
-                                                            <img class="avatar avatar-lg mr-3 avatar--3-1 onerror-image" src="{{\App\CentralLogics\Helpers::onerror_image_helper($banner['image'], dynamicStorage('storage/app/public/banner/').'/'.$banner['image'], dynamicAsset('public/assets/admin/img/900x400/img1.jpg'), 'banner/') }}"
+                                                            <img class="avatar avatar-lg mr-3 avatar--3-1 onerror-image" src="{{ $banner['image_full_url'] }}"
                                                                  data-onerror-image="{{dynamicAsset('/public/assets/admin/img/900x400/img1.jpg')}}" alt="{{$banner->name}} image">
                                             <div class="media-body">
                                                 <h5 class="text-hover-primary mb-0">{{Str::limit($banner['title'], 25, '...')}}</h5>

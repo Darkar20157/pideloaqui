@@ -21,7 +21,7 @@ class AccountTransaction extends Model
     public function getRestaurantAttribute()
     {
         if($this->from_type == 'restaurant'){
-            return Restaurant::with('translations')->find($this->from_id);
+            return Restaurant::withoutGlobalScopes()->setEagerLoads([])->find($this->from_id);
         }
         return null;
     }
@@ -29,7 +29,7 @@ class AccountTransaction extends Model
     public function getDeliverymanAttribute()
     {
         if($this->from_type == 'deliveryman'){
-            return DeliveryMan::find($this->from_id);
+            return DeliveryMan::withoutGlobalScopes()->setEagerLoads([])->find($this->from_id);
         }
         return null;
     }

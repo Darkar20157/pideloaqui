@@ -293,7 +293,11 @@ class CategoryController extends Controller
                 $chunk_categories= array_chunk($data,$chunkSize);
 
                 foreach($chunk_categories as $key=> $chunk_category){
-                    DB::table('categories')->insert($chunk_category);
+//                    DB::table('categories')->insert($chunk_category);
+                    foreach ($chunk_category as $category) {
+                        $insertedId = DB::table('categories')->insertGetId($category);
+                        Helpers::updateStorageTable(get_class(new Category), $insertedId, $category['image']);
+                    }
                 }
                 DB::commit();
             }catch(\Exception $exception)
@@ -333,7 +337,16 @@ class CategoryController extends Controller
             $chunk_categories= array_chunk($data,$chunkSize);
 
             foreach($chunk_categories as $key=> $chunk_category){
-                DB::table('categories')->upsert($chunk_category,['id'],['name','image','parent_id','position','priority','status']);
+//                DB::table('categories')->upsert($chunk_category,['id'],['name','image','parent_id','position','priority','status']);
+                foreach ($chunk_category as $category) {
+                    if (isset($category['id']) && DB::table('categories')->where('id', $category['id'])->exists()) {
+                        DB::table('categories')->where('id', $category['id'])->update($category);
+                        Helpers::updateStorageTable(get_class(new Category), $category['id'], $category['image']);
+                    } else {
+                        $insertedId = DB::table('categories')->insertGetId($category);
+                        Helpers::updateStorageTable(get_class(new Category), $insertedId, $category['image']);
+                    }
+                }
             }
             DB::commit();
         }catch(\Exception $e)

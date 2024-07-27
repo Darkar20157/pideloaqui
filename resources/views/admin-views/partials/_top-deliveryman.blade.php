@@ -22,12 +22,7 @@
                 <div class="grid-card top--deliveryman cursor-pointer">
                     <div class="text-center py-3">
                         <img class="initial-41 onerror-image" data-onerror-image="{{dynamicAsset('public/assets/admin/img/160x160/img1.jpg')}}"
-                             src="{{ \App\CentralLogics\Helpers::onerror_image_helper(
-                            $item['image'] ?? '',
-                            dynamicStorage('storage/app/public/delivery-man').'/'.$item['image'] ?? '',
-                            dynamicAsset('public/assets/admin/img/160x160/img1.jpg'),
-                            'delivery-man/'
-                        ) }}" alt="{{$item['f_name']}}" >
+                             src="{{ $item['image_full_url'] ?? dynamicAsset('public/assets/admin/img/160x160/img1.jpg') }}" alt="{{$item['f_name']}}" >
                     </div>
                     <div class="text-center mt-2">
                         <h5 class="name m-0">{{$item['f_name'] ?? translate('messages.Not_exist')}}</h5>

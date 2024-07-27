@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\CentralLogics\Helpers;
 use App\Scopes\ZoneScope;
 use Illuminate\Support\Str;
 use App\Scopes\RestaurantScope;
@@ -37,10 +38,35 @@ class Food extends Model
         'is_halal'=>'integer',
     ];
 
+    protected $appends = ['image_full_url'];
+    public function getImageFullUrlAttribute(){
+        $value = $this->image;
+        if (count($this->storage) > 0) {
+            foreach ($this->storage as $storage) {
+                if ($storage['key'] == 'image') {
+                    return Helpers::get_full_url('product',$value,$storage['value']);
+                }
+            }
+        }
+
+        return Helpers::get_full_url('product',$value,'public');
+    }
 
     public function logs()
     {
         return $this->hasMany(Log::class,'model_id')->where('model','Food');
+    }
+    public function newVariations()
+    {
+        return $this->hasMany(Variation::class,'food_id');
+    }
+    public function wishlists()
+    {
+        return $this->hasMany(Wishlist::class,'food_id');
+    }
+    public function newVariationOptions()
+    {
+        return $this->hasMany(VariationOption::class,'food_id');
     }
 
     public function scopeRecommended($query)
@@ -105,6 +131,10 @@ class Food extends Model
         return $this->hasMany(OrderDetail::class);
     }
 
+    public function storage()
+    {
+        return $this->morphMany(Storage::class, 'data');
+    }
 
     protected static function booted()
     {
@@ -114,6 +144,10 @@ class Food extends Model
         }
 
         static::addGlobalScope(new ZoneScope);
+
+        // static::addGlobalScope('storage', function ($builder) {
+        //     $builder->with('storage');
+        // });
 
         static::addGlobalScope('translate', function (Builder $builder) {
             $builder->with(['translations' => function ($query) {
@@ -146,6 +180,36 @@ class Food extends Model
         static::created(function ($food) {
             $food->slug = $food->generateSlug($food->name);
             $food->save();
+        });
+
+        static::retrieved(function ($food) {
+            try {
+                if($food?->orders?->count() != 0 && $food?->orders()->whereDay('created_at', now())->count() == 0 && $food->stock_type == 'daily'){
+                        $food->sell_count = 0;
+                        $food->save();
+                        $food?->newVariationOptions()?->update([
+                            'sell_count' => 0
+                        ]);
+                    }
+                    unset($food->orders);
+                } catch (\Exception $exception) {
+                    info([$exception->getFile(),$exception->getLine(),$exception->getMessage()]);
+                }
+            });
+        static::saved(function ($model) {
+            if($model->isDirty('image')){
+                $value = Helpers::getDisk();
+
+                DB::table('storages')->updateOrInsert([
+                    'data_type' => get_class($model),
+                    'data_id' => $model->id,
+                    'key' => 'image',
+                ], [
+                    'value' => $value,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
         });
     }
     private function generateSlug($name)
@@ -189,6 +253,55 @@ class Food extends Model
         }
 
         return $value;
+    }
+    public function getItemStockAttribute($value){
+        return $value - $this->sell_count > 0 ? $value - $this->sell_count : 0 ;
+    }
+
+    public function getVariationsAttribute($value){
+        try {
+            if(is_string($value) &&  (json_decode($value, true) == null || count(json_decode($value, true)) == 0) && count($this->newVariations) > 0 && count($this->newVariationOptions) > 0 ){
+                foreach ($this->newVariations as $variation) {
+                    $variationArray = [
+                        "variation_id" => (int) $variation['id'],
+                        "name" => $variation['name'],
+                        "type" => $variation['type'],
+                        "min" => (string) $variation['min'],
+                        "max" => (string) $variation['max'],
+                        "required" => (string) $variation['is_required'] == true ? "on" :'off',
+                        "values" => []
+                    ];
+
+                    foreach ($this->newVariationOptions as $option) {
+                        if ($option['variation_id'] == $variation['id']) {
+
+                            $current_stock=  $option['stock_type'] == 'unlimited'  ? 'unlimited': $option['total_stock'] - $option['sell_count'] ;
+                            $variationArray['values'][] = [
+                                "label" => $option['option_name'],
+                                "optionPrice" => $option['option_price'],
+                                "total_stock" => (string) $option['total_stock'],
+                                "stock_type" => $option['stock_type'],
+                                "sell_count" =>(string) $option['sell_count'],
+                                "option_id" => (int) $option['id'],
+                                "current_stock" => (int)   ($current_stock == 'unlimited' ? 0 : ($current_stock > 0 ? $current_stock : 0)),
+                            ];
+                        }
+                    }
+                    $result[] = $variationArray;
+                    unset($this->newVariations);
+                    unset($this->newVariationOptions);
+                }
+
+                return json_encode($result);
+            }
+            else{
+                return $value;
+            }
+        } catch (\Exception $exception) {
+            info([$exception->getFile(),$exception->getLine(),$exception->getMessage()]);
+            return $value;
+        }
+
     }
 
 }

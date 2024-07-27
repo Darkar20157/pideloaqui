@@ -107,7 +107,7 @@ class ConversationController extends Controller
             foreach($request->images as $key=>$img)
             {
                 $name = Helpers::upload(dir:'conversation/', format:'png',image: $img);
-                array_push($image_name,$name);
+                array_push($image_name,['img'=>$name, 'storage'=> Helpers::getDisk()]);
             }
         } else {
             $image_name = null;
@@ -126,7 +126,7 @@ class ConversationController extends Controller
         if(!$sender){
             $sender = new UserInfo();
             $sender->vendor_id = $vendor->id;
-            $sender->f_name = $vendor?->restaurants[0]?->name;
+            $sender->f_name = $vendor?->restaurants[0]?->getRawOriginal('name');
             $sender->l_name = '';
             $sender->phone = $vendor->phone;
             $sender->email = $vendor->email;
@@ -151,7 +151,7 @@ class ConversationController extends Controller
             }
 
         }elseif($user_type == 'delivery_man'){
-            $user = User::find($user_id);
+            $user = DeliveryMan::find($user_id);
             $fcm_token=$user->fcm_token;
             $receiver = UserInfo::where('deliveryman_id', $user->id)->first();
             if(!$receiver){
@@ -187,7 +187,9 @@ class ConversationController extends Controller
         $message->conversation_id = $conversation->id;
         $message->sender_id = $sender->id;
         $message->message = $request->reply;
-        $message->file = $image_name?json_encode($image_name, JSON_UNESCAPED_SLASHES):null;
+        if($image_name && count($image_name)>0){
+            $message->file = json_encode($image_name, JSON_UNESCAPED_SLASHES);
+        }
         try {
             if($message->save())
             $conversation->unread_message_count = $conversation->unread_message_count? $conversation->unread_message_count+1:1;
@@ -209,7 +211,7 @@ class ConversationController extends Controller
             }
 
         } catch (\Exception $e) {
-            info($e);
+            dd($e->getMessage());
         }
         $vendor = UserInfo::where('vendor_id',$vendor->id)->first();
         $convs = Message::where(['conversation_id' => $conversation->id])->get();

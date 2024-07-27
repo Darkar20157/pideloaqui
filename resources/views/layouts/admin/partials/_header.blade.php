@@ -4,13 +4,13 @@
         <div class="navbar-nav-wrap">
             <div class="navbar-brand-wrapper">
                 <!-- Logo -->
-                @php($restaurant_logo=\App\Models\BusinessSetting::where(['key'=>'logo'])->first()?->value)
-                <a class="navbar-brand d-block" href="{{route('admin.dashboard')}}" aria-label="">
+                @php($restaurant_logo=\App\Models\BusinessSetting::where(['key'=>'logo'])->first())
+                <a class="navbar-brand d-none d-md-block" href="{{route('admin.dashboard')}}" aria-label="">
                          <img class="navbar-brand-logo brand--logo-design-2"
-                         src="{{\App\CentralLogics\Helpers::onerror_image_helper($restaurant_logo, dynamicStorage('storage/app/public/business/'.$restaurant_logo), dynamicAsset('public/assets/admin/img/160x160/img1.jpg'), 'business/') }}"
+                         src="{{ \App\CentralLogics\Helpers::get_full_url('business',$restaurant_logo?->value,$restaurant_logo?->storage[0]?->value ?? 'public', 'favicon') }}"
                          alt="image">
                          <img class="navbar-brand-logo-mini brand--logo-design-2"
-                         src="{{\App\CentralLogics\Helpers::onerror_image_helper($restaurant_logo, dynamicStorage('storage/app/public/business/'.$restaurant_logo), dynamicAsset('public/assets/admin/img/160x160/img1.jpg'), 'business/') }}"
+                         src="{{ \App\CentralLogics\Helpers::get_full_url('business',$restaurant_logo?->value,$restaurant_logo?->storage[0]?->value ?? 'public', 'favicon') }}"
                          alt="image">
                 </a>
                 <!-- End Logo -->
@@ -108,7 +108,7 @@
                                 <div class="cmn--media dropdown-toggle d-flex align-items-center">
                                     <div class="avatar avatar-sm avatar-circle">
                                             <img class="avatar-img"
-                                            src="{{\App\CentralLogics\Helpers::onerror_image_helper(auth('admin')?->user()?->image, dynamicStorage('storage/app/public/admin/'.auth('admin')?->user()?->image), dynamicAsset('public/assets/admin/img/160x160/img1.jpg'), 'admin/') }}"
+                                            src="{{ auth('admin')?->user()?->image_full_url }}"
                                             alt="image">
                                         <span class="avatar-status avatar-sm-status avatar-status-success"></span>
                                     </div>
@@ -128,7 +128,7 @@
                                     <div class="media align-items-center">
                                         <div class="avatar avatar-sm avatar-circle mr-2">
                                             <img class="avatar-img"
-                                            src="{{\App\CentralLogics\Helpers::onerror_image_helper(auth('admin')?->user()?->image, dynamicStorage('storage/app/public/admin/'.auth('admin')?->user()?->image), dynamicAsset('public/assets/admin/img/160x160/img1.jpg'), 'admin/') }}"
+                                            src="{{ auth('admin')?->user()?->image_full_url ?? dynamicAsset('public/assets/admin/img/160x160/img1.jpg') }}"
                                             alt="image">
                                         </div>
                                         <div class="media-body">

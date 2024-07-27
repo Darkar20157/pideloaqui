@@ -3,21 +3,23 @@
 namespace App\Exports;
 
 
+use App\CentralLogics\Helpers;
 use Illuminate\Contracts\View\View;
-use Maatwebsite\Excel\Concerns\Exportable;
 use Maatwebsite\Excel\Concerns\FromView;
 use Maatwebsite\Excel\Events\AfterSheet;
+use Maatwebsite\Excel\Concerns\Exportable;
 use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithStyles;
-use Maatwebsite\Excel\Concerns\WithHeadings;
-use Maatwebsite\Excel\Concerns\ShouldAutoSize;
-use Maatwebsite\Excel\Concerns\WithColumnWidths;
-use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
-use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
 use PhpOffice\PhpSpreadsheet\Style\Border;
+use Maatwebsite\Excel\Concerns\WithHeadings;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
-use Maatwebsite\Excel\Concerns\WithColumnFormatting;
+use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
+use Maatwebsite\Excel\Concerns\WithColumnWidths;
 use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
+use Maatwebsite\Excel\Concerns\WithColumnFormatting;
+use PhpOffice\PhpSpreadsheet\Worksheet\MemoryDrawing;
 
 class EmployeeListExport implements  FromView, ShouldAutoSize, WithStyles,WithColumnWidths ,WithHeadings, WithEvents,WithColumnFormatting
 {
@@ -84,10 +86,17 @@ class EmployeeListExport implements  FromView, ShouldAutoSize, WithStyles,WithCo
 
     public function setImage($workSheet) {
         $this->data['employees']->each(function($item,$index) use($workSheet) {
-            $drawing = new Drawing();
-            $drawing->setName($item->f_name);
-            $drawing->setDescription($item->f_name);
-            $drawing->setPath(is_file(storage_path('app/public/admin/'.$item->image))?storage_path('app/public/admin/'.$item->image):public_path('/assets/admin/img/160x160/img2.jpg'));
+            $tempImagePath = null;
+            if(!is_file(storage_path('app/public/admin/'.$item->image) )){
+                $tempImagePath = Helpers::getTemporaryImageForExport($item->image_full_url);
+                $imagePath = Helpers::getImageForExport($item->image_full_url);
+
+                $drawing = new MemoryDrawing();
+                $drawing->setImageResource($imagePath);
+            }else{
+                $drawing = new Drawing();
+                $drawing->setPath(is_file(storage_path('app/public/admin/'.$item->image))?storage_path('app/public/admin/'.$item->image):public_path('/assets/admin/img/160x160/img2.jpg'));
+            }
             $drawing->setHeight(25);
             $index+=5;
             $drawing->setCoordinates("B$index");
@@ -95,6 +104,9 @@ class EmployeeListExport implements  FromView, ShouldAutoSize, WithStyles,WithCo
             $drawing->setOffsetY(4);
             $drawing->setResizeProportional(true);
             $drawing->setWorksheet($workSheet);
+            if($tempImagePath){
+                imagedestroy($tempImagePath);
+            }
         });
     }
 

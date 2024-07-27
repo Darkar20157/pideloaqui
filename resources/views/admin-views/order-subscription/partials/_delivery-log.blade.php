@@ -27,7 +27,7 @@ $scheduleType= $subscription->type;
 @if($logs->count() == 0 && !$ongoingOrder && count($dates))
 <div class="py-5 text-center">
     <div class="py-sm-5">
-        <img src="{{asset('/public/assets/admin/img/empty-log.png')}}" alt="">
+        <img src="{{dynamicAsset('public/assets/admin/img/empty-log.png')}}" alt="">
         <div class="mt-3">{{translate('messages.No delivery logs found!')}}</div>
     </div>
 </div>

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Models\Cart;
 use App\Models\Food;
+use App\Models\User;
 use App\Models\Zone;
 use App\Models\Admin;
 use App\Models\Order;
@@ -22,6 +23,7 @@ use App\Models\Subscription;
 use Illuminate\Http\Request;
 use App\CentralLogics\Helpers;
 use App\Models\BusinessSetting;
+use App\Models\CashBackHistory;
 use App\Models\OfflinePayments;
 use App\CentralLogics\OrderLogic;
 use App\Models\OrderCancelReason;
@@ -32,6 +34,7 @@ use App\CentralLogics\CustomerLogic;
 use App\Http\Controllers\Controller;
 use App\Models\OfflinePaymentMethod;
 use App\Models\SubscriptionSchedule;
+use App\Models\VariationOption;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 use MatanYadaev\EloquentSpatial\Objects\Point;
@@ -247,6 +250,12 @@ class OrderController extends Controller
                 ]
             ], 403);
         }
+
+
+
+        DB::beginTransaction();
+
+
 
         if ($request['coupon_code']) {
             $coupon = Coupon::active()->where(['code' => $request['coupon_code']])->first();
@@ -492,6 +501,20 @@ class OrderController extends Controller
                     ], 406);
                 }
 
+                $addon_data = Helpers::calculate_addon_price(addons: \App\Models\AddOn::whereIn('id',$c['add_on_ids'])->get(), add_on_qtys: $c['add_on_qtys']);
+
+                    if($code == 'food'){
+                        $variation_options =  is_string(data_get($c,'variation_options')) ? json_decode(data_get($c,'variation_options') ,true) : [];
+                        $addonAndVariationStock= Helpers::addonAndVariationStockCheck(product:$product,quantity: $c['quantity'],add_on_qtys:$c['add_on_qtys'], variation_options:$variation_options,add_on_ids:$c['add_on_ids'],incrementCount: true );
+                            if(data_get($addonAndVariationStock, 'out_of_stock') != null) {
+                                return response()->json([
+                                    'errors' => [
+                                        ['code' => data_get($addonAndVariationStock, 'type') ?? 'food', 'message' =>data_get($addonAndVariationStock, 'out_of_stock') ],
+                                    ]
+                                ], 406);
+                            }
+                        }
+
                 $product_variations = json_decode($product->variations, true);
                 $variations=[];
                 if (count($product_variations)) {
@@ -503,9 +526,8 @@ class OrderController extends Controller
                 }
 
                 $product->tax = $restaurant->tax;
-                $product = Helpers::product_data_formatting($product, false, false, app()->getLocale());
-                $addon_data = Helpers::calculate_addon_price(addons: \App\Models\AddOn::whereIn('id',$c['add_on_ids'])->get(), add_on_qtys: $c['add_on_qtys']);
 
+                $product = Helpers::product_data_formatting($product, false, false, app()->getLocale());
 
                 $or_d = [
                     'food_id' => $food_id ??  null,
@@ -554,6 +576,15 @@ class OrderController extends Controller
 
         $coupon_discount_amount = $coupon ? CouponLogic::get_discount(coupon:$coupon, order_amount: $product_price + $total_addon_price - $restaurant_discount_amount) : 0;
         $total_price = $product_price + $total_addon_price - $restaurant_discount_amount - $coupon_discount_amount ;
+
+        if($order->is_guest  == 0 && $order->user_id  && !($request->subscription_order && $request->subscription_quantity) ){
+            $user= User::withcount('orders')->find($order->user_id);
+            $discount_data= Helpers::getCusromerFirstOrderDiscount(order_count:$user->orders_count ,user_creation_date:$user->created_at,  refby:$user->ref_by, price: $total_price);
+                if(data_get($discount_data,'is_valid') == true &&  data_get($discount_data,'calculated_amount') > 0){
+                    $total_price = $total_price - data_get($discount_data,'calculated_amount');
+                    $order->ref_bonus_amount = data_get($discount_data,'calculated_amount');
+                }
+        }
 
         $tax = ($restaurant->tax > 0)?$restaurant->tax:0;
         $order->tax_status = 'excluded';
@@ -615,7 +646,12 @@ class OrderController extends Controller
                 } else {
                     $order->additional_charge = 0;
                 }
-        $order_amount = round($total_price + $tax_a + $order->delivery_charge + $order->additional_charge , config('round_up_to_digit'));
+
+        //Extra packaging charge
+        $extra_packaging_data = BusinessSetting::where('key', 'extra_packaging_charge')->first()?->value ?? 0;
+        $order->extra_packaging_amount =  ($extra_packaging_data == 1 && $restaurant?->restaurant_config?->is_extra_packaging_active == 1  && $request?->extra_packaging_amount > 0)?$restaurant?->restaurant_config?->extra_packaging_amount:0;
+
+        $order_amount = round($total_price + $tax_a + $order->delivery_charge + $order->additional_charge + $order->extra_packaging_amount, config('round_up_to_digit'));
         if($request->payment_method == 'wallet' && $request->user->wallet_balance < $order_amount)
         {
             return response()->json([
@@ -648,7 +684,7 @@ class OrderController extends Controller
             ], 203);
             }
 
-            DB::beginTransaction();
+            // DB::beginTransaction();
 
             // new Order Subscription create
             if($request->subscription_order && $request->subscription_quantity){
@@ -727,23 +763,35 @@ class OrderController extends Controller
                 OrderLogic::create_order_payment(order_id:$order->id, amount:$unpaid_amount, payment_status:'unpaid',payment_method:$request->payment_method);
             }
 
+
+            if($order->is_guest  == 0 && $order->user_id && !($request->subscription_order && $request->subscription_quantity) ){
+                $this->createCashBackHistory($order->order_amount, $order->user_id,$order->id);
+            }
+
             DB::commit();
             //PlaceOrderMail
             $order_mail_status = Helpers::get_mail_status('place_order_mail_status_user');
             $order_verification_mail_status = Helpers::get_mail_status('order_verification_mail_status_user');
             try {
                 if($request->payment_method != 'digital_payment' && config('mail.status')){
-                    if ($order->order_status == 'pending' && $order_mail_status == '1'&& $request->user) {
+
+                    $notification_status= Helpers::getNotificationStatusData('customer','customer_order_notification');
+
+                    if($notification_status?->mail_status == 'active' && $order->order_status == 'pending' && $order_mail_status == '1'&& $request->user) {
                         Mail::to($request->user->email)->send(new PlaceOrder($order->id));
-                    }
-                    if ($order->order_status == 'pending' && config('order_delivery_verification') == 1 && $order_verification_mail_status == '1'&& $request->user) {
+                        }
+                    if($notification_status?->mail_status == 'active' && $order->is_guest == 1 && $order->order_status == 'pending' && $order_mail_status == '1' && isset($request->contact_person_email)) {
+                        Mail::to($request->contact_person_email)->send(new PlaceOrder($order->id));
+                        }
+
+                    $notification_status=null ;
+                    $notification_status= Helpers::getNotificationStatusData('customer','customer_delivery_verification');
+
+                    if($notification_status?->mail_status == 'active' && $order->order_status == 'pending' && config('order_delivery_verification') == 1 && $order_verification_mail_status == '1'&& $request->user) {
                         Mail::to($request->user->email)->send(new OrderVerificationMail($order->otp,$request->user->f_name));
                     }
 
-                    if ($order->is_guest == 1 && $order->order_status == 'pending' && $order_mail_status == '1' && isset($request->contact_person_email)) {
-                        Mail::to($request->contact_person_email)->send(new PlaceOrder($order->id));
-                    }
-                    if ($order->is_guest == 1 && $order->order_status == 'pending' && config('order_delivery_verification') == 1 && $order_verification_mail_status == '1' && isset($request->contact_person_email)) {
+                    if($notification_status?->mail_status == 'active' && $order->is_guest == 1 && $order->order_status == 'pending' && config('order_delivery_verification') == 1 && $order_verification_mail_status == '1' && isset($request->contact_person_email)) {
                         Mail::to($request->contact_person_email)->send(new OrderVerificationMail($order->otp,$request->contact_person_name));
                     }
                 }
@@ -758,6 +806,7 @@ class OrderController extends Controller
                 'total_ammount' => $total_price+$order->delivery_charge+$tax_a
             ], 200);
         } catch (\Exception $e) {
+            DB::rollBack();
             info($e->getMessage());
             return response()->json([$e->getMessage()], 403);
         }
@@ -960,6 +1009,7 @@ class OrderController extends Controller
         ->when(isset($request->user)  , function($query){
             $query->where('is_guest' , 0);
         })
+        ->with('details')
         ->Notpos()->first();
         if(!$order){
                 return response()->json([
@@ -975,8 +1025,7 @@ class OrderController extends Controller
             $order->canceled_by = 'customer';
             $order->save();
 
-
-
+            Helpers::decreaseSellCount(order_details:$order->details);
             Helpers::send_order_notification($order);
             Helpers::increment_order_count($order->restaurant); //for subscription package order increase
 
@@ -1085,7 +1134,9 @@ class OrderController extends Controller
 
             $admin = Admin::where('role_id',1)->first();
             try {
-                if (config('mail.status') && $admin['email'] && Helpers::get_mail_status('refund_request_mail_status_admin') == '1') {
+                $notification_status= Helpers::getNotificationStatusData('admin','order_refund_request');
+
+                if($notification_status?->mail_status == 'active' && config('mail.status') && $admin['email'] && Helpers::get_mail_status('refund_request_mail_status_admin') == '1') {
                     Mail::to($admin['email'])->send(new RefundRequest($order->id));
                 }
             } catch (\Exception $ex) {
@@ -1131,11 +1182,12 @@ class OrderController extends Controller
             try {
 
         Helpers::send_order_notification($order);
+        $notification_status= Helpers::getNotificationStatusData('customer','customer_order_notification');
 
-                if ($order->is_guest == 0 && config('mail.status') && $order_mail_status == '1'&& $order->customer) {
+                if($notification_status?->mail_status == 'active' && $order->is_guest == 0 && config('mail.status') && $order_mail_status == '1'&& $order->customer) {
                     Mail::to($order->customer->email)->send(new PlaceOrder($order->id));
                 }
-                if ($order->is_guest == 1 && config('mail.status') && $order_mail_status == '1' && isset($address['contact_person_email'])) {
+                if($notification_status?->mail_status == 'active' && $order->is_guest == 1 && config('mail.status') && $order_mail_status == '1' && isset($address['contact_person_email'])) {
                     Mail::to($address['contact_person_email'])->send(new PlaceOrder($order->id));
                 }
 
@@ -1413,6 +1465,28 @@ class OrderController extends Controller
             }
         }
             return response()->json(['details'=>$storage], 200);
+    }
+
+
+    private function createCashBackHistory($order_amount, $user_id,$order_id){
+        $cashBack =  Helpers::getCalculatedCashBackAmount(amount:$order_amount, customer_id:$user_id);
+        if(data_get($cashBack,'calculated_amount') > 0){
+            $CashBackHistory = new CashBackHistory();
+            $CashBackHistory->user_id = $user_id;
+            $CashBackHistory->order_id = $order_id;
+            $CashBackHistory->calculated_amount = data_get($cashBack,'calculated_amount');
+            $CashBackHistory->cashback_amount = data_get($cashBack,'cashback_amount');
+            $CashBackHistory->cash_back_id = data_get($cashBack,'id');
+            $CashBackHistory->cashback_type = data_get($cashBack,'cashback_type');
+            $CashBackHistory->min_purchase = data_get($cashBack,'min_purchase');
+            $CashBackHistory->max_discount = data_get($cashBack,'max_discount');
+            $CashBackHistory->save();
+
+            $CashBackHistory?->order()->update([
+                'cash_back_id'=> $CashBackHistory->id
+            ]);
+        }
+        return true;
     }
 
 }

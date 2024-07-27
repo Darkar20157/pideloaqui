@@ -47,7 +47,7 @@
 @endsection
 
 @push('script_2')
-<script src="{{ dynamicAsset('public/assets/admin/js/spartan-multi-image-picker.js') }}"></script>
+    <script src="{{ dynamicAsset('public/assets/admin/js/spartan-multi-image-picker.js') }}"></script>
     <script>
         "use strict";
         function viewConvs(url, id_to_active, conv_id, sender_id) {

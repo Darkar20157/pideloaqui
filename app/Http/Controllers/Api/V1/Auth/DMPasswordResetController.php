@@ -54,33 +54,58 @@ class DMPasswordResetController extends Controller
                 'token' => $token,
                 'created_at' => now(),
             ]);
-            if (config('mail.status') && Helpers::get_mail_status('forget_password_mail_status_dm') == '1') {
-                Mail::to($deliveryman['email'])->send(new \App\Mail\DmPasswordResetMail($token,$deliveryman['f_name']));
+
+            $notification_status= Helpers::getNotificationStatusData('deliveryman','deliveryman_forget_password');
+
+
+            try {
+                $mailResponse=null;
+                if ($notification_status?->mail_status == 'active' && config('mail.status') && Helpers::get_mail_status('forget_password_mail_status_dm') == '1') {
+                    Mail::to($deliveryman['email'])->send(new \App\Mail\DmPasswordResetMail($token,$deliveryman['f_name']));
+                    $mailResponse='success';
+                }
+            }catch(\Exception $ex){
+                $mailResponse=null;
+                info($ex->getMessage());
             }
 
-            $published_status = 0;
-            $payment_published_status = config('get_payment_publish_status');
-            if (isset($payment_published_status[0]['is_published'])) {
-                $published_status = $payment_published_status[0]['is_published'];
+
+            $response= null;
+            $deliveryman_sms_status=Helpers::getNotificationStatusData('deliveryman','deliveryman_forget_password');
+            if($deliveryman_sms_status?->sms_status  == 'active'){
+
+                $published_status = 0;
+                $payment_published_status = config('get_payment_publish_status');
+                if (isset($payment_published_status[0]['is_published'])) {
+                    $published_status = $payment_published_status[0]['is_published'];
+                }
+
+                if($published_status == 1){
+                    $response = SmsGateway::send($request['phone'],$token);
+                }else{
+                    $response = SMS_module::send($request['phone'],$token);
+                }
             }
 
-            if($published_status == 1){
-                $response = SmsGateway::send($request['phone'],$token);
-            }else{
-                $response = SMS_module::send($request['phone'],$token);
-            }
 
-            if($response == 'success')
+            if($response == 'success' && $mailResponse == 'success')
             {
-                return response()->json(['message' => translate('messages.otp_sent_successfull')], 200);
+                return response()->json(['message' => translate('messages.Otp_Successfully_Sent_To_Your_Phone_and_Mail')], 200);
+            }
+            elseif($response == 'success')
+            {
+                return response()->json(['message' => translate('messages.Otp_Successfully_Sent_To_Your_Phone')], 200);
+            }
+            elseif($mailResponse == 'success')
+            {
+                return response()->json(['message' => translate('messages.Otp_Successfully_Sent_To_Your_Mail')], 200);
             }
             else
             {
-                $errors = [];
-                array_push($errors, ['code' => 'otp', 'message' => translate('messages.failed_to_send_sms')]);
                 return response()->json([
-                    'errors' => $errors
-                ], 405);
+                    'errors' => [
+                        ['code' => 'otp', 'message' => translate('messages.failed_to_send_sms')]
+                ]], 405);
             }
         }
         $errors = [];
@@ -189,6 +214,14 @@ class DMPasswordResetController extends Controller
             'reset_token'=> 'required',
             'password' => ['required', Password::min(8)->mixedCase()->letters()->numbers()->symbols()->uncompromised()],
             'confirm_password'=> 'required|same:password',
+        ],[
+            'password.min_length' => translate('The password must be at least :min characters long'),
+            'password.mixed' => translate('The password must contain both uppercase and lowercase letters'),
+            'password.letters' => translate('The password must contain letters'),
+            'password.numbers' => translate('The password must contain numbers'),
+            'password.symbols' => translate('The password must contain symbols'),
+            'password.uncompromised' => translate('The password is compromised. Please choose a different one'),
+            'password.custom' => translate('The password cannot contain white spaces.'),
         ]);
 
         if ($validator->fails()) {

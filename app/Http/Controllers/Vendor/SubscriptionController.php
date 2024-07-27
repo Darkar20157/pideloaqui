@@ -206,7 +206,8 @@ class SubscriptionController extends Controller
                 $data[] = [
                     'gateway' => $method->key_name,
                     'gateway_title' => $additional_data?->gateway_title,
-                    'gateway_image' => $additional_data?->gateway_image
+                    'gateway_image' => $additional_data?->gateway_image,
+                    'gateway_image_full_url' => Helpers::get_full_url('payment_modules/gateway_image',$additional_data?->gateway_image,$additional_data?->storage ?? 'public')
                 ];
             }
         }

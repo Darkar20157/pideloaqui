@@ -4,13 +4,13 @@
         <div class="navbar-nav-wrap">
             <div class="navbar-brand-wrapper">
                 <!-- Logo Div-->
-                @php($restaurant_logo=\App\CentralLogics\Helpers::get_restaurant_data()?->logo)
+                @php($restaurant_logo=\App\CentralLogics\Helpers::get_restaurant_data()?->logo_full_url)
                 <a class="navbar-brand" href="{{route('vendor.dashboard')}}" aria-label="">
                          <img class="navbar-brand-logo logo--design"
-                         src="{{\App\CentralLogics\Helpers::onerror_image_helper($restaurant_logo, dynamicStorage('storage/app/public/restaurant/'.$restaurant_logo), dynamicAsset('public/assets/admin/img/160x160/img1.jpg'), 'restaurant/') }}"
+                         src="{{ $restaurant_logo }}"
                          alt="image">
                          <img class="navbar-brand-logo-mini logo--design"
-                         src="{{\App\CentralLogics\Helpers::onerror_image_helper($restaurant_logo, dynamicStorage('storage/app/public/restaurant/'.$restaurant_logo), dynamicAsset('public/assets/admin/img/160x160/img1.jpg'), 'restaurant/') }}"
+                         src="{{ $restaurant_logo }}"
                          alt="image">
                 </a>
                 <!-- End Logo -->
@@ -120,7 +120,7 @@
                                     </div>
                                     <div class="">
                                         <img class="avatar avatar-sm avatar-circle"
-                                        src="{{\App\CentralLogics\Helpers::onerror_image_helper(\App\CentralLogics\Helpers::get_loggedin_user()?->image, dynamicStorage('storage/app/public/vendor/'.\App\CentralLogics\Helpers::get_loggedin_user()?->image), dynamicAsset('public/assets/admin/img/160x160/img1.jpg'), 'vendor/') }}"
+                                        src="{{ \App\CentralLogics\Helpers::get_loggedin_user()?->image_full_url ?? dynamicAsset('public/assets/admin/img/160x160/img1.jpg') }}"
                                         alt="image">
 
                                         <span class="avatar-status avatar-sm-status avatar-status-success"></span>
@@ -135,7 +135,7 @@
                                     <div class="media cmn--media align-items-center">
                                         <div class="avatar avatar-sm avatar-circle mr-2">
                                                  <img class="avatar-img"
-                                                 src="{{\App\CentralLogics\Helpers::onerror_image_helper(\App\CentralLogics\Helpers::get_loggedin_user()?->image, dynamicStorage('storage/app/public/vendor/'.\App\CentralLogics\Helpers::get_loggedin_user()?->image), dynamicAsset('public/assets/admin/img/160x160/img1.jpg'), 'vendor/') }}"
+                                                 src="{{ \App\CentralLogics\Helpers::get_loggedin_user()?->image_full_url ?? dynamicAsset('public/assets/admin/img/160x160/img1.jpg') }}"
                                                  alt="image">
                                         </div>
                                         <div class="media-body">

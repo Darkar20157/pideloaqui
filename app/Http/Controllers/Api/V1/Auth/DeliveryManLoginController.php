@@ -96,6 +96,13 @@ class DeliveryManLoginController extends Controller
             'f_name.required' => translate('messages.first_name_is_required'),
             'zone_id.required' => translate('messages.select_a_zone'),
             'earning.required' => translate('messages.select_dm_type'),
+            'password.min_length' => translate('The password must be at least :min characters long'),
+            'password.mixed' => translate('The password must contain both uppercase and lowercase letters'),
+            'password.letters' => translate('The password must contain letters'),
+            'password.numbers' => translate('The password must contain numbers'),
+            'password.symbols' => translate('The password must contain symbols'),
+            'password.uncompromised' => translate('The password is compromised. Please choose a different one'),
+            'password.custom' => translate('The password cannot contain white spaces.'),
             // 'additional_documents.max' => translate('You_can_chose_max_5_files_only'),
         ]);
 
@@ -113,7 +120,7 @@ class DeliveryManLoginController extends Controller
         if (!empty($request->file('identity_image'))) {
             foreach ($request->identity_image as $img) {
                 $identity_image = Helpers::upload(dir:'delivery-man/',format: 'png',image: $img);
-                array_push($id_img_names, $identity_image);
+                array_push($id_img_names, ['img'=>$identity_image, 'storage'=> Helpers::getDisk()]);
             }
             $identity_image = json_encode($id_img_names);
         } else {
@@ -148,7 +155,7 @@ class DeliveryManLoginController extends Controller
                 foreach($data as $file){
                     if(is_file($file)){
                         $file_name = Helpers::upload('additional_documents/dm/', $file->getClientOriginalExtension(), $file);
-                        $additional[] = $file_name ;
+                        $additional[] = ['file'=>$file_name, 'storage'=> Helpers::getDisk()];
                     }
                     $additional_documents[$key] = $additional;
                 }
@@ -159,10 +166,14 @@ class DeliveryManLoginController extends Controller
 
         try{
             $admin= Admin::where('role_id', 1)->first();
-            if(config('mail.status') && Helpers::get_mail_status('registration_mail_status_dm') == '1'){
+
+            $notification_status= Helpers::getNotificationStatusData('deliveryman','deliveryman_registration');
+            if($notification_status?->mail_status == 'active' && config('mail.status') && Helpers::get_mail_status('registration_mail_status_dm') == '1'){
                 Mail::to($request->email)->send(new \App\Mail\DmSelfRegistration('pending', $dm->f_name.' '.$dm->l_name));
-            }
-            if(config('mail.status') && Helpers::get_mail_status('dm_registration_mail_status_admin') == '1'){
+                }
+                $notification_status= null ;
+                $notification_status= Helpers::getNotificationStatusData('admin','deliveryman_self_registration');
+            if($notification_status?->mail_status == 'active' && config('mail.status') && Helpers::get_mail_status('dm_registration_mail_status_admin') == '1'){
                 Mail::to($admin['email'])->send(new \App\Mail\DmRegistration('pending', $dm->f_name.' '.$dm->l_name));
             }
         }catch(\Exception $ex){

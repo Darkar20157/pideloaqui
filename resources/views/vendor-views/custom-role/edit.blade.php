@@ -90,7 +90,7 @@
                                         <div class="d-none lang_form" id="{{$lang}}-form">
                                             <div class="form-group">
                                                 <label class="input-label" for="{{$lang}}_title">{{translate('messages.role_name')}} ({{strtoupper($lang)}})</label>
-                                                <input type="text" name="name[]" id="{{$lang}}_title" class="form-control" placeholder="{{translate('role_name_example')}}" value="{{$translate[$lang]['name']??''}}" oninvalid="document.getElementById('en-link').click()">
+                                                <input type="text" name="name[]" id="{{$lang}}_title" class="form-control" placeholder="{{translate('role_name_example')}}" value="{{$translate[$lang]['name']??''}}"  >
                                             </div>
                                             <input type="hidden" name="lang[]" value="{{$lang}}">
                                         </div>

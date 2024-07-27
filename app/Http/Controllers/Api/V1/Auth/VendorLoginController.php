@@ -177,6 +177,14 @@ class VendorLoginController extends Controller
             // 'additional_documents' => 'nullable|array|max:5',
             // 'additional_documents.*' => 'nullable|max:2048',
 
+        ],[
+            'password.min_length' => translate('The password must be at least :min characters long'),
+            'password.mixed' => translate('The password must contain both uppercase and lowercase letters'),
+            'password.letters' => translate('The password must contain letters'),
+            'password.numbers' => translate('The password must contain numbers'),
+            'password.symbols' => translate('The password must contain symbols'),
+            'password.uncompromised' => translate('The password is compromised. Please choose a different one'),
+            'password.custom' => translate('The password cannot contain white spaces.'),
         ]);
 
         if($request->zone_id)
@@ -252,7 +260,7 @@ class VendorLoginController extends Controller
                 foreach($imagedata as $file){
                     if(is_file($file)){
                         $file_name = Helpers::upload('additional_documents/', $file->getClientOriginalExtension(), $file);
-                        $additional[] = $file_name ;
+                        $additional[] = ['file'=>$file_name, 'storage'=> Helpers::getDisk()];
                     }
                     $additional_documents[$key] = $additional;
                 }
@@ -276,10 +284,14 @@ class VendorLoginController extends Controller
         $restaurant?->cuisine()?->sync($cuisine_ids);
         try{
             $admin= Admin::where('role_id', 1)->first();
-            if(config('mail.status') && Helpers::get_mail_status('registration_mail_status_restaurant') == '1'){
+            $notification_status= Helpers::getNotificationStatusData('restaurant','restaurant_registration');
+            if($notification_status?->mail_status == 'active' && config('mail.status') && Helpers::get_mail_status('registration_mail_status_restaurant') == '1'){
                 Mail::to($request['email'])->send(new \App\Mail\VendorSelfRegistration('pending', $vendor->f_name.' '.$vendor->l_name));
-            }
-            if(config('mail.status') && Helpers::get_mail_status('restaurant_registration_mail_status_admin') == '1'){
+                }
+
+                $notification_status= null ;
+                $notification_status= Helpers::getNotificationStatusData('admin','restaurant_self_registration');
+            if( $notification_status?->mail_status == 'active' && config('mail.status') && Helpers::get_mail_status('restaurant_registration_mail_status_admin') == '1'){
                 Mail::to($admin['email'])->send(new \App\Mail\RestaurantRegistration('pending', $vendor->f_name.' '.$vendor->l_name));
             }
         }catch(\Exception $ex){

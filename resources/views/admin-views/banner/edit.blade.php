@@ -44,7 +44,7 @@
                                             <div class="lang_form" id="default-form">
                                                 <div class="form-group">
                                                     <label class="input-label" for="default_title">{{translate('messages.title')}} ({{translate('messages.default')}})</label>
-                                                    <input type="text" name="title[]" id="default_title" class="form-control" placeholder="{{translate('messages.new_banner')}}" value="{{$banner->getRawOriginal('title')}}" oninvalid="document.getElementById('en-link').click()">
+                                                    <input type="text" name="title[]" id="default_title" class="form-control" placeholder="{{translate('messages.new_banner')}}" value="{{$banner->getRawOriginal('title')}}"  >
                                                 </div>
                                                 <input type="hidden" name="lang[]" value="default">
                                             </div>
@@ -63,7 +63,7 @@
                                                 <div class="d-none lang_form" id="{{$lang}}-form">
                                                     <div class="form-group">
                                                         <label class="input-label" for="{{$lang}}_title">{{translate('messages.title')}} ({{strtoupper($lang)}})</label>
-                                                        <input type="text" name="title[]" id="{{$lang}}_title" class="form-control" placeholder="{{translate('messages.new_banner')}}" value="{{$translate[$lang]['title']??''}}" oninvalid="document.getElementById('en-link').click()">
+                                                        <input type="text" name="title[]" id="{{$lang}}_title" class="form-control" placeholder="{{translate('messages.new_banner')}}" value="{{$translate[$lang]['title']??''}}"  >
                                                     </div>
                                                     <input type="hidden" name="lang[]" value="{{$lang}}">
                                                 </div>
@@ -126,7 +126,7 @@
 
                                         <div class="image-box banner2">
                                             <label for="image-input" class="d-flex flex-column align-items-center justify-content-center h-100 cursor-pointer gap-2">
-                                                <img  class="upload-icon initial-26" src="{{\App\CentralLogics\Helpers::onerror_image_helper($banner['image'], dynamicStorage('storage/app/public/banner/').'/'.$banner['image'], dynamicAsset('public/assets/admin/img/900x400/img1.jpg'), 'banner/') }}"
+                                                <img  class="upload-icon initial-26" src="{{ $banner['image_full_url'] }}"
                                                 alt="Upload Icon">
                                                 {{-- <span class="upload-text">{{ translate('Upload Image')}}</span> --}}
                                                 <img src="#" alt="Preview Image" class="preview-image">

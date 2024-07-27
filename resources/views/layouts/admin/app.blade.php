@@ -42,7 +42,8 @@
         <span></span>
     </div>
     @endif
-
+    <div id="pre--loader" class="pre--loader">
+    </div>
     <div class="container">
         <div class="row">
             <div class="col-md-12">
@@ -174,6 +175,48 @@
             </div>
         </div>
 
+
+
+        <div class="modal fade" id="new-dynamic-submit-model">
+            <div class="modal-dialog modal-dialog-centered status-warning-modal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal">
+                            <span aria-hidden="true" class="tio-clear"></span>
+                        </button>
+                    </div>
+                    <div class="modal-body pb-5 pt-0">
+                        <div class="max-349 mx-auto mb-20">
+                            <div>
+                                <div class="text-center">
+                                    <img id="image-src" class="mb-20">
+                                    <h5 class="modal-title" id="toggle-title"></h5>
+                                </div>
+                                <div class="text-center" id="toggle-message">
+                                    <h3 id="modal-title"></h3>
+                                    <div id="modal-text"></div>
+                                </div>
+
+                                </div>
+                                <div class="mb-4 d-none" id="note-data">
+                                    <textarea class="form-control" placeholder="{{ translate('your_note_here') }}" id="get-text-note" cols="5" ></textarea>
+                                </div>
+                            <div class="btn--container justify-content-center">
+                                <div id="hide-buttons">
+                                    <button data-dismiss="modal" id="cancel_btn_text" class="btn btn-outline-secondary min-w-120" >{{translate("Not_Now")}}</button> &nbsp;
+                                    <button type="button" id="new-dynamic-ok-button" class="btn btn-outline-danger confirm-model min-w-120">{{translate('Yes')}}</button>
+                                </div>
+
+                                <button data-dismiss="modal"  type="button" id="new-dynamic-ok-button-show" class="btn btn--primary  d-none min-w-120">{{translate('Okay')}}</button>
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
     </main>
     <!-- ========== END MAIN CONTENT ========== -->
 
@@ -182,10 +225,19 @@
    <!-- JS Implementing Plugins -->
    <!-- The core Firebase JS SDK is always required and must be listed first -->
     <script src="{{dynamicAsset('public/assets/admin/js/jquery.min.js')}}"></script>
+
+    <script>
+            "use strict";
+    setTimeout(hide_loader, 1000);
+    function hide_loader(){
+        $('#pre--loader').removeClass("pre--loader");;
+    }
+
+    </script>
     <script src="{{dynamicAsset('public/assets/admin/js/firebase.min.js')}}"></script>
 
    @stack('script')
-   <!-- JS Front -->    
+   <!-- JS Front -->
     <script src="{{ dynamicAsset('public/assets/admin/vendor/hs-navbar-vertical-aside/hs-navbar-vertical-aside-mini-cache.js') }}">
     </script>
    <script src="{{ dynamicAsset('public/assets/admin/js/vendor.min.js') }}"></script>
@@ -197,7 +249,7 @@
 
    <script>
     "use strict";
-    
+
        $('.blinkings').on('mouseover', ()=> $('.blinkings').removeClass('active'))
        $('.blinkings').addClass('open-shadow')
        setTimeout(() => {
@@ -499,36 +551,71 @@
         const messaging = firebase.messaging();
 
         function startFCM() {
-
             messaging
                 .requestPermission()
                 .then(function() {
-                    return messaging.getToken()
+                    return messaging.getToken();
                 })
-                .then(function(response) {
-                    subscribeTokenToTopic(response, 'admin_message');
-                    console.log('subscribed');
+                .then(function(token) {
+                    // console.log('FCM Token:', token);
+                    // Send the token to your backend to subscribe to topic
+                    subscribeTokenToBackend(token, 'admin_message');
                 }).catch(function(error) {
-                    console.log(error);
-                });
+                console.error('Error getting permission or token:', error);
+            });
         }
-        @php($key = \App\Models\BusinessSetting::where('key', 'push_notification_key')->first())
 
-        function subscribeTokenToTopic(token, topic) {
-            fetch('https://iid.googleapis.com/iid/v1/' + token + '/rel/topics/' + topic, {
+        function subscribeTokenToBackend(token, topic) {
+            fetch('{{url('/')}}/subscribeToTopic', {
                 method: 'POST',
-                headers: new Headers({
-                    'Authorization': 'key={{ $key ? $key->value : '' }}'
-                })
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({ token: token, topic: topic })
             }).then(response => {
                 if (response.status < 200 || response.status >= 400) {
-                    throw 'Error subscribing to topic: ' + response.status + ' - ' + response.text();
+                    return response.text().then(text => {
+                        throw new Error(`Error subscribing to topic: ${response.status} - ${text}`);
+                    });
                 }
-                console.log('Subscribed to "' + topic + '"');
+                console.log(`Subscribed to "${topic}"`);
             }).catch(error => {
-                console.error(error);
-            })
+                console.error('Subscription error:', error);
+            });
         }
+
+        {{--function startFCM() {--}}
+
+        {{--    messaging--}}
+        {{--        .requestPermission()--}}
+        {{--        .then(function() {--}}
+        {{--            return messaging.getToken()--}}
+        {{--        })--}}
+        {{--        .then(function(response) {--}}
+        {{--            subscribeTokenToTopic(response, 'admin_message');--}}
+        {{--            console.log('subscribed');--}}
+        {{--        }).catch(function(error) {--}}
+        {{--            console.log(error);--}}
+        {{--        });--}}
+        {{--}--}}
+        {{--@php($key = \App\Models\BusinessSetting::where('key', 'push_notification_key')->first())--}}
+
+        {{--function subscribeTokenToTopic(token, topic) {--}}
+        {{--    fetch('https://iid.googleapis.com/iid/v1/' + token + '/rel/topics/' + topic, {--}}
+        {{--        method: 'POST',--}}
+        {{--        headers: new Headers({--}}
+        {{--            'Authorization': 'key={{ $key ? $key->value : '' }}'--}}
+        {{--        })--}}
+        {{--    }).then(response => {--}}
+        {{--        if (response.status < 200 || response.status >= 400) {--}}
+        {{--            throw 'Error subscribing to topic: ' + response.status + ' - ' + response.text();--}}
+        {{--        }--}}
+        {{--        console.log('Subscribed to "' + topic + '"');--}}
+        {{--    }).catch(error => {--}}
+        {{--        console.error(error);--}}
+        {{--    })--}}
+        {{--}--}}
 
         function getUrlParameter(sParam) {
             var sPageURL = window.location.search.substring(1);
@@ -715,6 +802,8 @@
             $(document).on('keyup', 'input[type="tel"]', function () {
                 $(this).val(keepNumbersAndPlus($(this).val()));
                 });
+
+
 
     </script>
 

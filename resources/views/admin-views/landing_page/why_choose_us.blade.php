@@ -139,7 +139,7 @@
                     @endif
                     <div class="btn--container justify-content-end mt-3">
                         <button type="reset" class="btn btn--reset">{{translate('Reset')}}</button>
-                        <button type="submit" class="btn btn--primary mb-2">{{translate('Save')}}</button>
+                        <button type="submit" class="btn btn--primary">{{translate('Save')}}</button>
                     </div>
                 </div>
             </form>
@@ -214,12 +214,7 @@
 
                                         <label class="upload-img-3 m-0 d-block my-auto">
                                             <div class="img">
-                                                <img src="{{ Helpers::onerror_image_helper(
-                                            $data_1_image?->value,
-                                            dynamicStorage('storage/app/public/why_choose_us_image').'/'.$data_1_image?->value,
-                                            dynamicAsset('/public/assets/admin/img/upload-5.png'),
-                                            'why_choose_us_image/'
-                                            ) }}"
+                                                <img src="{{ Helpers::get_full_url('why_choose_us_image', $data_1_image?->value,$data_1_image?->storage[0]?->value ?? 'public')}}"
                                                      data-onerror-image="{{dynamicAsset('/public/assets/admin/img/upload-5.png')}}"
                                                      class="vertical-img max-w-555px onerror-image" alt="">
                                             </div>
@@ -240,7 +235,7 @@
                     </div>
                     <div class="btn--container justify-content-end mt-3">
                         <button type="reset" class="btn btn--reset">{{translate('Reset')}}</button>
-                        <button type="submit" class="btn btn--primary mb-2">{{translate('Save')}}</button>
+                        <button type="submit" class="btn btn--primary">{{translate('Save')}}</button>
                     </div>
                 </div>
             </form>
@@ -316,12 +311,7 @@
 
                                         <label class="upload-img-3 m-0 d-block my-auto">
                                             <div class="img">
-                                                <img src="{{ Helpers::onerror_image_helper(
-                                            $data_2_image?->value,
-                                            dynamicStorage('storage/app/public/why_choose_us_image').'/'.$data_2_image?->value,
-                                            dynamicAsset('/public/assets/admin/img/upload-5.png'),
-                                            'why_choose_us_image/'
-                                            ) }}"
+                                                <img src="{{ Helpers::get_full_url('why_choose_us_image', $data_2_image?->value,$data_2_image?->storage[0]?->value ?? 'public')}}"
                                                      data-onerror-image="{{dynamicAsset('/public/assets/admin/img/upload-5.png')}}"
                                                      class="vertical-img max-w-555px onerror-image" alt="">
                                             </div>
@@ -341,7 +331,7 @@
                     </div>
                     <div class="btn--container justify-content-end mt-3">
                         <button type="reset" class="btn btn--reset">{{translate('Reset')}}</button>
-                        <button type="submit" class="btn btn--primary mb-2">{{translate('Save')}}</button>
+                        <button type="submit" class="btn btn--primary">{{translate('Save')}}</button>
                     </div>
                 </div>
             </form>
@@ -417,12 +407,7 @@
 
                                         <label class="upload-img-3 m-0 d-block my-auto">
                                             <div class="img">
-                                                <img src="{{ Helpers::onerror_image_helper(
-                                            $data_3_image?->value,
-                                            dynamicStorage('storage/app/public/why_choose_us_image').'/'.$data_3_image?->value,
-                                            dynamicAsset('/public/assets/admin/img/upload-5.png'),
-                                            'why_choose_us_image/'
-                                            ) }}"
+                                                <img src="{{ Helpers::get_full_url('why_choose_us_image', $data_3_image?->value,$data_3_image?->storage[0]?->value ?? 'public')}}"
                                                      data-onerror-image="{{dynamicAsset('/public/assets/admin/img/upload-5.png')}}"
                                                      class="vertical-img max-w-555px onerror-image" alt="">
                                             </div>
@@ -442,7 +427,7 @@
                     </div>
                     <div class="btn--container justify-content-end mt-3">
                         <button type="reset" class="btn btn--reset">{{translate('Reset')}}</button>
-                        <button type="submit" class="btn btn--primary mb-2">{{translate('Save')}}</button>
+                        <button type="submit" class="btn btn--primary">{{translate('Save')}}</button>
                     </div>
                 </div>
             </form>
@@ -517,12 +502,7 @@
 
                                         <label class="upload-img-3 m-0 d-block my-auto">
                                             <div class="img">
-                                                <img src="{{ Helpers::onerror_image_helper(
-                                            $data_4_image?->value,
-                                            dynamicStorage('storage/app/public/why_choose_us_image').'/'.$data_4_image?->value,
-                                            dynamicAsset('/public/assets/admin/img/upload-5.png'),
-                                            'why_choose_us_image/'
-                                            ) }}"
+                                                <img src="{{ Helpers::get_full_url('why_choose_us_image', $data_4_image?->value,$data_4_image?->storage[0]?->value ?? 'public')}}"
                                                      data-onerror-image="{{dynamicAsset('/public/assets/admin/img/upload-5.png')}}"
                                                      class="vertical-img max-w-555px onerror-image" alt="">
                                             </div>
@@ -543,7 +523,7 @@
                     </div>
                     <div class="btn--container justify-content-end mt-3">
                         <button type="reset" class="btn btn--reset">{{translate('Reset')}}</button>
-                        <button type="submit" class="btn btn--primary mb-2">{{translate('Save')}}</button>
+                        <button type="submit" class="btn btn--primary">{{translate('Save')}}</button>
                     </div>
                 </div>
             </form>

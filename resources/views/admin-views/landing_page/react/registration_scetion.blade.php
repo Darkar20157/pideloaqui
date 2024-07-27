@@ -168,12 +168,7 @@
                             <div class="position-relative d-inline-block">
                                 <label class="upload-img-3 m-0">
                                     <div class="img">
-                                        <img src="{{ \App\CentralLogics\Helpers::onerror_image_helper(
-                                            $react_restaurant_section_image?->value,
-                                            dynamicStorage('storage/app/public/react_restaurant_section_image').'/'.$react_restaurant_section_image?->value,
-                                            dynamicAsset('/public/assets/admin/img/upload-3.png'),
-                                            'react_restaurant_section_image/'
-                                            ) }}"
+                                        <img src="{{ \App\CentralLogics\Helpers::get_full_url('react_restaurant_section_image', $react_restaurant_section_image?->value,$react_restaurant_section_image?->storage[0]?->value ?? 'public') }}"
                                               data-onerror-image="{{dynamicAsset('/public/assets/admin/img/upload-3.png')}}"
                                               class="vertical-img max-w-187px onerror-image" alt="">
 
@@ -415,12 +410,7 @@
 
                                 <label class="upload-img-3 m-0">
                                     <div class="img">
-                                        <img  src="{{ \App\CentralLogics\Helpers::onerror_image_helper(
-                                                $react_delivery_section_image?->value,
-                                                dynamicStorage('storage/app/public/react_delivery_section_image').'/'.$react_delivery_section_image?->value,
-                                                dynamicAsset('/public/assets/admin/img/upload-3.png'),
-                                                'react_delivery_section_image/'
-                                            ) }}"
+                                        <img  src="{{ \App\CentralLogics\Helpers::get_full_url('react_delivery_section_image', $react_delivery_section_image?->value,$react_delivery_section_image?->storage[0]?->value ?? 'public') }}"
                                               data-onerror-image="{{dynamicAsset('/public/assets/admin/img/upload-3.png')}}"
                                               class="vertical-img max-w-187px onerror-image" alt="">
 
@@ -543,7 +533,7 @@
                     <div class="btn--container justify-content-end mt-3">
                         <button type="reset" class="btn btn--reset">{{ translate('Reset') }}</button>
                         <button type="submit"
-                            class="btn btn--primary mb-2">{{ translate('Save') }}</button>
+                            class="btn btn--primary">{{ translate('Save') }}</button>
                     </div>
             </form>
             </div>

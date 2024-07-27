@@ -57,7 +57,7 @@ class FlutterwaveV3Controller extends Controller
 
         //* Prepare our rave request
         $request = [
-            'tx_ref' => time(),
+            'tx_ref' => (string) time(),
             'amount' => $data->payment_amount,
             'currency' =>  $data->currency_code ?? 'NGN',
             'payment_options' => 'card',

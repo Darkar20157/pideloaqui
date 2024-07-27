@@ -44,10 +44,12 @@
                 <th>{{ translate('messages.Total_Item_Amount') }}</th>
                 <th>{{ translate('messages.Item_Discount') }}</th>
                 <th>{{ translate('messages.Coupon_Discount') }}</th>
+                <th>{{ translate('messages.Referral_Discount') }}</th>
                 <th>{{ translate('messages.Discounted_Amount') }}</th>
                 <th>{{ translate('messages.Tax') }}</th>
                 <th>{{ translate('messages.Delivery_Charge') }}</th>
                 <th>{{ \App\CentralLogics\Helpers::get_business_data('additional_charge_name')??translate('messages.Additional_Charge') }}</th>
+                <th>{{ translate('messages.extra_packaging_amount') }}</th>
                 <th>{{ translate('messages.Order_Amount') }}</th>
                 <th>{{ translate('messages.Amount_Received_By') }}</th>
                 <th>{{ translate('messages.Payment_Method') }}</th>
@@ -92,13 +94,16 @@
                 </div>
             </td>
             <td class="text-center mw--85px">
-                {{ \App\CentralLogics\Helpers::number_format_short($order->details->sum('discount_on_food')) }}
+                {{ \App\CentralLogics\Helpers::number_format_short($order->details()->sum(DB::raw('discount_on_food * quantity'))) }}
             </td>
             <td class="text-center mw--85px">
                 {{ \App\CentralLogics\Helpers::number_format_short($order['coupon_discount_amount']) }}
             </td>
             <td class="text-center mw--85px">
-                {{ \App\CentralLogics\Helpers::number_format_short($order['coupon_discount_amount'] + $order['restaurant_discount_amount']) }}
+                {{ \App\CentralLogics\Helpers::number_format_short($order['ref_bonus_amount']) }}
+            </td>
+            <td class="text-center mw--85px">
+                {{ \App\CentralLogics\Helpers::number_format_short($order['coupon_discount_amount'] + $order['restaurant_discount_amount']+ $order['ref_bonus_amount']) }}
             </td>
             <td class="text-center mw--85px white-space-nowrap">
                 {{ \App\CentralLogics\Helpers::number_format_short($order['total_tax_amount']) }}
@@ -109,6 +114,7 @@
             <td class="text-center mw--85px">
                 {{ \App\CentralLogics\Helpers::number_format_short($order['additional_charge']) }}
             </td>
+            <td>{{ \App\CentralLogics\Helpers::number_format_short($order['extra_packaging_amount']) }}</td>
             <td>
                 <div class="text-right mw--85px">
                     <div>

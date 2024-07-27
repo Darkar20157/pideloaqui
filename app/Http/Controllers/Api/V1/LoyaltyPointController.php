@@ -33,10 +33,12 @@ class LoyaltyPointController extends Controller
             DB::beginTransaction();
             $wallet_transaction = CustomerLogic::create_wallet_transaction(user_id:$request?->user()?->id,amount:$request->point,transaction_type:'loyalty_point',referance:$request->reference);
             CustomerLogic::create_loyalty_point_transaction(user_id:$request?->user()?->id, referance:$wallet_transaction->transaction_id, amount:$request->point, transaction_type:'point_to_wallet');
+            $notification_status= Helpers::getNotificationStatusData('customer','customer_add_fund_to_wallet');
+            Helpers::add_fund_push_notification($request?->user()?->id);
 
-            if(config('mail.status') && $request?->user()?->email && Helpers::get_mail_status('add_fund_mail_status_user') =='1') {
+            if($notification_status?->mail_status == 'active' &&  config('mail.status') && $request?->user()?->email && Helpers::get_mail_status('add_fund_mail_status_user') =='1') {
                 Mail::to($request->user()->email)->send(new \App\Mail\AddFundToWallet($wallet_transaction));
-            }
+                }
             DB::commit();
             return response()->json(['message' => translate('messages.point_to_wallet_transfer_successfully')], 200);
         }catch(\Exception $ex){

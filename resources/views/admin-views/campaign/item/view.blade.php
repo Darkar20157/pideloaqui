@@ -23,7 +23,7 @@
                 <div class="row align-items-md-center">
                     <div class="col-md-6 col-lg-4 mb-3 mb-md-0">
                             <img class="rounded initial-16 onerror-image"   id="viewer"
-                            src="{{\App\CentralLogics\Helpers::onerror_image_helper($campaign?->image, dynamicStorage('storage/app/public/campaign/'.$campaign?->image), dynamicAsset('public/assets/admin/img/900x400/img1.png'), 'campaign/') }}"
+                            src="{{$campaign?->image_full_url ?? dynamicAsset('public/assets/admin/img/900x400/img1.png') }}"
                             data-onerror-image="{{ dynamicAsset('public/assets/admin/img/900x400/img1.png') }}" alt="image">
                     </div>
                     <div class="col-md-6">
@@ -65,7 +65,7 @@
                             @if($campaign->restaurant)
                             <a href="{{route('admin.restaurant.view', $campaign->restaurant_id)}}" class="d-block">
                                     <img class="avatar-img avatar-circle initial-17 onerror-image"   id="viewer"
-                                    src="{{\App\CentralLogics\Helpers::onerror_image_helper($campaign?->restaurant?->logo, dynamicStorage('storage/app/public/restaurant/'.$campaign?->restaurant?->logo), dynamicAsset('/public/assets/admin/img/100x100/restaurant-default-image.png'), 'restaurant/') }}"
+                                    src="{{ $campaign?->restaurant?->logo_full_url ?? dynamicAsset('/public/assets/admin/img/100x100/restaurant-default-image.png') }}"
                                     data-onerror-image="{{ dynamicAsset('/public/assets/admin/img/100x100/restaurant-default-image.png') }}" alt="image">
                                 <h2 class="m-0">{{$campaign->restaurant['name']}}</h2>
                             </a>

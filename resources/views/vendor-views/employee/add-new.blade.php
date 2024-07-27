@@ -68,7 +68,7 @@
                                     </h5>
                                     <center class="my-auto">
                                         <img class="initial-78" id="viewer"
-                                            src="{{asset('public\assets\admin\img\400x400\img2.jpg')}}" alt="Employee thumbnail"/>
+                                            src="{{dynamicAsset('public\assets\admin\img\400x400\img2.jpg')}}" alt="Employee thumbnail"/>
                                     </center>
                                     <div class="form-group mb-0 mt-3">
                                         <label class="form-label">{{ translate('Employee image size max 2 MB') }} <span class="text-danger">*</span></label>
@@ -102,19 +102,63 @@
                                         placeholder="{{ translate('Ex : ex@gmail.com') }}" required>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label" for="password">{{translate('messages.password')}}
-                                    <span class="input-label-secondary ps-1" title="{{ translate('messages.Must_contain_at_least_one_number_and_one_uppercase_and_lowercase_letter_and_symbol,_and_at_least_8_or_more_characters') }}"><img src="{{ dynamicAsset('/public/assets/admin/img/info-circle.svg') }}" alt="{{ translate('messages.Must_contain_at_least_one_number_and_one_uppercase_and_lowercase_letter_and_symbol,_and_at_least_8_or_more_characters') }}"></span>
-                                </label>
-                                <input type="text" name="password" class="form-control" id="password" value="{{old('password')}}"
-                                pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}" title="{{ translate('messages.Must_contain_at_least_one_number_and_one_uppercase_and_lowercase_letter_and_symbol,_and_at_least_8_or_more_characters') }}"
+                                <div class="form-group m-0">
+                                    <div class="js-form-message form-group">
+                                        <label class="input-label"
+                                            for="signupSrPassword">{{ translate('messages.password') }}
+                                            <span class="input-label-secondary ps-1" data-toggle="tooltip" title="{{ translate('messages.Must_contain_at_least_one_number_and_one_uppercase_and_lowercase_letter_and_symbol,_and_at_least_8_or_more_characters') }}"><img src="{{dynamicAsset('public/assets/admin/img/info-circle.svg')}}" alt="{{ translate('messages.Must_contain_at_least_one_number_and_one_uppercase_and_lowercase_letter_and_symbol,_and_at_least_8_or_more_characters') }}"></span>
 
-                                placeholder="{{translate('messages.password_length_8+')}}" required>
+                                        </label>
+
+                                        <div class="input-group input-group-merge">
+                                            <input type="password" class="js-toggle-password form-control h--45px" name="password"
+                                                id="signupSrPassword"
+                                                pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}" title="{{ translate('messages.Must_contain_at_least_one_number_and_one_uppercase_and_lowercase_letter_and_symbol,_and_at_least_8_or_more_characters') }}"
+
+                                                placeholder="{{ translate('messages.Ex:_8+_Character') }}"
+                                                aria-label="{{translate('messages.password_length_8+')}}"
+                                                required data-msg="Your password is invalid. Please try again."
+                                                data-hs-toggle-password-options='{
+                                                                                    "target": [".js-toggle-password-target-1"],
+                                                                                    "defaultClass": "tio-hidden-outlined",
+                                                                                    "showClass": "tio-visible-outlined",
+                                                                                    "classChangeTarget": ".js-toggle-passowrd-show-icon-1"
+                                                                                    }'>
+                                            <div class="js-toggle-password-target-1 input-group-append">
+                                                <a class="input-group-text" href="javascript:;">
+                                                    <i class="js-toggle-passowrd-show-icon-1 tio-visible-outlined"></i>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label" for="confirm-password">{{translate('messages.confirm_password')}}</label>
-                                <input type="text" name="confirm-password" class="form-control" id="password" value="{{old('confirm-password')}}"
-                                pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}" title="{{ translate('messages.Must_contain_at_least_one_number_and_one_uppercase_and_lowercase_letter_and_symbol,_and_at_least_8_or_more_characters') }}"
-                                placeholder="{{translate('messages.password_length_8+')}}" required>
+                                <div class="js-form-message form-group">
+                                    <label class="input-label"
+                                        for="signupSrConfirmPassword">{{ translate('messages.confirm_password') }}</label>
+
+                                    <div class="input-group input-group-merge">
+                                        <input type="password" class="js-toggle-password form-control h--45px" name="confirmPassword"
+                                            id="signupSrConfirmPassword"
+                                            pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}" title="{{ translate('messages.Must_contain_at_least_one_number_and_one_uppercase_and_lowercase_letter_and_symbol,_and_at_least_8_or_more_characters') }}"
+
+                                            placeholder="{{ translate('messages.Ex:_8+_Character') }}"
+                                            aria-label="{{translate('messages.password_length_8+')}}"
+                                            required data-msg="Password does not match the confirm password."
+                                            data-hs-toggle-password-options='{
+                                                                                    "target": [".js-toggle-password-target-2"],
+                                                                                    "defaultClass": "tio-hidden-outlined",
+                                                                                    "showClass": "tio-visible-outlined",
+                                                                                    "classChangeTarget": ".js-toggle-passowrd-show-icon-2"
+                                                                                    }'>
+                                        <div class="js-toggle-password-target-2 input-group-append">
+                                            <a class="input-group-text" href="javascript:;">
+                                                <i class="js-toggle-passowrd-show-icon-2 tio-visible-outlined"></i>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>

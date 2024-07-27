@@ -23,12 +23,7 @@
                     <label class="label_1">{{ translate('messages.orders') }} : {{$item['count']}}</label>
                     <div class="text-center py-3 mt-6">
                         <img class="initial-41 onerror-image" data-onerror-image="{{dynamicAsset('public/assets/admin/img/160x160/img1.jpg')}}"
-                             src="{{ \App\CentralLogics\Helpers::onerror_image_helper(
-                    $item->image ?? '',
-                    dynamicStorage('storage/app/public/profile').'/'.$item->image ?? '',
-                    dynamicAsset('public/assets/admin/img/160x160/img1.jpg'),
-                    'profile/'
-                ) }}">
+                             src="{{ $item->image_full_url ?? dynamicAsset('public/assets/admin/img/160x160/img1.jpg')}}">
                     </div>
                     <div class="text-center mt-2">
                         <span class="fz-10px">{{$item->customer['f_name']?? translate('messages.Not_exist')}}</span>

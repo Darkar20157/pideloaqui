@@ -7,12 +7,7 @@ $logo = \App\Models\BusinessSetting::where('key','logo')->first()?->value;
         <td class="email-template-table-td-style">
             <img class="mail-img-2 onerror-image" data-onerror-image="{{ dynamicAsset('/public/assets/admin/img/blank3.png') }}"
 
-            src="{{ \App\CentralLogics\Helpers::onerror_image_helper(
-                data_get($data, 'icon' , null),
-                dynamicStorage('storage/app/public/email_template').'/'.data_get($data, 'icon' , null) ,
-                dynamicAsset('/public/assets/admin/img/blank3.png'),
-                'email_template/'
-            ) }}"
+            src="{{ $data['icon_full_url'] ?? dynamicAsset('/public/assets/admin/img/blank1.png') }}"
 
 
             id="iconViewer" alt="">
@@ -30,15 +25,10 @@ $logo = \App\Models\BusinessSetting::where('key','logo')->first()?->value;
             <span class="d-block" id="mail-footer" class="email-template-table-td-span-3  mail-footer">{{ $data['footer_text'] ?? translate('Please_contact_us_for_any_queries,_we’re_always_happy_to_help.') }}</span>
             <span class="d-block">{{ translate('Thanks_&_Regards') }},</span>
             <span class="d-block" class="email-template-table-td-span-4">{{ $company_name }}</span>
-            @php($store_logo = \App\Models\BusinessSetting::where(['key' => 'logo'])->first()->value)
+            @php($store_logo = \App\Models\BusinessSetting::where(['key' => 'logo'])->first())
             <img class="email-template-img onerror-image" data-onerror-image="{{ dynamicStorage('storage/app/public/business/' . $store_logo) }}"
 
-            src="{{ \App\CentralLogics\Helpers::onerror_image_helper(
-                data_get($data, 'logo' , null),
-                dynamicStorage('storage/app/public/email_template').'/'.data_get($data, 'logo' , null),
-                dynamicStorage('storage/app/public/business/' . $store_logo),
-                'email_template/'
-            ) }}"
+            src="{{ $data?->logo ? $data->logo_full_url : \App\CentralLogics\Helpers::get_full_url('business',$store_logo?->value,$store_logo?->storage[0]?->value ?? 'public', 'favicon') }}"
 
             alt="public/img">
 

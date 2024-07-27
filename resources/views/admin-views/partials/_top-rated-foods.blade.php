@@ -23,12 +23,7 @@
             <div class="grid-card top--rated-food pb-4 cursor-pointer redirect-url" data-url="{{route('admin.food.view',[$item['id']])}}">
                 <div class="text-center py-3">
                     <img class="initial-42 onerror-image"
-                         src="{{ \App\CentralLogics\Helpers::onerror_image_helper(
-                        $item['image'] ?? '',
-                        dynamicStorage('storage/app/public/product').'/'.$item['image'] ?? '',
-                        dynamicAsset('public/assets/admin/img/100x100/2.png'),
-                        'product/'
-                        ) }}" data-onerror-image="{{dynamicAsset('public/assets/admin/img/100x100/2.png')}}"
+                         src="{{ $item['image_full_url'] ??  dynamicAsset('public/assets/admin/img/100x100/2.png') }}" data-onerror-image="{{dynamicAsset('public/assets/admin/img/100x100/2.png')}}"
                         alt="{{$item->name}} image">
                 </div>
                 <div class="text-center mt-3">

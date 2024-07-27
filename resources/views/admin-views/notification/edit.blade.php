@@ -63,7 +63,7 @@
 
                                 <div class="image-box banner">
                                     <label for="image-input" class="d-flex flex-column align-items-center justify-content-center h-100 cursor-pointer gap-2">
-                                        <img  class="upload-icon initial-26"  src="{{\App\CentralLogics\Helpers::onerror_image_helper($notification['image'], dynamicStorage('storage/app/public/notification/').'/'.$notification['image'], dynamicAsset('public/assets/admin/img/900x400/img1.jpg'), 'notification/') }}"
+                                        <img  class="upload-icon initial-26"  src="{{ $notification['image_full_url'] }}"
                                         alt="Upload Icon">
                                         <img src="#" alt="Preview Image" class="preview-image">
                                     </label>

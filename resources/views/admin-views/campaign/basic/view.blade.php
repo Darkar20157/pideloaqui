@@ -20,7 +20,7 @@
             <div class="card-body">
                 <div class="row align-items-md-center">
                     <div class="col-md-4 mb-3 mb-md-0">
-                        <img class="rounded initial-13 onerror-image" data-onerror-image="{{dynamicAsset('/public/assets/admin/img/900x400/img1.png')}}" src="{{\App\CentralLogics\Helpers::onerror_image_helper($campaign->image, dynamicStorage('storage/app/public/campaign/').'/'.$campaign->image, dynamicAsset('/public/assets/admin/img/900x400/img1.png'), 'campaign/') }}"
+                        <img class="rounded initial-13 onerror-image" data-onerror-image="{{dynamicAsset('/public/assets/admin/img/900x400/img1.png')}}" src="{{ $campaign->image_full_url }}"
                         >
                     </div>
                     <div class="col-md-8">

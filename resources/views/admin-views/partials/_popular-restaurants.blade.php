@@ -24,12 +24,7 @@
             <li data-url="{{ route('admin.restaurant.view', $item->restaurant_id) }}" class="cursor-pointer redirect-url">
                 <div class="img-container">
                     <img class="onerror-image" data-onerror-image="{{dynamicAsset('public/assets/admin/img/100x100/1.png')}}"
-                         src="{{ \App\CentralLogics\Helpers::onerror_image_helper(
-                        $item->restaurant['logo'] ?? '',
-                        dynamicStorage('storage/app/public/restaurant').'/'.$item->restaurant['logo'] ?? '',
-                        dynamicAsset('public/assets/admin/img/100x100/1.png'),
-                        'restaurant/'
-                    ) }}" alt="{{translate('store')}}">
+                         src="{{ $item->restaurant['logo_full_url'] }}" alt="{{translate('store')}}">
                     <span class="ml-2">
                         {{ Str::limit($item->restaurant->name ?? translate('messages.Restaurant_deleted!'), 20, '...') }} </span>
                 </div>

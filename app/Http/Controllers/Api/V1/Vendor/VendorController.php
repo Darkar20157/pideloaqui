@@ -40,6 +40,7 @@ class VendorController extends Controller
         $vendor = $request['vendor'];
 
         $min_amount_to_pay_restaurant = BusinessSetting::where('key' , 'min_amount_to_pay_restaurant')->first()->value ?? 0;
+        $restaurant_review_reply = BusinessSetting::where('key' , 'restaurant_review_reply')->first()->value ?? 0;
 
 
         $restaurant = Helpers::restaurant_data_formatting(data:$vendor->restaurants[0], multi_data:false);
@@ -80,6 +81,7 @@ class VendorController extends Controller
         $vendor['adjust_able'] = false;
     }
 
+    $vendor['review_reply_status'] = $restaurant_review_reply;
     $vendor['show_pay_now_button'] = false;
     $digital_payment = Helpers::get_business_settings('digital_payment');
 
@@ -187,6 +189,13 @@ class VendorController extends Controller
         ], [
             'f_name.required' => translate('messages.first_name_is_required'),
             'l_name.required' => translate('messages.Last name is required!'),
+            'password.min_length' => translate('The password must be at least :min characters long'),
+            'password.mixed' => translate('The password must contain both uppercase and lowercase letters'),
+            'password.letters' => translate('The password must contain letters'),
+            'password.numbers' => translate('The password must contain numbers'),
+            'password.symbols' => translate('The password must contain symbols'),
+            'password.uncompromised' => translate('The password is compromised. Please choose a different one'),
+            'password.custom' => translate('The password cannot contain white spaces.'),
         ]);
 
         if ($validator->fails()) {
@@ -316,7 +325,7 @@ class VendorController extends Controller
         $order = Order::whereHas('restaurant.vendor', function($query) use($vendor){
             $query->where('id', $vendor->id);
         })
-        ->where('id', $request['order_id'])->with('subscription_logs')
+        ->where('id', $request['order_id'])->with(['subscription_logs','details'])
         ->Notpos()
         ->first();
 
@@ -450,12 +459,10 @@ class VendorController extends Controller
             if (!empty($request->file('order_proof'))) {
                 foreach ($request->order_proof as $img) {
                     $image_name = Helpers::upload('order/', 'png', $img);
-                    array_push($img_names, $image_name);
+                    array_push($img_names, ['img'=>$image_name, 'storage'=> Helpers::getDisk()]);
                 }
                 $images = $img_names;
-            } else {
-                $images = null;
-            }
+            } 
             $order->order_proof = json_encode($images);
         }
 
@@ -479,6 +486,9 @@ class VendorController extends Controller
             }
             $order->cancellation_reason=$request->reason;
             $order->canceled_by='restaurant';
+
+            Helpers::decreaseSellCount(order_details:$order->details);
+
         }
 
         if($request->status == 'processing') {
@@ -676,10 +686,18 @@ class VendorController extends Controller
     {
         $limit=$request->limit?$request->limit:25;
         $offset=$request->offset?$request->offset:1;
+        $category_id=$request->category_id?$request->category_id:0;
 
         $type = $request->query('type', 'all');
 
-        $paginator = Food::type($type)->where('restaurant_id', $request['vendor']->restaurants[0]->id)->latest()->paginate($limit, ['*'], 'page', $offset);
+        $paginator = Food::type($type);
+        if($category_id != 0)
+        {
+            $paginator = $paginator->whereHas('category',function($q)use($category_id){
+                return $q->whereId($category_id)->orWhere('parent_id', $category_id);
+            });
+        }
+        $paginator = $paginator->where('restaurant_id', $request['vendor']->restaurants[0]->id)->latest()->paginate($limit, ['*'], 'page', $offset);
         $data = [
             'total_size' => $paginator->total(),
             'limit' => $limit,
@@ -779,9 +797,11 @@ class VendorController extends Controller
             {
                 DB::table('withdraw_requests')->insert($data);
                 $w?->increment('pending_withdraw', $request['amount']);
-                if(config('mail.status') && Helpers::get_mail_status('withdraw_request_mail_status_admin') == '1') {
+                $notification_status= Helpers::getNotificationStatusData('admin','withdraw_request');
+                if( $notification_status?->mail_status == 'active' && config('mail.status') && Helpers::get_mail_status('withdraw_request_mail_status_admin') == '1') {
                     $wallet_transaction = WithdrawRequest::where('vendor_id',$w->vendor_id)->latest()->first();
                     $admin= \App\Models\Admin::where('role_id', 1)->first();
+
                     Mail::to($admin->email)->send(new \App\Mail\WithdrawRequestMail('admin_mail',$wallet_transaction));
                 }
                 return response()->json(['message'=>translate('messages.withdraw_request_placed_successfully')],200);
@@ -813,16 +833,11 @@ class VendorController extends Controller
             return response()->json(['errors'=>[['code'=>'on-going', 'message'=>translate('messages.user_account_wallet_delete_warning')]]],203);
         }
 
-        if (Storage::disk('public')->exists('vendor/' . $vendor['image'])) {
-            Storage::disk('public')->delete('vendor/' . $vendor['image']);
-        }
-        if (Storage::disk('public')->exists('restaurant/' . $vendor?->restaurants[0]?->logo)) {
-            Storage::disk('public')->delete('restaurant/' . $vendor?->restaurants[0]?->logo);
-        }
+        Helpers::check_and_delete('vendor/' , $vendor['image']);
 
-        if (Storage::disk('public')->exists('restaurant/cover/' . $vendor?->restaurants[0]?->cover_photo)) {
-            Storage::disk('public')->delete('restaurant/cover/' . $vendor?->restaurants[0]?->cover_photo);
-        }
+        Helpers::check_and_delete('restaurant/' , $vendor?->restaurants[0]?->logo);
+
+        Helpers::check_and_delete('restaurant/cover/' , $vendor?->restaurants[0]?->cover_photo);
 
         $vendor?->restaurants()?->delete();
         $vendor?->userinfo?->delete();
@@ -881,8 +896,10 @@ class VendorController extends Controller
         $value = translate('your_order_is_ready_to_be_delivered,_plesae_share_your_otp_with_delivery_man.').' '.translate('otp:').$order->otp.', '.translate('order_id:').$order->id;
 
         try {
+            $customer_push_notification_status=Helpers::getNotificationStatusData('customer','customer_delivery_verification');
+
             $fcm_token= ($order->is_guest == 0 ? $order?->customer?->cm_firebase_token : $order?->guest?->fcm_token) ?? null ;
-            if ($value && $fcm_token) {
+            if ($customer_push_notification_status?->push_notification_status  == 'active' && $value && $fcm_token) {
                 $data = [
                     'title' => translate('messages.order_ready_to_be_delivered'),
                     'description' => $value,

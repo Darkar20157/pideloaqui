@@ -69,8 +69,13 @@ class VendorController extends Controller
             'password' => ['required', Password::min(8)->mixedCase()->letters()->numbers()->symbols()->uncompromised()],
 
         ],[
-            // 'additional_documents.max' => translate('You_can_chose_max_5_files_only'),
-            // 'additional_documents*' => translate('Max_file_size_is_2mb'),
+            'password.min_length' => translate('The password must be at least :min characters long'),
+            'password.mixed' => translate('The password must contain both uppercase and lowercase letters'),
+            'password.letters' => translate('The password must contain letters'),
+            'password.numbers' => translate('The password must contain numbers'),
+            'password.symbols' => translate('The password must contain symbols'),
+            'password.uncompromised' => translate('The password is compromised. Please choose a different one'),
+            'password.custom' => translate('The password cannot contain white spaces.'),
         ]);
 
         if($request->name[array_search('default', $request->lang)] == '' || $request->address[array_search('default', $request->lang)] == '' ){
@@ -164,7 +169,7 @@ class VendorController extends Controller
                     foreach($data as $file){
                         if(is_file($file)){
                             $file_name = Helpers::upload('additional_documents/', $file->getClientOriginalExtension(), $file);
-                            $additional[] = $file_name ;
+                            $additional[] = ['file'=>$file_name, 'storage'=> Helpers::getDisk()];
                         }
                         $additional_documents[$key] = $additional;
                     }
@@ -227,10 +232,15 @@ class VendorController extends Controller
             DB::commit();
             try{
                 $admin= Admin::where('role_id', 1)->first();
-                if(config('mail.status') && Helpers::get_mail_status('registration_mail_status_restaurant') == '1'){
+                $notification_status= Helpers::getNotificationStatusData('restaurant','restaurant_registration');
+
+                if( $notification_status?->mail_status == 'active' && config('mail.status') && Helpers::get_mail_status('registration_mail_status_restaurant') == '1'){
                     Mail::to($request['email'])->send(new \App\Mail\VendorSelfRegistration('pending', $vendor->f_name.' '.$vendor->l_name));
                 }
-                if(config('mail.status') &&  Helpers::get_mail_status('restaurant_registration_mail_status_admin')== '1'){
+                $notification_status= null ;
+                $notification_status= Helpers::getNotificationStatusData('admin','restaurant_self_registration');
+
+                if( $notification_status?->mail_status == 'active' && config('mail.status') &&  Helpers::get_mail_status('restaurant_registration_mail_status_admin')== '1'){
                     Mail::to($admin['email'])->send(new \App\Mail\RestaurantRegistration('pending', $vendor->f_name.' '.$vendor->l_name));
                 }
             }catch(\Exception $exception){
@@ -253,7 +263,7 @@ class VendorController extends Controller
                 $restaurant->save();
                 Toastr::success(translate('messages.your_restaurant_registration_is_successful'));
                 return view('vendor-views.auth.register-step-4',[
-                    'logo'=> $restaurant->logo
+                    'logo'=> $restaurant->logo_full_url
                 ]);
             }
 
@@ -280,7 +290,7 @@ class VendorController extends Controller
                 $restaurant->restaurant_model = 'commission';
                 $restaurant->save();
                 return view('vendor-views.auth.register-step-4',[
-                    'logo'=> $restaurant->logo,
+                    'logo'=> $restaurant->logo_full_url,
                     'type'=>$request->type
                 ]);
             }
@@ -316,7 +326,7 @@ class VendorController extends Controller
                         }
                     Toastr::success(translate('messages.application_placed_successfully'));
                     return view('vendor-views.auth.register-step-4',[
-                        'logo'=> $restaurant->logo
+                        'logo'=> $restaurant->logo_full_url
                     ]);
             }
             elseif($request->payment == 'paying_now'){
@@ -336,7 +346,7 @@ class VendorController extends Controller
                 //     }
                 // Toastr::success(translate('messages.application_placed_successfully'));
                 // return view('vendor-views.auth.register-step-4',[
-                //     'logo'=> $restaurant->logo
+                //     'logo'=> $restaurant->logo_full_url
                 // ]);
             }
     }

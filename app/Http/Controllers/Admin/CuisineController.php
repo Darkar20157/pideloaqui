@@ -164,9 +164,7 @@ class CuisineController extends Controller
     public function destroy(Request $request)
     {
         $cuisine = Cuisine::findOrFail($request->id);
-        if (Storage::disk('public')->exists('cuisine/' . $cuisine['image'])) {
-            Storage::disk('public')->delete('cuisine/' . $cuisine['image']);
-        }
+        Helpers::check_and_delete('cuisine/' , $cuisine['image']);
         $cuisine?->translations()?->delete();
         $cuisine->delete();
         Toastr::success('cuisine removed!');

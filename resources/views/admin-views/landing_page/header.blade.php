@@ -240,7 +240,7 @@
 
                     <div class="btn--container justify-content-end mt-3">
                         <button type="reset" class="btn btn--reset">{{translate('Reset')}}</button>
-                        <button type="submit"   class="btn btn--primary mb-2">{{translate('Save')}}</button>
+                        <button type="submit"   class="btn btn--primary">{{translate('Save')}}</button>
                     </div>
                 </div>
             </form>
@@ -267,12 +267,7 @@
                             <div class="position-relative">
                                 <label class="upload-img-3 m-0 d-block">
                                         <div class="img">
-                                            <img  src="{{ \App\CentralLogics\Helpers::onerror_image_helper(
-                                            data_get($image_content,'header_content_image'),
-                                            dynamicStorage('storage/app/public/header_image').'/'.data_get($image_content,'header_content_image'),
-                                            dynamicAsset('/public/assets/admin/img/upload-6.png'),
-                                            'header_image/'
-                                        ) }}"
+                                            <img  src="{{ $header_content_image_full_url }}"
                                                     data-onerror-image="{{dynamicAsset('/public/assets/admin/img/upload-6.png')}}"
                                                     class="vertical-img max-w-187px onerror-image" alt="">
                                         </div>
@@ -297,12 +292,7 @@
                             <div class="position-relative d-inline-block">
                                 <label class="upload-img-3 m-0 d-block ">
                                     <div class="img">
-                                        <img  src="{{ \App\CentralLogics\Helpers::onerror_image_helper(
-                                            data_get($image_content,'header_bg_image'),
-                                            dynamicStorage('storage/app/public/header_image').'/'.data_get($image_content,'header_bg_image'),
-                                            dynamicAsset('/public/assets/admin/img/upload-6.png'),
-                                            'header_image/'
-                                        ) }}"
+                                        <img  src="{{ $header_bg_image_full_url }}"
                                                 data-onerror-image="{{dynamicAsset('/public/assets/admin/img/upload-6.png')}}"
                                                 class="vertical-img max-w-187px onerror-image" alt="">
 
@@ -324,7 +314,7 @@
 
                 <div class="btn--container justify-content-end mt-3">
                     <button type="reset" class="btn btn--reset">{{translate('Reset')}}</button>
-                    <button type="submit"   class="btn btn--primary mb-2">{{translate('Save')}}</button>
+                    <button type="submit"   class="btn btn--primary">{{translate('Save')}}</button>
                 </div>
             </div>
             </form>
@@ -392,7 +382,7 @@
                 </div>
                 <div class="btn--container justify-content-end mt-3">
                     <button type="reset" class="btn btn--reset">{{translate('Reset')}}</button>
-                    <button type="submit"   class="btn btn--primary mb-2">{{translate('Save')}}</button>
+                    <button type="submit"   class="btn btn--primary">{{translate('Save')}}</button>
                 </div>
                 </form>
             </div>

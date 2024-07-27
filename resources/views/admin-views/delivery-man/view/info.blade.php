@@ -261,7 +261,7 @@
                         <div class="d-flex align-items-center justify-content-center">
                             <img class="avatar avatar-xxl avatar-4by3 mr-4 mw-120px initial-22 onerror-image"
                                  data-onerror-image="{{dynamicAsset('public/assets/admin/img/160x160/img1.jpg')}}"
-                                 src="{{\App\CentralLogics\Helpers::onerror_image_helper($dm['image'], dynamicStorage('storage/app/public/delivery-man/').'/'.$dm['image'], dynamicAsset('public/assets/admin/img/160x160/img1.jpg'), 'delivery-man/') }}"
+                                 src="{{ $dm['image_full_url'] }}"
                                  alt="Image Description">
                             <div class="d-block">
                                 <div class="rating--review">
@@ -447,11 +447,11 @@
                     </div>
                     <div class="col-md-8">
                         <div class="d-flex flex-wrap justify-content-center ">
-                        @foreach (json_decode($dm->identity_image) as $key => $img)
+                        @foreach ($dm->identity_image_full_url as $key => $img)
                                     <button class="btn padding p-1" data-toggle="modal"
                                         data-target="#image-{{ $key }}">
                                         <div class="gallary-card">
-                                            <img data-onerror-image="{{ dynamicAsset('/public/assets/admin/img/900x400/img1.jpg') }}" src="{{\App\CentralLogics\Helpers::onerror_image_helper($img, dynamicStorage('storage/app/public/delivery-man/').'/'.$img, dynamicAsset('public/assets/admin/img/900x400/img1.jpg'), 'delivery-man/') }}" class="avatar avatar-xxl avatar-4by3 mw-120px initial-22 onerror-image">
+                                            <img data-onerror-image="{{ dynamicAsset('/public/assets/admin/img/900x400/img1.jpg') }}" src="{{ $img }}" class="avatar avatar-xxl avatar-4by3 mw-120px initial-22 onerror-image">
                                         </div>
                                     </button>
                                     <div class="modal fade" id="image-{{ $key }}" tabindex="-1" role="dialog"
@@ -467,7 +467,7 @@
                                             </div>
                                             <div class="modal-body">
                                                 <img data-onerror-image="{{ dynamicAsset('/public/assets/admin/img/900x400/img1.jpg') }}"
-                                                     src="{{\App\CentralLogics\Helpers::onerror_image_helper($img, dynamicStorage('storage/app/public/delivery-man/').'/'.$img, dynamicAsset('public/assets/admin/img/900x400/img1.jpg'), 'delivery-man/') }}"
+                                                     src="{{ $img }}"
                                                     class="w-100 onerror-image">
                                             </div>
                                             <div class="modal-footer">
@@ -550,9 +550,13 @@
                         <h5 class="mb-3"> {{ translate('Attachments') }} </h5>
                         <div class="d-flex flex-wrap gap-4 align-items-start">
                                 @foreach (json_decode($dm->additional_documents, true) as $key => $item)
-                                    @foreach ($item as $file)
+
+                                @php($item  = is_string($item) ? json_deocde($item,true) : $item  )
+                                @foreach ($item as $file)
+
+                                @php($file =  is_string($file) ? ['file' => $file, 'storage' => 'public'] :  $file )
                                             <?php
-                                                $path_info = pathinfo('storage/app/public/additional_documents/dm/' . $file);
+                                                $path_info = pathinfo(\App\CentralLogics\Helpers::get_full_url('additional_documents/dm',$file['file'],$file['storage']));
                                                 $f_date = $path_info['extension'];
                                                 ?>
 
@@ -560,16 +564,16 @@
                                                 @if ($f_date == 'pdf')
                                                     <div class="attachment-card min-w-260">
                                                         <label for="">{{ translate($key) }}</label>
-                                                        <a href="{{ dynamicStorage('storage/app/public/additional_documents/dm/'.$file) }}" target="_blank" rel="noopener noreferrer">
+                                                        <a href="{{ \App\CentralLogics\Helpers::get_full_url('additional_documents/dm',$file['file'],$file['storage']) }}" target="_blank" rel="noopener noreferrer">
                                                             <div class="img ">
 
 
-                                                                <iframe src="https://docs.google.com/gview?url={{ dynamicStorage('storage/app/public/additional_documents/dm/' . $file) }}&embedded=true"></iframe>
+                                                                <iframe src="https://docs.google.com/gview?url={{ \App\CentralLogics\Helpers::get_full_url('additional_documents/dm',$file['file'],$file['storage']) }}&embedded=true"></iframe>
 
                                                             </div>
                                                         </a>
 
-                                                        <a href="{{ dynamicStorage('storage/app/public/additional_documents/dm/' . $file) }}" download
+                                                        <a href="{{ \App\CentralLogics\Helpers::get_full_url('additional_documents/dm',$file['file'],$file['storage']) }}" download
                                                             class="download-icon mt-3">
                                                             <img src="{{ dynamicAsset('/public/assets/admin/new-img/download-icon.svg') }}" alt="">
                                                         </a>
@@ -585,15 +589,15 @@
                                                     @else
                                                     <div class="attachment-card  min-w-260">
                                                         <label for="">{{ translate($key) }}</label>
-                                                        <a href="{{ dynamicStorage('storage/app/public/additional_documents/dm/'.$file) }}" target="_blank" rel="noopener noreferrer">
+                                                        <a href="{{ \App\CentralLogics\Helpers::get_full_url('additional_documents/dm',$file['file'],$file['storage']) }}" target="_blank" rel="noopener noreferrer">
                                                             <div class="img ">
 
-                                                                <iframe src="https://docs.google.com/gview?url={{ dynamicStorage('storage/app/public/additional_documents/dm/' . $file) }}&embedded=true"></iframe>
+                                                                <iframe src="https://docs.google.com/gview?url={{ \App\CentralLogics\Helpers::get_full_url('additional_documents/dm',$file['file'],$file['storage']) }}&embedded=true"></iframe>
 
 
                                                             </div>
                                                         </a>
-                                                        <a href="{{ dynamicStorage('storage/app/public/additional_documents/dm/' . $file) }}" download
+                                                        <a href="{{ \App\CentralLogics\Helpers::get_full_url('additional_documents/dm',$file['file'],$file['storage']) }}" download
                                                             class="download-icon mt-3">
                                                             <img src="{{ dynamicAsset('/public/assets/admin/new-img/download-icon.svg') }}" alt="">
                                                         </a>
@@ -618,19 +622,23 @@
                         <h5 class="mb-3"> {{ translate('Images') }} </h5>
                         <div class="d-flex flex-wrap gap-4 align-items-start">
                             @foreach (json_decode($dm->additional_documents, true) as $key => $item)
-                                @foreach ($item as $file)
+
+                            @php($item  = is_string($item) ? json_deocde($item,true) : $item  )
+
+                            @foreach ($item as $file)
+                            @php($file =  is_string($file) ? ['file' => $file, 'storage' => 'public'] :  $file )
                                     <?php
-                                        $path_info = pathinfo('storage/app/public/additional_documents/dm/' . $file);
+                                        $path_info = pathinfo(\App\CentralLogics\Helpers::get_full_url('additional_documents/dm',$file['file'],$file['storage']) );
                                         $f_date = $path_info['extension'];
                                         ?>
                                     @if (in_array($f_date, ['jpg', 'jpeg', 'png']))
                                     <div class="attachment-card max-w-360">
                                         <label for="">{{ translate($key) }}</label>
-                                        <a href="{{ dynamicStorage('storage/app/public/additional_documents/dm/' . $file) }}" download
+                                        <a href="{{ \App\CentralLogics\Helpers::get_full_url('additional_documents/dm',$file['file'],$file['storage']) }}" download
                                             class="download-icon mt-3">
                                             <img src="{{ dynamicAsset('/public/assets/admin/new-img/download-icon.svg') }}" alt="">
                                         </a>
-                                        <img src="{{ dynamicStorage('storage/app/public/additional_documents/dm/' . $file) }}"
+                                        <img src="{{ \App\CentralLogics\Helpers::get_full_url('additional_documents/dm',$file['file'],$file['storage'])  }}"
                                             class="aspect-615-350 cursor-pointer mw-100 object--cover" alt="">
                                     </div>
                                     @endif
@@ -641,7 +649,7 @@
                 </div>
             </div>
             </div>
-        @endif
+            @endif
         <!-- Card -->
         <div class=" card">
 
@@ -720,7 +728,7 @@
                                    href="{{route('admin.customer.view',[$review['user_id']])}}">
                                     <div class="avatar rounded">
                                         <img class="avatar-img" width="75" height="75"
-                                             src="{{\App\CentralLogics\Helpers::onerror_image_helper($review?->customer?->image, dynamicStorage('storage/app/public/profile/').'/'.$review?->customer?->image, dynamicAsset('public/assets/admin/img/160x160/img1.png'), 'profile/') }}"
+                                             src="{{ $review?->customer?->image ?? dynamicAsset('public/assets/admin/img/160x160/img1.png') }}"
                                              alt="Image Description">
                                     </div>
                                     <div class="ml-3">

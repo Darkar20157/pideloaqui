@@ -1,6 +1,6 @@
 @extends('layouts.admin.app')
 
-@section('title', translate('Update_product'))
+@section('title', translate('Update_Food'))
 
 @push('css_or_js')
     <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -21,6 +21,8 @@
 
         <form action="javascript:" method="post" id="product_form" enctype="multipart/form-data">
             @csrf
+            <input type="hidden" id="removedVariationIDs" name="removedVariationIDs" value="">
+            <input type="hidden" id="removedVariationOptionIDs" name="removedVariationOptionIDs" value="">
             <div class="row g-2">
                 <div class="col-lg-6">
                     <div class="card shadow--card-2 border-0">
@@ -60,7 +62,7 @@
                                             class="form-control" value="{{$product?->getRawOriginal('name')}}"
                                             placeholder="{{ translate('messages.new_food') }}"
 
-                                            oninvalid="document.getElementById('en-link').click()">
+                                             >
                                     </div>
                                     <input type="hidden" name="lang[]" value="default">
                                     <div class="form-group mb-0">
@@ -98,7 +100,7 @@
                                                     <input type="text" name="name[]" id="{{ $lang }}_name"
                                                         class="form-control"  value="{{ $translate[$lang]['name'] ?? '' }}"
                                                         placeholder="{{ translate('messages.new_food') }}"
-                                                        oninvalid="document.getElementById('en-link').click()">
+                                                         >
                                                 </div>
                                                 <input type="hidden" name="lang[]" value="{{ $lang }}">
                                                 <div class="form-group mb-0">
@@ -118,16 +120,10 @@
                     <div class="card shadow--card-2 border-0 h-100">
                         <div class="card-body">
                             <div class="d-flex flex-column align-items-center gap-3">
-                                <p class="mb-0">{{ translate('Food_Image') }} <small
-                                    class="text-danger">*</small> </p>
+                                <p class="mb-0">{{ translate('Food_Image') }} </p>
                                 <div class="image-box">
                                     <label for="image-input" class="d-flex flex-column align-items-center justify-content-center h-100 cursor-pointer gap-2">
-                                    <img class="upload-icon initial-26"   src="{{ \App\CentralLogics\Helpers::onerror_image_helper(
-                                        $product['image'] ?? '',
-                                        dynamicStorage('storage/app/public/product').'/'.$product['image'] ?? '',
-                                        dynamicAsset('public/assets/admin/img/100x100/food-default-image.png'),
-                                        'product/'
-                                    ) }}" alt="Upload Icon">
+                                    <img class="upload-icon initial-26"   src="{{ $product['image_full_url'] }}" alt="Upload Icon">
                                     <img src="#" alt="Preview Image" class="preview-image">
                                     </label>
                                     <button type="button" class="delete_image">
@@ -142,7 +138,6 @@
                             </div>
                         </div>
                     </div>
-
 
 
                 </div>
@@ -312,7 +307,7 @@
                                 <div class="col-md-3">
                                     <div class="form-group mb-0">
                                         <label class="input-label"
-                                            for="exampleFormControlInput1">{{ translate('messages.price') }}<span class="form-label-secondary text-danger"
+                                            for="exampleFormControlInput1">{{ translate('messages.Unit_Price') }} {{ \App\CentralLogics\Helpers::currency_symbol() }}<span class="form-label-secondary text-danger"
                                             data-toggle="tooltip" data-placement="right"
                                             data-original-title="{{ translate('messages.Required.')}}"> *
                                             </span></label>
@@ -371,6 +366,36 @@
                                         <input type="number" placeholder="{{ translate('messages.Ex:_10') }}" class="form-control" name="maximum_cart_quantity" min="0" value="{{ $product->maximum_cart_quantity }}" id="cart_quantity">
                                     </div>
                                 </div>
+
+
+                                <div class="col-md-3">
+                                    <div class="form-group mb-0">
+                                        <label class="input-label"
+                                            for="exampleFormControlInput1">{{ translate('messages.Stock_Type') }}
+                                        </label>
+                                        <select name="stock_type" id="stock_type" class="form-control js-select2-custom">
+                                            <option  {{ $product->stock_type == 'unlimited' ? 'selected' : '' }}  value="unlimited">{{ translate('messages.Unlimited_Stock') }}</option>
+                                            <option  {{ $product->stock_type == 'limited' ? 'selected' : '' }} value="limited">{{ translate('messages.Limited_Stock')  }}</option>
+                                            <option  {{ $product->stock_type == 'daily' ? 'selected' : '' }} value="daily">{{ translate('messages.Daily_Stock')  }}</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-3 hide_this" id="">
+                                    <div class="form-group mb-0">
+                                        <label class="input-label"
+                                            for="item_stock">{{ translate('messages.Item_Stock') }}
+                                            <span class="input-label-secondary text--title" data-toggle="tooltip"
+                                            data-placement="right"
+                                            data-original-title="{{ translate('This_Stock_amount_will_be_counted_as_the_base_stock._But_if_you_want_to_manage_variation_wise_stock,_then_need__to_manage_it_below_with_food_variation_setup.') }}">
+                                            <i class="tio-info-outined"></i>
+                                        </span>
+                                        </label>
+                                        <input type="number" value="{{ $product->item_stock }}"  placeholder="{{ translate('messages.Ex:_10') }}" class="form-control stock_disable" name="item_stock" min="0" max="999999999" id="item_stock">
+                                    </div>
+                                </div>
+
+
                             </div>
                         </div>
                     </div>
@@ -441,9 +466,52 @@
 
 @push('script_2')
     <script src="{{ dynamicAsset('public/assets/admin') }}/js/tags-input.min.js"></script>
-    <script src="{{ dynamicAsset('public/assets/admin/js/spartan-multi-image-picker.js') }}"></script>
     <script>
         "use strict";
+
+
+
+        $('#stock_type').on('change', function () {
+                if($(this).val() == 'unlimited') {
+                    $('.stock_disable').prop('readonly', true).prop('required', false).attr('placeholder', '{{ translate('Unlimited') }}').val('');
+                    $('.hide_this').addClass('d-none');
+                } else {
+                    $('.stock_disable').prop('readonly', false).prop('required', true).attr('placeholder', '{{ translate('messages.Ex:_100') }}');
+                    $('.hide_this').removeClass('d-none');
+                    // if($('.view_new_option').length > 0){
+                    //     $('#item_stock').prop('readonly', true).prop('required', false);
+                    // }
+                }
+        });
+
+        updatestockCount();
+
+            function updatestockCount(){
+                if($('#stock_type').val()==  'unlimited'){
+                        $('.stock_disable').prop('readonly', true).prop('required', false).attr('placeholder', '{{ translate('Unlimited') }}').val('');
+                        $('.hide_this').addClass('d-none');
+                    } else{
+                        $('.stock_disable').prop('readonly', false).prop('required', true).attr('placeholder', '{{ translate('messages.Ex:_100') }}');
+                        $('.hide_this').removeClass('d-none');
+                    }
+                    // if($('.view_new_option').length > 0){
+                    //     $('#item_stock').prop('readonly', true).prop('required', false);
+                    // }
+
+
+                    // $(".count_stock").on('input', function() {
+                    //     var sum = 0;
+                    //     $(".count_stock").each(function() {
+                    //         const value = parseFloat($(this).val()) || 0;
+                    //         sum += value;
+                    //     });
+                    //     $("#item_stock").val(sum);
+                    // });
+
+
+            }
+
+
         $('#restaurant_id').on('change', function () {
             let route = '{{ url('/') }}/admin/restaurant/get-addons?data[]=0&restaurant_id=';
             let restaurant_id = $(this).val();
@@ -645,7 +713,7 @@
                                 <div class="bg-white border rounded p-3 pb-0 mt-3">
                                     <div  id="option_price_view_` + count + `">
                                         <div class="row g-3 add_new_view_row_class mb-3">
-                                            <div class="col-md-4 col-sm-6">
+                                            <div class="col-md-3 col-sm-6">
                                                 <label for="">{{ translate('Option_name') }}  &nbsp; <span class="form-label-secondary text-danger"
                                 data-toggle="tooltip" data-placement="right"
                                 data-original-title="{{ translate('messages.Required.')}}"> *
@@ -654,7 +722,7 @@
                     count +
                     `][values][0][label]" id="">
                                             </div>
-                                            <div class="col-md-4 col-sm-6">
+                                            <div class="col-md-3 col-sm-6">
                                                 <label for="">{{ translate('Additional_price') }}  &nbsp; <span class="form-label-secondary text-danger"
                                 data-toggle="tooltip" data-placement="right"
                                 data-original-title="{{ translate('messages.Required.')}}"> *
@@ -662,10 +730,21 @@
                                                 <input class="form-control" required type="number" min="0" step="0.01" name="options[` +
                     count + `][values][0][optionPrice]" id="">
                                             </div>
+                                            <div class="col-md-3 col-sm-6 hide_this">
+                                                <label for="">{{ translate('Stock') }} </label>
+                                                <input class="form-control stock_disable count_stock" required type="number" max="99999999" min="0"  name="options[` +
+                    count + `][values][0][total_stock]" id="">
+                                            </div>
                                         </div>
                                     </div>
-                                    <div class="row mt-3 p-3 mr-1 d-flex "  id="add_new_button_` + count +
-                    `">
+
+
+
+                                    <input type="hidden" hidden name="options[` + count + `][values][0][option_id]" value="null" >
+
+
+
+                                    <div class="row mt-3 p-3 mr-1 d-flex "  id="add_new_button_` + count +`">
                                         <button type="button" class="btn btn--primary btn-outline-primary add_new_row_button" data-count="`+
                     count +`" >{{ translate('Add_New_Option') }}</button>
                                     </div>
@@ -675,6 +754,7 @@
                     </div>`;
 
                 $("#add_new_option").append(add_option_view);
+                updatestockCount();
             });
 
         });
@@ -698,27 +778,37 @@
 
 
         function add_new_row_button(data) {
-          var  count = data;
           var  countRow = 1 + $('#option_price_view_' + data).children('.add_new_view_row_class').length;
             let add_new_row_view = `
             <div class="row add_new_view_row_class mb-3 position-relative pt-3 pt-sm-0">
-                <div class="col-md-4 col-sm-5">
+                <div class="col-md-3 col-sm-5">
                         <label for="">{{ translate('Option_name') }}  &nbsp;<span class="form-label-secondary text-danger"
                                 data-toggle="tooltip" data-placement="right"
                                 data-original-title="{{ translate('messages.Required.')}}"> *
                                 </span></label>
-                        <input class="form-control" required type="text" name="options[` + count + `][values][` +
+                        <input class="form-control" required type="text" name="options[` + data + `][values][` +
                 countRow + `][label]" id="">
                     </div>
-                    <div class="col-md-4 col-sm-5">
+                    <div class="col-md-3 col-sm-5">
                         <label for="">{{ translate('Additional_price') }}  &nbsp;<span class="form-label-secondary text-danger"
                                 data-toggle="tooltip" data-placement="right"
                                 data-original-title="{{ translate('messages.Required.')}}"> *
                                 </span></label>
                         <input class="form-control"  required type="number" min="0" step="0.01" name="options[` +
-                count +
+                        data +
                 `][values][` + countRow + `][optionPrice]" id="">
                     </div>
+                    <div class="col-md-3 col-sm-5 hide_this">
+                        <label for="">{{ translate('Stock') }}  </label>
+                        <input class="form-control stock_disable count_stock"  required type="number" min="0" max="99999999"  name="options[` +
+                        data +
+                `][values][` + countRow + `][total_stock]" id="">
+                    </div>
+
+                    <input type="hidden" hidden name="options[` +
+                        data +
+                `][values][` + countRow + `][option_id]" value="null" >
+
                     <div class="col-sm-2 max-sm-absolute">
                         <label class="d-none d-sm-block">&nbsp;</label>
                         <div class="mt-1">
@@ -730,12 +820,27 @@
                 </div>
             </div>`;
             $('#option_price_view_' + data).append(add_new_row_view);
+            updatestockCount();
 
         }
         $(document).on('click', '.delete_input_button', function () {
             let e = $(this);
             removeOption(e);
+            updatestockCount();
         });
+
+        let removedVariationIDs = [];
+        let removedVariationOptionIDs = [];
+
+        $(document).on('click', '.remove_variation', function () {
+            removedVariationIDs.push($(this).data('id'));
+            $('#removedVariationIDs').val(removedVariationIDs.join(','));
+        });
+        $(document).on('click', '.remove_variation_option', function () {
+            removedVariationOptionIDs.push($(this).data('id'));
+            $('#removedVariationOptionIDs').val(removedVariationOptionIDs.join(','));
+        });
+
 
         $(document).on('click', '.deleteRow', function () {
             let e = $(this);
@@ -751,63 +856,6 @@
             new_option_name(value, data);
         });
 
-
-        $('#choice_attributes').on('change', function() {
-            $('#customer_choice_options').html(null);
-            combination_update();
-            $.each($("#choice_attributes option:selected"), function() {
-                add_more_customer_choice_option($(this).val(), $(this).text());
-            });
-        });
-
-        function add_more_customer_choice_option(i, name) {
-            let n = name;
-
-            $('#customer_choice_options').append(
-                `<div class="__choos-item"><div><input type="hidden" name="choice_no[]" value="${i}"><input type="text" class="form-control d-none" name="choice[]" value="${n}" placeholder="{{ translate('messages.choice_title') }}" readonly> <label class="form-label">${n}</label> </div><div><input type="text" class="form-control combination_update" name="choice_options_${i}[]" placeholder="{{ translate('messages.enter_choice_values') }}" data-role="tagsinput"></div></div>`
-            );
-            $("input[data-role=tagsinput], select[multiple][data-role=tagsinput]").tagsinput();
-        }
-
-        setTimeout(function() {
-            $('.call-update-sku').on('change', function() {
-                combination_update();
-            });
-        }, 2000)
-
-        $('#colors-selector').on('change', function() {
-            combination_update();
-        });
-
-        $('input[name="unit_price"]').on('keyup', function() {
-            combination_update();
-        });
-
-        function combination_update() {
-            $.ajaxSetup({
-                headers: {
-                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                }
-            });
-
-            $.ajax({
-                type: "POST",
-                url: '{{ route('admin.food.variant-combination') }}',
-                data: $('#product_form').serialize(),
-                beforeSend: function() {
-                    $('#loading').show();
-                },
-                success: function(data) {
-                    $('#loading').hide();
-                    $('#variant_combination').html(data.view);
-                    if (data.length > 1) {
-                        $('#quantity').hide();
-                    } else {
-                        $('#quantity').show();
-                    }
-                }
-            });
-        }
 
         $('#product_form').on('submit', function() {
             var formData = new FormData(this);
@@ -840,6 +888,7 @@
                             CloseButton: true,
                             ProgressBar: true
                         });
+                        // location.reload(true);
                         setTimeout(function() {
                             location.href =
                                 '{{ \Request::server('HTTP_REFERER') ?? route('admin.food.list') }}';

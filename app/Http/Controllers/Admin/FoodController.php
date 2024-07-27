@@ -23,6 +23,8 @@ use Brian2694\Toastr\Facades\Toastr;
 use Maatwebsite\Excel\Facades\Excel;
 use Rap2hpoutre\FastExcel\FastExcel;
 use App\Exports\RestaurantFoodExport;
+use App\Models\Variation;
+use App\Models\VariationOption;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
@@ -40,7 +42,7 @@ class FoodController extends Controller
             'name.0' => 'required',
             'name.*' => 'max:191',
             'category_id' => 'required',
-            'image' => 'required|max:2048',
+            'image' => 'max:2048',
             'price' => 'required|numeric|between:.01,999999999999.99',
             'discount' => 'required|numeric|min:0',
             'restaurant_id' => 'required',
@@ -107,18 +109,28 @@ class FoodController extends Controller
         $food->category_id = $request?->sub_category_id ?? $request?->category_id;
         $food->description =  $request->description[array_search('default', $request->lang)];
         $food->choice_options = json_encode([]);
+        $food->variations = json_encode([]);
+        $food->price = $request->price;
+        $food->image = Helpers::upload(dir: 'product/', format:'png', image:$request->file('image'));
+        $food->available_time_starts = $request->available_time_starts;
+        $food->available_time_ends = $request->available_time_ends;
+        $food->discount =  $request->discount ?? 0;
+        $food->discount_type = $request->discount_type;
 
-        $variations = [];
+        $food->attributes = $request->has('attribute_id') ? json_encode($request->attribute_id) : json_encode([]);
+        $food->add_ons = $request->has('addon_ids') ? json_encode($request->addon_ids) : json_encode([]);
+        $food->restaurant_id = $request->restaurant_id;
+        $food->veg = $request->veg;
+        $food->item_stock = $request?->item_stock ?? 0;
+        $food->stock_type = $request->stock_type;
+        $food->maximum_cart_quantity = $request->maximum_cart_quantity;
+        $food->is_halal =  $request->is_halal ?? 0;
+
+
         if(isset($request->options))
         {
             foreach(array_values($request->options) as $key=>$option)
             {
-
-                $temp_variation['name']= $option['name'];
-                $temp_variation['type']= $option['type'];
-                $temp_variation['min']= $option['min'] ?? 0;
-                $temp_variation['max']= $option['max'] ?? 0;
-                $temp_variation['required']= $option['required']??'off';
                 if($option['min'] > 0 &&  $option['min'] > $option['max']  ){
                     $validator->getMessageBag()->add('name', translate('messages.minimum_value_can_not_be_greater_then_maximum_value'));
                     return response()->json(['errors' => Helpers::error_processor($validator)]);
@@ -131,87 +143,43 @@ class FoodController extends Controller
                     $validator->getMessageBag()->add('name', translate('messages.please_add_more_options_or_change_the_max_value_for').$option['name']);
                     return response()->json(['errors' => Helpers::error_processor($validator)]);
                 }
-                $temp_value = [];
+            }
+
+            $food->save();
+
+            foreach(array_values($request->options) as $key=>$option)
+            {
+                $variation=  New Variation ();
+                $variation->food_id =$food->id;
+                $variation->name = $option['name'];
+                $variation->type = $option['type'];
+                $variation->min = $option['min'] ?? 0;
+                $variation->max = $option['max'] ?? 0;
+                $variation->is_required =   data_get($option, 'required') == 'on' ? true : false;
+                $variation->save();
 
                 foreach(array_values($option['values']) as $value)
                 {
-                    if(isset($value['label'])){
-                        $temp_option['label'] = $value['label'];
-                    }
-                    $temp_option['optionPrice'] = $value['optionPrice'];
-                    array_push($temp_value,$temp_option);
+                    $VariationOption=  New VariationOption ();
+                    $VariationOption->food_id =$food->id;
+                    $VariationOption->variation_id =$variation->id;
+                    $VariationOption->option_name = $value['label'];
+                    $VariationOption->option_price = $value['optionPrice'];
+                    $VariationOption->stock_type = $request?->stock_type ?? 'unlimited' ;
+                    $VariationOption->total_stock = data_get($value, 'total_stock') == null || $VariationOption->stock_type == 'unlimited' ? 0 : data_get($value, 'total_stock');
+                    $VariationOption->save();
                 }
-                $temp_variation['values']= $temp_value;
-                array_push($variations,$temp_variation);
             }
         }
+        else{
+            $food->save();
+        }
 
-        //combinations end
-        $food->variations = json_encode($variations);
-        $food->price = $request->price;
-        $food->image = Helpers::upload(dir: 'product/', format:'png', image:$request->file('image'));
-        $food->available_time_starts = $request->available_time_starts;
-        $food->available_time_ends = $request->available_time_ends;
-        $food->discount =  $request->discount ?? 0;
-        $food->discount_type = $request->discount_type;
 
-        $food->attributes = $request->has('attribute_id') ? json_encode($request->attribute_id) : json_encode([]);
-        $food->add_ons = $request->has('addon_ids') ? json_encode($request->addon_ids) : json_encode([]);
-        $food->restaurant_id = $request->restaurant_id;
-        $food->veg = $request->veg;
-        $food->maximum_cart_quantity = $request->maximum_cart_quantity;
-        $food->is_halal =  $request->is_halal ?? 0;
-        $food->save();
         $food->tags()->sync($tag_ids);
 
-        $data = [];
-        $default_lang = str_replace('_', '-', app()->getLocale());
-        foreach ($request->lang as $index => $key) {
-            if($default_lang == $key && !($request->name[$index])){
-                if ($key != 'default') {
-                    array_push($data, array(
-                        'translationable_type' => 'App\Models\Food',
-                        'translationable_id' => $food->id,
-                        'locale' => $key,
-                        'key' => 'name',
-                        'value' => $food->name,
-                    ));
-                }
-            }else{
-                if ($request->name[$index] && $key != 'default') {
-                    array_push($data, array(
-                        'translationable_type' => 'App\Models\Food',
-                        'translationable_id' => $food->id,
-                        'locale' => $key,
-                        'key' => 'name',
-                        'value' => $request->name[$index],
-                    ));
-                }
-            }
-            if($default_lang == $key && !($request->description[$index])){
-                if ($key != 'default') {
-                    array_push($data, array(
-                        'translationable_type' => 'App\Models\Food',
-                        'translationable_id' => $food->id,
-                        'locale' => $key,
-                        'key' => 'description',
-                        'value' => $food->description,
-                    ));
-                }
-            }else{
-                if ($request->description[$index] && $key != 'default') {
-                    array_push($data, array(
-                        'translationable_type' => 'App\Models\Food',
-                        'translationable_id' => $food->id,
-                        'locale' => $key,
-                        'key' => 'description',
-                        'value' => $request->description[$index],
-                    ));
-                }
-            }
-
-        }
-        Translation::insert($data);
+        Helpers::add_or_update_translations(request: $request, key_data:'name' , name_field:'name' , model_name: 'Food' ,data_id: $food->id,data_value: $food->name);
+        Helpers::add_or_update_translations(request: $request, key_data:'description' , name_field:'description' , model_name: 'Food' ,data_id: $food->id,data_value: $food->description);
 
         return response()->json([], 200);
     }
@@ -271,6 +239,7 @@ class FoodController extends Controller
             'veg.required'=>translate('messages.item_type_is_required'),
         ]);
 
+
         if ($request['discount_type'] == 'percent') {
             $dis = ($request['price'] / 100) * $request['discount'];
         } else {
@@ -328,18 +297,12 @@ class FoodController extends Controller
         $p->description = $request->description[array_search('default', $request->lang)];
 
         $p->choice_options = json_encode([]);
+        $p->variations = json_encode([]);
 
-
-
-        $variations = [];
         if(isset($request->options))
         {
             foreach(array_values($request->options) as $key=>$option)
             {
-                $temp_variation['name']= $option['name'];
-                $temp_variation['type']= $option['type'];
-                $temp_variation['min']= $option['min'] ?? 0;
-                $temp_variation['max']= $option['max'] ?? 0;
                 if($option['min'] > 0 &&  $option['min'] > $option['max']  ){
                     $validator->getMessageBag()->add('name', translate('messages.minimum_value_can_not_be_greater_then_maximum_value'));
                     return response()->json(['errors' => Helpers::error_processor($validator)]);
@@ -352,25 +315,46 @@ class FoodController extends Controller
                     $validator->getMessageBag()->add('name', translate('messages.please_add_more_options_or_change_the_max_value_for').$option['name']);
                     return response()->json(['errors' => Helpers::error_processor($validator)]);
                 }
-                $temp_variation['required']= $option['required']??'off';
-                $temp_value = [];
+
+                $variation=Variation::updateOrCreate([
+                    'id'=> $option['variation_id'] ?? null,
+                    'food_id'=> $p->id,
+                    ],[
+                        "name" => $option['name'],
+                        "type" => $option['type'],
+                        "min" => $option['min'] ?? 0,
+                        "max" => $option['max'] ?? 0,
+                        "is_required" => data_get($option, 'required') == 'on' ? true : false,
+                    ]);
+
                 foreach(array_values($option['values']) as $value)
                 {
-                    if(isset($value['label'])){
-                        $temp_option['label'] = $value['label'];
-                    }
-                    $temp_option['optionPrice'] = $value['optionPrice'];
-                    array_push($temp_value,$temp_option);
+                    VariationOption::updateOrCreate([
+                        'id'=> $value['option_id'] ?? null,
+                        'food_id'=> $p->id,
+                        'variation_id'=> $variation->id,
+                    ],[
+                        "option_name" =>$value['label'],
+                        "option_price" => $value['optionPrice'],
+                        "total_stock" =>data_get($value, 'total_stock') == null ||  $request?->stock_type == 'unlimited' ? 0 : data_get($value, 'total_stock'),
+                        "stock_type" => $request?->stock_type ?? 'unlimited' ,
+                        "sell_count" =>0 ,
+                    ]);
                 }
-                $temp_variation['values']= $temp_value;
-                array_push($variations,$temp_variation);
             }
+
+        }
+        if($request?->removedVariationOptionIDs && is_string($request?->removedVariationOptionIDs)){
+            VariationOption::whereIn('id',explode(',',$request->removedVariationOptionIDs))->delete();
+        }
+        if($request?->removedVariationIDs && is_string($request?->removedVariationIDs)){
+            VariationOption::whereIn('variation_id',explode(',',$request->removedVariationIDs))->delete();
+            Variation::whereIn('id',explode(',',$request->removedVariationIDs))->delete();
         }
 
         $slug = Str::slug($request->name[array_search('default', $request->lang)]);
         $p->slug = $p->slug? $p->slug :"{$slug}{$p->id}";
         //combinations end
-        $p->variations = json_encode($variations);
         $p->price = $request->price;
         $p->image = $request->has('image') ? Helpers::update(dir:'product/', old_image: $p->image, format:'png', image: $request->file('image')) : $p->image;
         $p->available_time_starts = $request->available_time_starts;
@@ -378,6 +362,9 @@ class FoodController extends Controller
 
         $p->discount = $request->discount ?? 0;
         $p->discount_type = $request->discount_type;
+        $p->item_stock = $request?->item_stock ?? 0;
+        $p->stock_type = $request->stock_type;
+        $p->sell_count = 0;
 
         $p->attributes = $request->has('attribute_id') ? json_encode($request->attribute_id) : json_encode([]);
         $p->add_ons = $request->has('addon_ids') ? json_encode($request->addon_ids) : json_encode([]);
@@ -388,64 +375,10 @@ class FoodController extends Controller
 
         $p->save();
         $p->tags()->sync($tag_ids);
-        $default_lang = str_replace('_', '-', app()->getLocale());
 
-        foreach ($request->lang as $index => $key) {
-            if($default_lang == $key && !($request->name[$index])){
-                if ($key != 'default') {
-                    Translation::updateOrInsert(
-                        [
-                            'translationable_type' => 'App\Models\Food',
-                            'translationable_id' => $p->id,
-                            'locale' => $key,
-                            'key' => 'name'
-                        ],
-                        ['value' => $p->name]
-                    );
-                }
-            }else{
 
-                if ($request->name[$index] && $key != 'default') {
-                    Translation::updateOrInsert(
-                        [
-                            'translationable_type' => 'App\Models\Food',
-                            'translationable_id' => $p->id,
-                            'locale' => $key,
-                            'key' => 'name'
-                        ],
-                        ['value' => $request->name[$index]]
-                    );
-                }
-            }
-
-            if($default_lang == $key && !($request->description[$index])){
-                if (isset($p->description) && $key != 'default') {
-                    Translation::updateOrInsert(
-                        [
-                            'translationable_type' => 'App\Models\Food',
-                            'translationable_id' => $p->id,
-                            'locale' => $key,
-                            'key' => 'description'
-                        ],
-                        ['value' => $p->description]
-                    );
-                }
-
-            }else{
-                if ($request->description[$index] && $key != 'default') {
-                    Translation::updateOrInsert(
-                        [
-                            'translationable_type' => 'App\Models\Food',
-                            'translationable_id' => $p->id,
-                            'locale' => $key,
-                            'key' => 'description'
-                        ],
-                        ['value' => $request->description[$index]]
-                    );
-                }
-
-            }
-        }
+        Helpers::add_or_update_translations(request: $request, key_data:'name' , name_field:'name' , model_name: 'Food' ,data_id: $p->id,data_value: $p->name);
+        Helpers::add_or_update_translations(request: $request, key_data:'description' , name_field:'description' , model_name: 'Food' ,data_id: $p->id,data_value: $p->description);
 
         return response()->json([], 200);
     }
@@ -456,12 +389,12 @@ class FoodController extends Controller
 
         if($product->image)
         {
-            if (Storage::disk('public')->exists('product/' . $product['image'])) {
-                Storage::disk('public')->delete('product/' . $product['image']);
-            }
+            Helpers::check_and_delete('product/' , $product['image']);
         }
         $product?->translations()?->delete();
         $product?->carts()?->delete();
+        $product?->newVariationOptions()?->delete();
+        $product?->newVariations()?->delete();
         $product->delete();
         Toastr::success(translate('messages.product_deleted_successfully'));
         return back();
@@ -732,7 +665,11 @@ class FoodController extends Controller
                 $chunkSize = 100;
                 $chunk_items= array_chunk($data,$chunkSize);
                 foreach($chunk_items as $key=> $chunk_item){
-                    DB::table('food')->insert($chunk_item);
+//                    DB::table('food')->insert($chunk_item);
+                    foreach ($chunk_item as $item) {
+                        $insertedId = DB::table('food')->insertGetId($item);
+                        Helpers::updateStorageTable(get_class(new Food), $insertedId, $item['image']);
+                    }
                 }
                 DB::commit();
             }catch(\Exception $e){
@@ -804,7 +741,16 @@ class FoodController extends Controller
             $chunkSize = 100;
             $chunk_items= array_chunk($data,$chunkSize);
             foreach($chunk_items as $key=> $chunk_item){
-                DB::table('food')->upsert($chunk_item,['id'],['name','description','image','category_id','category_ids','price','discount','discount_type','available_time_starts','available_time_ends','variations','add_ons','restaurant_id','status','veg','recommended']);
+//                DB::table('food')->upsert($chunk_item,['id'],['name','description','image','category_id','category_ids','price','discount','discount_type','available_time_starts','available_time_ends','variations','add_ons','restaurant_id','status','veg','recommended']);
+                foreach ($chunk_item as $item) {
+                    if (isset($item['id']) && DB::table('food')->where('id', $item['id'])->exists()) {
+                        DB::table('food')->where('id', $item['id'])->update($item);
+                        Helpers::updateStorageTable(get_class(new Food), $item['id'], $item['image']);
+                    } else {
+                        $insertedId = DB::table('food')->insertGetId($item);
+                        Helpers::updateStorageTable(get_class(new Food), $insertedId, $item['image']);
+                    }
+                }
             }
             DB::commit();
         }catch(\Exception $e)
@@ -933,6 +879,7 @@ class FoodController extends Controller
             return Excel::download(new FoodListExport($data), 'FoodList.xlsx');
         }  catch(\Exception $e)
             {
+                dd($e);
                 Toastr::error("line___{$e->getLine()}",$e->getMessage());
                 info(["line___{$e->getLine()}",$e->getMessage()]);
                 return back();
@@ -1030,6 +977,22 @@ class FoodController extends Controller
             info(["line___{$e->getLine()}",$e->getMessage()]);
             return back();
         }
+    }
+    public function updateStock(Request $request){
+        $product = Food::withoutGlobalScope(RestaurantScope::class)->findOrFail($request->food_id);
+        $product->item_stock = $request->item_stock;
+        $product->sell_count =0;
+        $product->save() ;
+        if($request->option){
+                foreach($request->option  as $key => $value ){
+                    VariationOption::where('food_id',$product->id)->where('id',$key)->update([
+                        'sell_count' => 0,
+                        'total_stock'=> $value
+                    ]);
+                }
+        }
+        Toastr::success(translate('Stock_updated_successfully'));
+        return back();
     }
 
 }

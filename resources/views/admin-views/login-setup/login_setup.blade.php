@@ -53,7 +53,7 @@
 
                     </div>
                     <div class="btn--container justify-content-end mt-3">
-                        <button type="{{env('APP_MODE')!='demo'?'submit':'button'}}" class="btn btn--primary mb-2 {{env('APP_MODE')!='demo'?'':'call-demo'}}">{{translate('messages.submit')}}</button>
+                        <button type="{{env('APP_MODE')!='demo'?'submit':'button'}}" class="btn btn--primary {{env('APP_MODE')!='demo'?'':'call-demo'}}">{{translate('messages.submit')}}</button>
                     </div>
                 </div>
             </div>
@@ -90,7 +90,7 @@
 
                     </div>
                     <div class="btn--container justify-content-end mt-3">
-                        <button type="{{env('APP_MODE')!='demo'?'submit':'button'}}" class="btn btn--primary mb-2 {{env('APP_MODE')!='demo'?'':'call-demo'}}">{{translate('messages.submit')}}</button>
+                        <button type="{{env('APP_MODE')!='demo'?'submit':'button'}}" class="btn btn--primary {{env('APP_MODE')!='demo'?'':'call-demo'}}">{{translate('messages.submit')}}</button>
                     </div>
                 </div>
             </div>
@@ -126,7 +126,7 @@
                         </div>
                     </div>
                     <div class="btn--container justify-content-end mt-3">
-                        <button type="{{env('APP_MODE')!='demo'?'submit':'button'}}" class="btn btn--primary mb-2 {{env('APP_MODE')!='demo'?'':'call-demo'}}">{{translate('messages.submit')}}</button>
+                        <button type="{{env('APP_MODE')!='demo'?'submit':'button'}}" class="btn btn--primary {{env('APP_MODE')!='demo'?'':'call-demo'}}">{{translate('messages.submit')}}</button>
                     </div>
                 </div>
             </div>
@@ -163,7 +163,7 @@
 
                     </div>
                     <div class="btn--container justify-content-end mt-3">
-                        <button type="{{env('APP_MODE')!='demo'?'submit':'button'}}" class="btn btn--primary mb-2 {{env('APP_MODE')!='demo'?'':'call-demo'}}">{{translate('messages.submit')}}</button>
+                        <button type="{{env('APP_MODE')!='demo'?'submit':'button'}}" class="btn btn--primary {{env('APP_MODE')!='demo'?'':'call-demo'}}">{{translate('messages.submit')}}</button>
                     </div>
                 </div>
             </div>

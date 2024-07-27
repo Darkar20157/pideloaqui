@@ -210,7 +210,9 @@ class CustomerAuthController extends Controller
                 'updated_at' => now(),
             ]);
             try{
-            if (config('mail.status') && Helpers::get_mail_status('registration_otp_mail_status_user') == '1') {
+                $notification_status= Helpers::getNotificationStatusData('customer','customer_registration_otp');
+
+            if($notification_status?->mail_status == 'active' && config('mail.status') && Helpers::get_mail_status('registration_otp_mail_status_user') == '1') {
                 $user = User::where('email', $request['email'])->first();
                 Mail::to($request['email'])->send(new EmailVerification($token,$user->f_name));
             }
@@ -292,14 +294,14 @@ class CustomerAuthController extends Controller
             }
 
             $notification_data = [
-                'title' => translate('messages.Your_referral_code_is_used_by').' '.$request->f_name.' '.$request->l_name,
-                'description' => translate('Be_prepare_to_receive_when_they_complete_there_first_purchase'),
+                'title' => translate('Your_Referral_Code_Has_Been_Used!'),
+                'description' => translate('Congratulations!_Your_referral_code_was_used_by_a_new_user._Get_ready_to_earn_rewards_when_they_complete_their_first_order.'),
                 'order_id' => '',
                 'image' => '',
                 'type' => 'referral_code',
             ];
-
-            if($referar_user?->cm_firebase_token){
+            $customer_push_notification_status=Helpers::getNotificationStatusData('customer','customer_new_referral_join');
+            if( $customer_push_notification_status?->push_notification_status  == 'active' && $referar_user?->cm_firebase_token){
                 Helpers::send_push_notif_to_device($referar_user?->cm_firebase_token, $notification_data);
                 DB::table('user_notifications')->insert([
                     'data' => json_encode($notification_data),
@@ -352,34 +354,63 @@ class CustomerAuthController extends Controller
                 'updated_at' => now(),
                 ]);
 
-                $mail_status = Helpers::get_mail_status('registration_otp_mail_status_user');
-                if (config('mail.status') && $mail_status == '1') {
-                    Mail::to($request['email'])->send(new EmailVerification($otp,$request->f_name));
-                }
-                $published_status = 0;
-                $payment_published_status = config('get_payment_publish_status');
-                if (isset($payment_published_status[0]['is_published'])) {
-                    $published_status = $payment_published_status[0]['is_published'];
+                try {
+                    $mailResponse= null;
+                    $mail_status = Helpers::get_mail_status('registration_otp_mail_status_user');
+                    $notification_status= Helpers::getNotificationStatusData('customer','customer_registration_otp');
+
+                    if($notification_status?->mail_status == 'active' && config('mail.status') && $mail_status == '1') {
+                        Mail::to($request['email'])->send(new EmailVerification($otp,$request->f_name));
+                        $mailResponse='success';
+                    }
+                }catch(\Exception $ex){
+                    info($ex->getMessage());
+                    $mailResponse=null;
                 }
 
-                if($published_status == 1){
-                    $response = SmsGateway::send($request['phone'],$otp);
-                }else{
-                    $response = SMS_module::send($request['phone'],$otp);
+                $response =null;
+                $customer_sms_status=Helpers::getNotificationStatusData('customer','customer_registration_otp');
+                if($customer_sms_status?->sms_status  == 'active'){
+
+
+                    $published_status = 0;
+                    $payment_published_status = config('get_payment_publish_status');
+                    if (isset($payment_published_status[0]['is_published'])) {
+                        $published_status = $payment_published_status[0]['is_published'];
+                    }
+
+                    if($published_status == 1){
+                        $response = SmsGateway::send($request['phone'],$otp);
+                    }else{
+                        $response = SMS_module::send($request['phone'],$otp);
+                    }
+
                 }
 
-            if($response != 'success')
-            {
-                $errors = [];
-                array_push($errors, ['code' => 'otp', 'message' => translate('messages.faield_to_send_sms')]);
-                return response()->json([
-                    'errors' => $errors
-                ], 405);
-            }
+
+                if($response !== 'success' && $mailResponse !== 'success')
+                {
+                    $errors = [];
+                    array_push($errors, ['code' => 'otp', 'message' => translate('messages.failed_to_send_sms_&_mail')]);
+                    return response()->json([
+                        'errors' => $errors
+                    ], 405);
+                }
+
+            // if($response != 'success')
+            // {
+            //     $errors = [];
+            //     array_push($errors, ['code' => 'otp', 'message' => translate('messages.faield_to_send_sms')]);
+            //     return response()->json([
+            //         'errors' => $errors
+            //     ], 405);
+            // }
         }
         try
         {
-            if (config('mail.status') && $request->email && Helpers::get_mail_status('registration_mail_status_user') == '1') {
+            $notification_status= Helpers::getNotificationStatusData('customer','customer_registration');
+
+            if($notification_status?->mail_status == 'active' && config('mail.status') && $request->email && Helpers::get_mail_status('registration_mail_status_user') == '1') {
                 Mail::to($request->email)->send(new \App\Mail\CustomerRegistration($request->f_name . ' ' . $request->l_name));
             }
         }
@@ -462,30 +493,56 @@ class CustomerAuthController extends Controller
                     'updated_at' => now(),
                     ]);
 
-                if (config('mail.status') && Helpers::get_mail_status('login_otp_mail_status_user') == '1') {
-                    Mail::to($user['email'])->send(new LoginVerification($otp,$user->f_name));
-                }
+                    try {
+                        $mailResponse=null;
+                        $notification_status= Helpers::getNotificationStatusData('customer','customer_login_otp');
+                        if ($notification_status?->mail_status == 'active' && config('mail.status') && Helpers::get_mail_status('login_otp_mail_status_user') == '1') {
+                            Mail::to($user['email'])->send(new LoginVerification($otp,$user->f_name));
+                            $mailResponse='success';
+                        }
 
-                $published_status = 0;
-                $payment_published_status = config('get_payment_publish_status');
-                if (isset($payment_published_status[0]['is_published'])) {
-                    $published_status = $payment_published_status[0]['is_published'];
-                }
+                    }catch(\Exception $ex){
+                        $mailResponse=null;
+                        info($ex->getMessage());
+                    }
 
-                if($published_status == 1){
-                    $response = SmsGateway::send($request['phone'],$otp);
-                }else{
-                    $response = SMS_module::send($request['phone'],$otp);
-                }
-                // $response = 'qq';
-                if($response != 'success')
+                    $response= null;
+                    $customer_sms_status=Helpers::getNotificationStatusData('customer','customer_login_otp');
+
+                    if($customer_sms_status?->sms_status  == 'active'){
+
+                        $published_status = 0;
+                        $payment_published_status = config('get_payment_publish_status');
+                        if (isset($payment_published_status[0]['is_published'])) {
+                            $published_status = $payment_published_status[0]['is_published'];
+                        }
+
+                        if($published_status == 1){
+                            $response = SmsGateway::send($request['phone'],$otp);
+                        }else{
+                            $response = SMS_module::send($request['phone'],$otp);
+                        }
+                    }
+
+
+
+
+                if($response !== 'success' && $mailResponse !== 'success')
                 {
                     $errors = [];
-                    array_push($errors, ['code' => 'otp', 'message' => translate('messages.faield_to_send_sms')]);
+                    array_push($errors, ['code' => 'otp', 'message' => translate('messages.failed_to_send_sms_&_mail')]);
                     return response()->json([
                         'errors' => $errors
                     ], 405);
                 }
+                // if($response != 'success')
+                // {
+                //     $errors = [];
+                //     array_push($errors, ['code' => 'otp', 'message' => translate('messages.faield_to_send_sms')]);
+                //     return response()->json([
+                //         'errors' => $errors
+                //     ], 405);
+                // }
             }
 
             if($user->ref_code == null && isset($user->id)){

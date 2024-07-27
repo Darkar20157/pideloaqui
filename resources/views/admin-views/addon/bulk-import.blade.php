@@ -137,7 +137,7 @@
 
                                 <div class="image-box banner">
                                     <label for="upload_excel" class="d-flex flex-column align-items-center justify-content-center h-100 cursor-pointer gap-2">
-                                        <img width="54" class="upload-icon" src="{{asset('public/assets/admin/img/excel-upload.png')}}" alt="Upload Icon">
+                                        <img width="54" class="upload-icon" src="{{dynamicAsset('public/assets/admin/img/excel-upload.png')}}" alt="Upload Icon">
                                         <span class="upload-text px-2 filename text-center">{{ translate('Must be Excel files using our Excel template above')}}</span>
                                     </label>
 

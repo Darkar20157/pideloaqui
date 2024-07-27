@@ -22,6 +22,10 @@
             <th>{{ translate('Addon_Name') }}</th>
             <th>{{ translate('Price') }}</th>
             <th>{{ translate('Restaurant_name') }}</th>
+            <th>{{ translate('Stock_Type') }}</th>
+            <th>{{ translate('Stock') }}</th>
+            {{-- <th>{{ translate('total_sold') }}</th> --}}
+            {{-- <th>{{ translate('Available_stock') }}</th> --}}
 
         </thead>
         <tbody>
@@ -33,7 +37,14 @@
             {{ \App\CentralLogics\Helpers::format_currency($addon->price) }}
         </td>
         <td>{{ $addon?->restaurant?->name ??  translate('N/A') }}</td>
-
+        <td> {{ translate($addon->stock_type) }}</td>
+        <td>
+            {{  $addon->stock_type == 'unlimited'? translate('messages.Unlimited') :  $addon->addon_stock }}
+        </td>
+        {{-- <td>{{ $addon->sell_count }}</td> --}}
+        {{-- <td>
+            {{  $addon->stock_type == 'unlimited'? translate('messages.Unlimited') :  $addon->addon_stock - $addon->sell_count }}
+        </td> --}}
             </tr>
         @endforeach
         </tbody>

@@ -2,14 +2,9 @@
 <div class="product-card card cursor-pointer quick-View" data-id="{{$product->id}}">
     <div class="card-header inline_product clickable p-0 initial-34">
         <img class="w-100 rounded onerror-image"
-             src="{{ Helpers::onerror_image_helper(
-                        data_get($product,'image'),
-                        dynamicStorage('storage/app/public/product').'/'.data_get($product,'image'),
-                        dynamicAsset('public/assets/admin/img/100x100/food-default-image.png'),
-                        'product/'
-                    ) }}"
-             data-onerror-image="{{ dynamicAsset('public/assets/admin/img/100x100/food-default-image.png') }}"
-             alt="Product image">
+            src="{{ $product?->image_full_url ?? dynamicAsset('public/assets/admin/img/100x100/food-default-image.png')}}"
+            data-onerror-image="{{ dynamicAsset('public/assets/admin/img/100x100/food-default-image.png') }}"
+            alt="Product image">
     </div>
 
     <div class="card-body inline_product text-center px-2 py-2 clickable">

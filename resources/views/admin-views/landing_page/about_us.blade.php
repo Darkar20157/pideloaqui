@@ -250,12 +250,7 @@
                                 <div class="position-relative">
                                     <label class="upload-img-3 m-0 d-block">
                                         <div class="img">
-                                            <img  src="{{ \App\CentralLogics\Helpers::onerror_image_helper(
-                                            $about_us_content_image ?? null,
-                                            dynamicStorage('storage/app/public/about_us_image').'/'.$about_us_content_image ?? null,
-                                            dynamicAsset('/public/assets/admin/img/upload-6.png'),
-                                            'about_us_image/'
-                                        ) }}"
+                                            <img  src="{{ $about_us_content_image }}"
                                                   data-onerror-image="{{dynamicAsset('/public/assets/admin/img/upload-6.png')}}"
                                                   class="vertical-img max-w-187px onerror-image" alt="">
                                         </div>
@@ -275,7 +270,7 @@
                         </div>
                         <div class="btn--container justify-content-end mt-3">
                             <button type="reset" class="btn btn--reset">{{translate('Reset')}}</button>
-                            <button type="submit"   class="btn btn--primary mb-2">{{translate('Save')}}</button>
+                            <button type="submit"   class="btn btn--primary">{{translate('Save')}}</button>
                         </div>
                     </div>
                     </form>

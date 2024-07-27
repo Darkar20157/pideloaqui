@@ -54,15 +54,19 @@ class DeliverymanController extends Controller
         $dm['total_earning'] = (float) ($dm?->wallet?->total_earning ?? 0);
         $dm['withdraw_able_balance'] =(float)( $dm['balance'] - $dm?->wallet?->collected_cash > 0 ? abs($dm['balance'] - $dm?->wallet?->collected_cash ): 0 );
         $dm['Payable_Balance'] =(float)(  $dm?->wallet?->collected_cash ?? 0 );
+        $dm['pending_withdraw'] =(float)(  $dm?->wallet?->pending_withdraw ?? 0 );
         $over_flow_balance = $dm['balance'] - $dm?->wallet?->collected_cash ;
+        $dm['adjust_able'] = false;
         if(isset($dm?->wallet) && (($over_flow_balance > 0 && $dm?->wallet?->collected_cash > 0 ) || ($dm?->wallet?->collected_cash != 0 && $dm['balance'] !=  0)) ){
             $dm['adjust_able'] = true;
-        }  elseif( isset($dm?->wallet) &&  $over_flow_balance == $dm['balance']  ){
+        }
+        if( isset($dm?->wallet) &&  $over_flow_balance == $dm['balance']  ){
             $dm['adjust_able'] = false;
         }
-        else{
+        if( isset($dm?->wallet) &&  ($dm?->wallet?->collected_cash ==  0  ||    ( ($dm?->wallet?->total_earning -($dm?->wallet?->total_withdrawn + $dm?->wallet?->pending_withdraw) ) <= 0 ))){
             $dm['adjust_able'] = false;
         }
+
         $dm['show_pay_now_button'] = false;
         $digital_payment = Helpers::get_business_settings('digital_payment');
         if ($min_amount_to_pay_dm <= $dm?->wallet?->collected_cash && $digital_payment['status'] == 1 ){
@@ -116,8 +120,15 @@ class DeliverymanController extends Controller
 
             'image' => 'nullable|max:2048',
         ], [
-            'f_name.required' => 'First name is required!',
-            'l_name.required' => 'Last name is required!',
+            'f_name.required' => translate('First name is required!'),
+            'l_name.required' => translate('Last name is required!'),
+            'password.min_length' => translate('The password must be at least :min characters long'),
+            'password.mixed' => translate('The password must contain both uppercase and lowercase letters'),
+            'password.letters' => translate('The password must contain letters'),
+            'password.numbers' => translate('The password must contain numbers'),
+            'password.symbols' => translate('The password must contain symbols'),
+            'password.uncompromised' => translate('The password is compromised. Please choose a different one'),
+            'password.custom' => translate('The password cannot contain white spaces.'),
         ]);
 
         if ($validator->fails()) {
@@ -154,7 +165,7 @@ class DeliverymanController extends Controller
             $userinfo->image = $imageName;
             $userinfo->save();
         }
-        return response()->json(['message' => 'successfully updated!'], 200);
+        return response()->json(['message' => translate('successfully updated')], 200);
     }
 
     public function activeStatus(Request $request)
@@ -265,9 +276,9 @@ class DeliverymanController extends Controller
         $cash_in_hand =$dm?->wallet?->collected_cash ?? 0;
 
 
-        $value=  BusinessSetting::where('key','dm_max_cash_in_hand')->first()?->value ?? 0;
+        $dm_max_cash_in_hand=  BusinessSetting::where('key','dm_max_cash_in_hand')->first()?->value ?? 0;
 
-        if($order->payment_method == "cash_on_delivery" && (($cash_in_hand+$order->order_amount) >= $value)){
+        if($order->payment_method == "cash_on_delivery" && (($cash_in_hand+$order->order_amount) >= $dm_max_cash_in_hand)){
             return response()->json(['errors' => Helpers::error_formater('dm_max_cash_in_hand',translate('delivery man max cash in hand exceeds'))], 203);
         }
 
@@ -283,12 +294,14 @@ class DeliverymanController extends Controller
 
         $fcm_token= ($order->is_guest == 0 ? $order?->customer?->cm_firebase_token : $order?->guest?->fcm_token) ?? null;
 
-        $value = Helpers::text_variable_data_format(value:$value,restaurant_name:$order->restaurant?->name,order_id:$order->id,user_name:"{$order?->customer?->f_name} {$order?->customer?->l_name}",delivery_man_name:"{$order->delivery_man?->f_name} {$order->delivery_man?->l_name}");
+
+        $value = Helpers::text_variable_data_format(value:Helpers::order_status_update_message('accepted',$order->customer?$order?->customer?->current_language_key:'en'),restaurant_name:$order->restaurant?->name,order_id:$order->id,user_name:"{$order?->customer?->f_name} {$order?->customer?->l_name}",delivery_man_name:"{$order->delivery_man?->f_name} {$order->delivery_man?->l_name}");
 
 
         OrderLogic::update_subscription_log($order);
         try {
-            if($value && $fcm_token)
+            $customer_push_notification_status=Helpers::getNotificationStatusData('customer','customer_order_notification');
+            if(  $customer_push_notification_status?->push_notification_status  == 'active' && $value && $fcm_token)
             {
                 $data = [
                     'title' =>translate('messages.order_push_title'),
@@ -304,23 +317,35 @@ class DeliverymanController extends Controller
             info($e->getMessage());
         }
 
-        return response()->json(['message' => 'Order accepted successfully'], 200);
+        return response()->json(['message' => translate('Order accepted successfully')], 200);
 
     }
 
     public function record_location_data(Request $request)
     {
         $dm = DeliveryMan::where(['auth_token' => $request['token']])->first();
-        DB::table('delivery_histories')->insert([
-            'delivery_man_id' => $dm['id'],
+        // DB::table('delivery_histories')->insert([
+        //     'delivery_man_id' => $dm['id'],
+        //     'longitude' => $request['longitude'],
+        //     'latitude' => $request['latitude'],
+        //     'time' => now(),
+        //     'location' => $request['location'],
+        //     'created_at' => now(),
+        //     'updated_at' => now()
+        // ]);
+
+
+        DeliveryHistory::updateOrCreate(['delivery_man_id' => $dm['id']], [
             'longitude' => $request['longitude'],
             'latitude' => $request['latitude'],
             'time' => now(),
             'location' => $request['location'],
             'created_at' => now(),
             'updated_at' => now()
-        ]);
-        return response()->json(['message' => 'location recorded'], 200);
+            ]);
+
+
+        return response()->json(['message' => translate('location recorded')], 200);
     }
 
     public function get_order_history(Request $request)
@@ -354,7 +379,7 @@ class DeliverymanController extends Controller
             return response()->json(['errors' => Helpers::error_processor($validator)], 403);
         }
         $dm = DeliveryMan::where(['auth_token' => $request['token']])->first();
-        $order = Order::where('id', $request['order_id'])->with('subscription_logs')->first();
+        $order = Order::where('id', $request['order_id'])->with(['subscription_logs','details'])->first();
         if(!isset($order)){
             return response()->json([
                 'errors' => [
@@ -394,7 +419,7 @@ class DeliverymanController extends Controller
         {
             return response()->json([
                 'errors' => [
-                    ['code' => 'otp', 'message' => 'Not matched']
+                    ['code' => 'otp', 'message' => translate('Not matched')]
                 ]
             ], 406);
         }
@@ -456,12 +481,10 @@ class DeliverymanController extends Controller
             if (!empty($request->file('order_proof'))) {
                 foreach ($request->order_proof as $img) {
                     $image_name = Helpers::upload('order/', 'png', $img);
-                    array_push($img_names, $image_name);
+                    array_push($img_names, ['img'=>$image_name, 'storage'=> Helpers::getDisk()]);
                 }
                 $images = $img_names;
-            } else {
-                $images = null;
-            }
+            } 
             $order->order_proof = json_encode($images);
 
 
@@ -491,6 +514,10 @@ class DeliverymanController extends Controller
 
             $order->cancellation_reason = $request->reason;
             $order->canceled_by = 'deliveryman';
+
+
+            Helpers::decreaseSellCount(order_details:$order->details);
+
         }
 
         if($request->status == 'confirmed' &&  $order->delivery_man_id == null){
@@ -507,7 +534,7 @@ class DeliverymanController extends Controller
         }
 
         OrderLogic::update_subscription_log($order);
-        return response()->json(['message' => 'Status updated'], 200);
+        return response()->json(['message' => translate('Status updated')], 200);
     }
 
     public function get_order_details(Request $request)
@@ -632,11 +659,11 @@ class DeliverymanController extends Controller
             Order::where(['delivery_man_id' => $dm['id'], 'id' => $request['order_id']])->update([
                 'payment_status' => $request['status']
             ]);
-            return response()->json(['message' => 'Payment status updated'], 200);
+            return response()->json(['message' => translate('Payment status updated')], 200);
         }
         return response()->json([
             'errors' => [
-                ['code' => 'order', 'message' => 'not found!']
+                ['code' => 'order', 'message' => translate('not found')]
             ]
         ], 404);
     }
@@ -692,14 +719,10 @@ class DeliverymanController extends Controller
             return response()->json(['errors'=>[['code'=>'on-going', 'message'=>translate('messages.user_account_wallet_delete_warning')]]],203);
         }
 
-        if (Storage::disk('public')->exists('delivery-man/' . $dm['image'])) {
-            Storage::disk('public')->delete('delivery-man/' . $dm['image']);
-        }
+        Helpers::check_and_delete('delivery-man/' , $dm['image']);
 
         foreach (json_decode($dm['identity_image'], true) as $img) {
-            if (Storage::disk('public')->exists('delivery-man/' . $img)) {
-                Storage::disk('public')->delete('delivery-man/' . $img);
-            }
+            Helpers::check_and_delete('delivery-man/' , $img);
         }
         if($dm->userinfo){
             $dm->userinfo->delete();
@@ -761,7 +784,8 @@ class DeliverymanController extends Controller
         $value = translate('your_order_is_ready_to_be_delivered,_plesae_share_your_otp_with_delivery_man.').' '.translate('otp:').$order->otp.', '.translate('order_id:').$order->id;
         try {
             $fcm_token= ($order->is_guest == 0 ? $order?->customer?->cm_firebase_token : $order?->guest?->fcm_token) ?? null;
-            if ($value && $fcm_token) {
+            $customer_push_notification_status=Helpers::getNotificationStatusData('customer','customer_delivery_verification');
+            if ($customer_push_notification_status?->push_notification_status  == 'active' && $value && $fcm_token) {
                 $data = [
                     'title' => translate('messages.order_ready_to_be_delivered'),
                     'description' => $value,
@@ -976,7 +1000,7 @@ class DeliverymanController extends Controller
 
         DB::table('disbursement_withdrawal_methods')->insert($data);
 
-        return response()->json(['message'=>'successfully added!'], 200);
+        return response()->json(['message'=> translate('successfully added')], 200);
     }
 
     public function disbursement_withdrawal_method_default(Request $request)

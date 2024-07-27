@@ -66,7 +66,7 @@
                                 ?>
                                 <div class="form-group d-none lang_form" id="{{$lang}}-form">
                                     <label class="input-label" for="exampleFormControlInput1">{{translate('messages.name')}} ({{strtoupper($lang)}})</label>
-                                    <input type="text" name="name[]" class="form-control" placeholder="{{translate('messages.new_addon')}}" maxlength="191" value="{{$translate[$lang]['name'] ??''}}" oninvalid="document.getElementById('en-link').click()">
+                                    <input type="text" name="name[]" class="form-control" placeholder="{{translate('messages.new_addon')}}" maxlength="191" value="{{$translate[$lang]['name'] ??''}}"  >
                                 </div>
                                 <input type="hidden" name="lang[]" value="{{$lang}}">
                             @endforeach
@@ -95,6 +95,27 @@
                                 <input type="number" min="0" max="999999999999.99" step="0.01" name="price" value="{{$addon['price']}}" class="form-control" placeholder="200" required>
                             </div>
                         </div>
+
+                        <div class="col-lg-4">
+                            <div class="form-group mb-0">
+                                <label class="input-label"
+                                    for="exampleFormControlInput1">{{ translate('messages.Stock_Type') }}
+                                </label>
+                                <select name="stock_type" id="stock_type" class="form-control js-select2-custom">
+                                    <option  {{$addon['stock_type'] == 'unlimited' ? 'selected':'' }}  value="unlimited">{{ translate('messages.Unlimited_Stock') }}</option>
+                                    <option {{$addon['stock_type'] == 'limited' ? 'selected' : '' }} value="limited">{{ translate('messages.Limited_Stock')  }}</option>
+                                    <option {{$addon['stock_type'] == 'daily' ? 'selected' : '' }}  value="daily">{{ translate('messages.Daily_Stock')  }}</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-lg-4 hide_this">
+                            <div class="form-group">
+                                <label class="input-label" for="addon_stock">{{translate('messages.Addon_Stock')}}</label>
+                                <input type="number" min="0" id="addon_stock" max="999999999999" name="addon_stock"   {{$addon['stock_type'] == 'unlimited' ? 'readonly':'' }} placeholder="{{$addon['stock_type'] == 'unlimited' ? translate('Unlimited') : translate('messages.Ex:_100')  }}"  value="{{$addon['stock_type'] == 'unlimited' ? '':$addon['addon_stock']  }}" class="form-control stock_disable"  >
+                            </div>
+                        </div>
+
+
                     </div>
 
                     <div class="btn--container justify-content-end">
@@ -112,6 +133,21 @@
 @push('script_2')
 <script>
     "use strict";
+    $('#stock_type').on('change', function () {
+        stock_type($(this).val());
+        });
+
+        stock_type($('#stock_type').val());
+        function stock_type(data){
+            if(data == 'unlimited') {
+                    $('.stock_disable').prop('readonly', true).prop('required', false).attr('placeholder', '{{ translate('Unlimited') }}').val('');
+                     $('.hide_this').addClass('d-none');
+                } else {
+                    $('.stock_disable').prop('readonly', false).prop('required', true).attr('placeholder', '{{ translate('messages.Ex:_100') }}').val('{{$addon['addon_stock']}}');
+                    $('.hide_this').removeClass('d-none');
+                }
+        }
+
     $('.js-data-example-ajax').select2({
         ajax: {
             url: '{{url('/')}}/admin/restaurant/get-restaurants',
@@ -139,6 +175,9 @@
 
     $('#reset_btn').click(function(){
             $('#restaurant_id').val("{{$addon->restaurant_id}}").trigger('change');
+            $('#stock_type').val("{{$addon->stock_type}}").trigger('change');
+            stock_type('{{$addon->stock_type}}');
+
         })
 </script>
 @endpush

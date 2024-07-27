@@ -184,6 +184,12 @@ class CustomerController extends Controller
         $data['userinfo'] = $data?->userinfo;
         $data['order_count'] =(integer)$request?->user()?->orders()->where('is_guest',0)->count();
         $data['member_since_days'] =(integer)$request?->user()?->created_at?->diffInDays();
+        $discount_data= Helpers::getCusromerFirstOrderDiscount(order_count:$data['order_count'] ,user_creation_date:$request->user()->created_at,refby:$request->user()->ref_by);
+        $data['is_valid_for_discount'] = data_get($discount_data,'is_valid');
+        $data['discount_amount'] = (float) data_get($discount_data,'discount_amount');
+        $data['discount_amount_type'] = data_get($discount_data,'discount_amount_type');
+        $data['validity'] =(string) data_get($discount_data,'validity');
+
         unset($data['orders']);
         return response()->json($data, 200);
     }
@@ -220,16 +226,14 @@ class CustomerController extends Controller
             $pass = $request?->user()?->password;
         }
 
-        $userDetails = [
-            'f_name' => $request->f_name,
-            'l_name' => $request->l_name,
-            'email' => $request->email,
-            'image' => $imageName,
-            'password' => $pass,
-            'updated_at' => now()
-        ];
+        $user = User::where(['id' => $request?->user()?->id])->first();
+        $user->f_name = $request->f_name;
+        $user->l_name = $request->l_name;
+        $user->email = $request->email;
+        $user->image = $imageName;
+        $user->password = $pass;
+        $user->save();
 
-        User::where(['id' => $request?->user()?->id])->update($userDetails);
         if($request?->user()?->userinfo) {
             UserInfo::where(['user_id' => $request?->user()?->id])->update([
                 'f_name' => $request->f_name,
@@ -246,6 +250,8 @@ class CustomerController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'interest' => 'required|array',
+        ],[
+            'interest.required '=> translate('Please_select_your_interested_preferences')
         ]);
 
         if ($validator->fails()) {

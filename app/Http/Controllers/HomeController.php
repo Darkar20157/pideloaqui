@@ -43,6 +43,17 @@ class HomeController extends Controller
                 ];
                 array_push($data,$cred);
             }
+            if(count($value->storage)>0){
+                $cred = [
+                    $value->key.'_storage' => $value->storage[0]['value'],
+                ];
+                array_push($data,$cred);
+            }else{
+                $cred = [
+                    $value->key.'_storage' => 'public',
+                ];
+                array_push($data,$cred);
+            }
         }
         $settings = [];
         foreach($data as $single_data){
@@ -74,7 +85,9 @@ class HomeController extends Controller
             'header_floating_total_reviews'=>   $header_floating_content['header_floating_total_reviews'] ?? null ,
 
             'header_content_image'=>   $header_image_content['header_content_image'] ?? 'double_screen_image.png' ,
+            'header_content_image_full_url'=>   Helpers::get_full_url('header_image',$header_image_content['header_content_image'] ?? 'double_screen_image.png',$header_image_content['header_content_image_storage']??'public') ,
             'header_bg_image'=>   $header_image_content['header_bg_image'] ?? null ,
+            'header_bg_image_full_url'=>   Helpers::get_full_url('header_image',$header_image_content['header_bg_image'] ?? null,$header_image_content['header_bg_image_storage']??'public') ,
 
             'about_us_title'=>   $settings['about_us_title'] ?? null ,
             'about_us_sub_title'=>   $settings['about_us_sub_title'] ?? null ,
@@ -84,17 +97,22 @@ class HomeController extends Controller
 
             'about_us_redirect_link'=>   $settings['about_us_button_content'] ?? null ,
             'about_us_image_content'=>   $settings['about_us_image_content'] ??  null ,
+            'about_us_image_content_full_url'=>   Helpers::get_full_url('about_us_image',$settings['about_us_image_content'] ??  null,$settings['about_us_image_content_storage']) ,
 
             'why_choose_us_title'=>   $settings['why_choose_us_title']?? null ,
             'why_choose_us_sub_title'=>   $settings['why_choose_us_sub_title'] ??  null ,
             'why_choose_us_image_1'=>   $settings['why_choose_us_image_1'] ??  null ,
+            'why_choose_us_image_1_full_url'=>   Helpers::get_full_url('why_choose_us_image',$settings['why_choose_us_image_1'] ??  null,$settings['why_choose_us_image_1_storage']) ,
             'why_choose_us_title_1'=>   $settings['why_choose_us_title_1'] ??  null ,
             'why_choose_us_title_2'=>   $settings['why_choose_us_title_2'] ??  null ,
             'why_choose_us_image_2'=>   $settings['why_choose_us_image_2'] ??  null ,
+            'why_choose_us_image_2_full_url'=>   Helpers::get_full_url('why_choose_us_image',$settings['why_choose_us_image_2'] ??  null,$settings['why_choose_us_image_2_storage']) ,
             'why_choose_us_title_3'=>   $settings['why_choose_us_title_3'] ??  null ,
             'why_choose_us_image_3'=>   $settings['why_choose_us_image_3'] ??  null ,
+            'why_choose_us_image_3_full_url'=>   Helpers::get_full_url('why_choose_us_image',$settings['why_choose_us_image_3'] ??  null,$settings['why_choose_us_image_3_storage']) ,
             'why_choose_us_title_4'=>   $settings['why_choose_us_title_4'] ??  null ,
             'why_choose_us_image_4'=>   $settings['why_choose_us_image_4'] ??  null ,
+            'why_choose_us_image_4_full_url'=>   Helpers::get_full_url('why_choose_us_image',$settings['why_choose_us_image_4'] ??  null,$settings['why_choose_us_image_4_storage']) ,
 
 
             'feature_title'=>   $settings['feature_title'] ??  null ,
@@ -140,6 +158,7 @@ class HomeController extends Controller
             'earn_money_delivety_man_req_button_name'=>   $settings['earn_money_delivety_man_req_button_name'] ??  null ,
             'earn_money_delivery_man_req_button_status'=>   $settings['earn_money_delivery_man_req_button_status'] ??  0 ,
             'earn_money_reg_image'=>   $settings['earn_money_reg_image'] ??  null ,
+            'earn_money_reg_image_full_url'=>   Helpers::get_full_url('earn_money',$settings['earn_money_reg_image'] ??  null,$settings['earn_money_reg_image_storage']) ,
 
             'earn_money_delivery_req_button_link'=>   $settings['earn_money_delivery_man_req_button_link']??  null ,
             'earn_money_restaurant_req_button_link'=>   $settings['earn_money_restaurant_req_button_link'] ??  null ,
@@ -147,8 +166,6 @@ class HomeController extends Controller
             'business_name' =>  $business_settings['business_name'] ?? 'Stackfood',
 
         ];
-
-
 
         $config = Helpers::get_business_settings('landing_page');
         $landing_integration_type = Helpers::get_business_data('landing_integration_type');

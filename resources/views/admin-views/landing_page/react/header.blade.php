@@ -1,3 +1,4 @@
+@php use App\CentralLogics\Helpers; @endphp
 @extends('layouts.admin.app')
 
 @section('title', translate('messages.landing_page_settings'))
@@ -154,12 +155,7 @@
 
                                 <label class="upload-img-3 m-0 d-block">
                                     <div class="img">
-                                        <img  src="{{ \App\CentralLogics\Helpers::onerror_image_helper(
-                                    $react_header_image?->value,
-                                    dynamicStorage('storage/app/public/react_header').'/'.$react_header_image?->value,
-                                    dynamicAsset('/public/assets/admin/img/upload-3.png'),
-                                    'react_header/'
-                                ) }}"
+                                        <img  src="{{ Helpers::get_full_url('react_header', $react_header_image?->value,$react_header_image?->storage[0]?->value ?? 'public','upload_1_1')}}"
                                           data-onerror-image="{{dynamicAsset('/public/assets/admin/img/upload-3.png')}}"
                                           class="vertical-img max-w-187px onerror-image" alt="">
                                     </div>
@@ -180,7 +176,7 @@
                     </div>
                     <div class="btn--container justify-content-end mt-3">
                         <button type="reset" class="btn btn--reset">{{translate('Reset')}}</button>
-                        <button type="submit"   class="btn btn--primary mb-2">{{translate('Save')}}</button>
+                        <button type="submit"   class="btn btn--primary">{{translate('Save')}}</button>
                     </div>
                 </div>
             </div>

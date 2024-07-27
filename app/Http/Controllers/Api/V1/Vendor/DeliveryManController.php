@@ -104,6 +104,14 @@ class DeliveryManController extends Controller
             'password' => ['required', Password::min(8)->mixedCase()->letters()->numbers()->symbols()->uncompromised()],
             'image' => 'nullable|max:2048',
             'identity_image.*' => 'nullable|max:2048',
+        ],[
+            'password.min_length' => translate('The password must be at least :min characters long'),
+            'password.mixed' => translate('The password must contain both uppercase and lowercase letters'),
+            'password.letters' => translate('The password must contain letters'),
+            'password.numbers' => translate('The password must contain numbers'),
+            'password.symbols' => translate('The password must contain symbols'),
+            'password.uncompromised' => translate('The password is compromised. Please choose a different one'),
+            'password.custom' => translate('The password cannot contain white spaces.'),
         ]);
 
         if ($validator->fails()) {
@@ -120,7 +128,7 @@ class DeliveryManController extends Controller
         if (!empty($request->file('identity_image'))) {
             foreach ($request->identity_image as $img) {
                 $identity_image = Helpers::upload(dir:'delivery-man/',format: 'png',image: $img);
-                array_push($id_img_names, $identity_image);
+                array_push($id_img_names, ['img'=>$identity_image, 'storage'=> Helpers::getDisk()]);
             }
             $identity_image = json_encode($id_img_names);
         } else {
@@ -173,7 +181,8 @@ class DeliveryManController extends Controller
         {
             if($request->status == 0)
             {   $delivery_man->auth_token = null;
-                if(isset($delivery_man->fcm_token))
+                $deliveryman_push_notification_status=Helpers::getNotificationStatusData('deliveryman','deliveryman_account_block');
+                if($deliveryman_push_notification_status?->push_notification_status  == 'active' &&  isset($delivery_man->fcm_token))
                 {
                     $data = [
                         'title' => translate('messages.suspended'),
@@ -181,6 +190,26 @@ class DeliveryManController extends Controller
                         'order_id' => '',
                         'image' => '',
                         'type'=> 'block'
+                    ];
+                    Helpers::send_push_notif_to_device($delivery_man->fcm_token, $data);
+
+                    DB::table('user_notifications')->insert([
+                        'data'=> json_encode($data),
+                        'delivery_man_id'=>$delivery_man->id,
+                        'created_at'=>now(),
+                        'updated_at'=>now()
+                    ]);
+                }
+            }else{
+                $deliveryman_push_notification_status=Helpers::getNotificationStatusData('deliveryman','deliveryman_account_unblock');
+
+                if($deliveryman_push_notification_status?->push_notification_status  == 'active' &&  isset($delivery_man->fcm_token)){
+                    $data = [
+                        'title' => translate('messages.Account_activation'),
+                        'description' => translate('messages.your_account_has_been_activated'),
+                        'order_id' => '',
+                        'image' => '',
+                        'type'=> 'unblock'
                     ];
                     Helpers::send_push_notif_to_device($delivery_man->fcm_token, $data);
 
@@ -210,6 +239,14 @@ class DeliveryManController extends Controller
             'password' => ['nullable', Password::min(8)->mixedCase()->letters()->numbers()->symbols()->uncompromised()],
             'image' => 'nullable|max:2048',
             'identity_image.*' => 'nullable|max:2048',
+        ],[
+            'password.min_length' => translate('The password must be at least :min characters long'),
+            'password.mixed' => translate('The password must contain both uppercase and lowercase letters'),
+            'password.letters' => translate('The password must contain letters'),
+            'password.numbers' => translate('The password must contain numbers'),
+            'password.symbols' => translate('The password must contain symbols'),
+            'password.uncompromised' => translate('The password is compromised. Please choose a different one'),
+            'password.custom' => translate('The password cannot contain white spaces.'),
         ]);
 
         if ($validator->fails()) {
@@ -233,14 +270,12 @@ class DeliveryManController extends Controller
 
         if ($request->has('identity_image')){
             foreach (json_decode($delivery_man['identity_image'], true) as $img) {
-                if (Storage::disk('public')->exists('delivery-man/' . $img)) {
-                    Storage::disk('public')->delete('delivery-man/' . $img);
-                }
+                Helpers::check_and_delete('delivery-man/' , $img);
             }
             $img_keeper = [];
             foreach ($request->identity_image as $img) {
                 $identity_image = Helpers::upload(dir:'delivery-man/',format: 'png',image: $img);
-                array_push($img_keeper, $identity_image);
+                array_push($img_keeper, ['img'=>$identity_image, 'storage'=> Helpers::getDisk()]);
             }
             $identity_image = json_encode($img_keeper);
         } else {
@@ -281,13 +316,9 @@ class DeliveryManController extends Controller
                 ]
             ],404);
         }
-        if (Storage::disk('public')->exists('delivery-man/' . $delivery_man['image'])) {
-            Storage::disk('public')->delete('delivery-man/' . $delivery_man['image']);
-        }
+        Helpers::check_and_delete('delivery-man/' , $delivery_man['image']);
         foreach (json_decode($delivery_man['identity_image'], true) as $img) {
-            if (Storage::disk('public')->exists('delivery-man/' . $img)) {
-                Storage::disk('public')->delete('delivery-man/' . $img);
-            }
+            Helpers::check_and_delete('delivery-man/' , $img);
         }
         $delivery_man->delete();
         return response()->json(['message' => translate('messages.deliveryman_deleted_successfully')], 200);
@@ -339,21 +370,28 @@ class DeliveryManController extends Controller
                 // $dm->decrement('assigned_order_count');
                 $dm->save();
 
-                $data = [
-                    'title' => translate('messages.order_push_title'),
-                    'description' => translate('messages.you_are_unassigned_from_a_order'),
-                    'order_id' => '',
-                    'image' => '',
-                    'type' => 'assign'
-                ];
-                Helpers::send_push_notif_to_device($dm->fcm_token, $data);
 
-                DB::table('user_notifications')->insert([
-                    'data' => json_encode($data),
-                    'delivery_man_id' => $dm->id,
-                    'created_at' => now(),
-                    'updated_at' => now()
-                ]);
+                $deliveryman_push_notification_status=Helpers::getNotificationStatusData('deliveryman','deliveryman_order_assign_unassign');
+
+                    if( $deliveryman_push_notification_status?->push_notification_status  == 'active' && $dm->fcm_token){
+
+                        $data = [
+                            'title' => translate('messages.order_push_title'),
+                            'description' => translate('messages.you_are_unassigned_from_a_order'),
+                            'order_id' => '',
+                            'image' => '',
+                            'type' => 'assign'
+                        ];
+                        Helpers::send_push_notif_to_device($dm->fcm_token, $data);
+
+                        DB::table('user_notifications')->insert([
+                            'data' => json_encode($data),
+                            'delivery_man_id' => $dm->id,
+                            'created_at' => now(),
+                            'updated_at' => now()
+                        ]);
+                    }
+
             }
             $order->delivery_man_id = $request->delivery_man_id;
             $order->order_status = in_array($order->order_status, ['pending', 'confirmed']) ? 'accepted' : $order->order_status;
@@ -371,7 +409,9 @@ class DeliveryManController extends Controller
             delivery_man_name:"{$order?->delivery_man?->f_name} {$order?->delivery_man?->l_name}");
 
             try {
-                if ($value && $order->customer) {
+
+                $customer_push_notification_status=Helpers::getNotificationStatusData('customer','customer_order_notification');
+                if (   $customer_push_notification_status?->push_notification_status  == 'active' && $value && $order?->customer?->cm_firebase_token) {
                     $fcm_token = $order->customer->cm_firebase_token;
                     $data = [
                         'title' => translate('messages.order_push_title'),
@@ -390,20 +430,30 @@ class DeliveryManController extends Controller
                         'updated_at' => now()
                     ]);
                 }
-                $data = [
-                    'title' => translate('messages.order_push_title'),
-                    'description' => translate('messages.you_are_assigned_to_a_order'),
-                    'order_id' => $order['id'],
-                    'image' => '',
-                    'type' => 'assign'
-                ];
-                Helpers::send_push_notif_to_device($deliveryman->fcm_token, $data);
-                DB::table('user_notifications')->insert([
-                    'data' => json_encode($data),
-                    'delivery_man_id' => $deliveryman->id,
-                    'created_at' => now(),
-                    'updated_at' => now()
-                ]);
+
+                $deliveryman_push_notification_status=Helpers::getNotificationStatusData('deliveryman','deliveryman_order_assign_unassign');
+
+                if( $deliveryman_push_notification_status?->push_notification_status  == 'active' && $deliveryman->fcm_token){
+
+
+                    $data = [
+                        'title' => translate('messages.order_push_title'),
+                        'description' => translate('messages.you_are_assigned_to_a_order'),
+                        'order_id' => $order['id'],
+                        'image' => '',
+                        'type' => 'assign'
+                    ];
+                    Helpers::send_push_notif_to_device($deliveryman->fcm_token, $data);
+                    DB::table('user_notifications')->insert([
+                        'data' => json_encode($data),
+                        'delivery_man_id' => $deliveryman->id,
+                        'created_at' => now(),
+                        'updated_at' => now()
+                    ]);
+                }
+
+
+
             } catch (\Exception $e) {
                 info($e->getMessage());
 

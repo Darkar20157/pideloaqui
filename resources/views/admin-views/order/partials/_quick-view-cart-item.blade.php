@@ -1,4 +1,5 @@
-<div class="initial-32">
+@php use App\CentralLogics\Helpers;use App\Models\AddOn;use App\Scopes\RestaurantScope; @endphp
+<div class="initial-49">
     <div class="modal-header p-0">
         <h4 class="modal-title product-title">
         </h4>
@@ -7,56 +8,53 @@
         </button>
     </div>
     <div class="modal-body">
-        <div class="d-flex flex-row">
+        <div class="d-flex flex-row align-items-center">
+            @if (config('toggle_veg_non_veg'))
+                <span
+                    class="badge badge-{{ $product->veg ? 'success' : 'danger' }} position-absolute">{{ $product->veg ? translate('messages.veg') : translate('messages.non_veg') }}</span>
+            @endif
 
             <div class="d-flex align-items-center justify-content-center active h-9rem">
                 <img class="img-responsive mr-3 img--100 onerror-image"
-                src="{{ App\CentralLogics\Helpers::onerror_image_helper(
-                    data_get($product,'image'),
-                    dynamicStorage('storage/app/public/product').'/'.data_get($product,'image'),
-                    dynamicAsset('public/assets/admin/img/100x100/food-default-image.png'),
-                    'product/'
-                ) }}"
-                     data-zoom="{{ dynamicStorage('storage/app/public/product') }}/{{ $product['image'] }}"
-                     alt="Product image"
-                     width=""
-                     data-onerror-image="{{ dynamicAsset('public/assets/admin/img/100x100/food-default-image.png') }}">
+                     src="{{ data_get($product,'image_full_url') ?? dynamicAsset('public/assets/admin/img/100x100/food-default-image.png') }}"
+                     data-onerror-image="{{ dynamicAsset('public/assets/admin/img/100x100/food-default-image.png') }}"
+                     data-zoom="{{ dynamicStorage('storage/app/public/product') }}/{{ data_get($product,'image') }}"
+                     alt="Product image">
                 <div class="cz-image-zoom-pane"></div>
             </div>
-            <!-- Product details-->
+
             <div class="details pl-2">
-                @if ($item_type == 'food')
-                    <a href="{{ route('vendor.food.view', $product->id) }}"
-                        class="h3 mb-2 product-title">{{ $item_type == 'food' ? $product->name : $product->title }}</a>
-                @else
-                    <div class="h3 mb-2 product-title">{{ $item_type == 'food' ? $product->name : $product->title }}</div>
-                @endif
+                <a href="{{ route('admin.food.view', $product->id) }}"
+                   class="h3 mb-2 product-title text-capitalize text-break">{{ $product->name }}</a>
+
                 <div class="mb-3 text-dark">
                     <span class="h3 font-weight-normal text-accent mr-1">
-                        {{ \App\CentralLogics\Helpers::get_price_range($product, true) }}
+                        {{ Helpers::get_price_range($product, true) }}
                     </span>
-                    @if ($product->discount > 0)
-                        <strike class="fz-12px">
-                            {{ \App\CentralLogics\Helpers::get_price_range($product) }}
-                        </strike>
+                    @if ($product->discount > 0 || Helpers::get_restaurant_discount($product->restaurant))
+                        <span class="fz-12px line-through">
+                            {{ Helpers::get_price_range($product) }}
+                        </span>
                     @endif
                 </div>
 
+
+
                 @if ($product->discount > 0)
                     <div class="mb-3 text-dark">
-                        <strong>Discount : </strong>
+                        <strong>{{ translate('messages.discount') }} : </strong>
                         <strong
-                            id="set-discount-amount">{{ \App\CentralLogics\Helpers::get_product_discount($product) }}</strong>
+                            id="set-discount-amount">{{ Helpers::get_product_discount($product) }}</strong>
                     </div>
                 @endif
-                <!-- Product panels-->
 
             </div>
         </div>
+
         <div class="row pt-2">
             <div class="col-12">
-                <h2>{{ translate('messages.description') }}</h2>
-                <span class="d-block text-dark">
+                <h2>{{translate('messages.description')}}</h2>
+                <span class="d-block text-dark text-break">
                     {!! $product->description !!}
                 </span>
                 <form id="add-to-cart-form" class="mb-2">
@@ -66,113 +64,148 @@
                     <input type="hidden" name="item_type" value="{{ $item_type }}">
                     <input type="hidden" name="order_details_id" value="{{ $cart_item['id'] }}">
                     <input type="hidden" name="order_id" value="{{ $order_id }}">
-
-
-
-                    @php($singleArray = [])
-                    @php($singleArray_name = [])
                     @php($values = [])
-
-                    @php($selected_variations = json_decode($cart_item['variation'], true))
+                    @php($selected_variations = isset($cart_item)  ? json_decode($cart_item['variation'], true) : [] )
+                    @php($names = [])
                     @if (is_array($selected_variations))
-
-                        @php($singleArray = array_column($selected_variations, 'values'))
-                        @php($singleArray_name = array_column($selected_variations, 'name'))
-
-                        @php($names = [])
-                        @php($values = [])
-                        @foreach ($selected_variations as $key => $var)
-                            @if (isset($var['values']))
-                                @php($names[$key] = $var['name'])
-                                @php($items = [])
-                                @foreach ($var['values'] as $k => $item)
-
-                                    @php($items[$k] = $item['label'])
-                                @endforeach
-                                @php($values[$key] = $items)
-                            @endif
-                        @endforeach
+                    @foreach ($selected_variations as $key => $var)
+                        @if (isset($var['values']))
+                            @php($names[$key] = $var['name'])
+                            @foreach ($var['values'] as $k => $item)
+                                @php($values[$key] = $item)
+                            @endforeach
+                        @endif
+                    @endforeach
                     @endif
+
+                    <?php
+                        $old_selected_variations=[];
+                        $old_selected_addons=[];
+                        $OrderDetail=   App\Models\OrderDetail::where('id',$cart_item['id'])->first();
+                        if($OrderDetail){
+                                if($OrderDetail->variation != '[]'){
+                                    foreach (json_decode($OrderDetail->variation, true) ?? [] as $value) {
+                                        foreach (data_get($value,'values' ,[]) as $item) {
+                                            if(data_get($item, 'option_id', null ) != null){
+                                                $old_selected_variations[data_get($item, 'option_id')]=  $OrderDetail['quantity'];
+                                            }
+                                        }
+                                    }
+                                }
+
+                                foreach (json_decode($OrderDetail->add_ons, true) as $old_add_ons) {
+                                    if(data_get($old_add_ons, 'id', null ) != null){
+                                        $old_selected_addons[data_get($old_add_ons, 'id')] = data_get($old_add_ons, 'quantity');
+                                    }
+                                }
+                        }
+
+                    ?>
+
+
+
 
 
 
                     @foreach (json_decode($product->variations) as $key => $choice)
-                        @if (isset($choice->name) && isset($choice->values))
-                            <div class="h3 p-0 pt-2">{{ $choice->name }} <small style="font-size: 12px"
-                                    class="text-muted">
-                                    ({{ $choice->required == 'on' ? translate('messages.Required') : translate('messages.optional') }})
-                                </small>
+                        @if (isset($choice->name) && isset($choice->values) )
+                            <div class="h3 p-0 pt-2">{{ $choice->name }} <small class="text-muted fs-12">
+                                    ({{ ($choice->required == 'on')  ?  translate('messages.Required') : translate('messages.optional') }}
+                                    ) </small>
                             </div>
                             @if ($choice->min != 0 && $choice->max != 0)
                                 <small class="d-block mb-3">
-                                    {{ translate('You_need_to_select_minimum_') }} {{ $choice->min }}
-                                    {{ translate('to_maximum_') }} {{ $choice->max }}
-                                    {{ translate('options') }}
+                                    {{ translate('You_need_to_select_minimum_ ') }} {{ $choice->min }} {{ translate('to_maximum_ ') }} {{ $choice->max }} {{ translate('options') }}
                                 </small>
                             @endif
-
-                            <input type="hidden" name="variations[{{ $key }}][min]"
-                                value="{{ $choice->min }}">
-                            <input type="hidden" name="variations[{{ $key }}][max]"
-                                value="{{ $choice->max }}">
+                            <input type="hidden" name="variations[{{ $key }}][min]" value="{{ $choice->min }}">
+                            <input type="hidden" name="variations[{{ $key }}][max]" value="{{ $choice->max }}">
                             <input type="hidden" name="variations[{{ $key }}][required]"
-                                value="{{ $choice->required }}">
-                            <input type="hidden" name="variations[{{ $key }}][name]"
-                                value="{{ $choice->name }}">
+                                   value="{{ $choice->required }}">
+                            <input type="hidden" name="variations[{{ $key }}][name]" value="{{ $choice->name }}">
+
 
                             @foreach ($choice->values as $k => $option)
+
                                 <div class="form-check form--check d-flex pr-5 mr-5">
-                                    <input class="form-check-input"
-                                        type="{{ $choice->type == 'multi' ? 'checkbox' : 'radio' }}"
-                                        id="choice-option-{{ $key }}-{{ $k }}"
-                                        name="variations[{{ $key }}][values][label][]"
-                                        value="{{ $option->label }}"
-                                        @if (isset($values[$key]))
-                                        {{ in_array($option->label, $values[$key]) ? 'checked' : '' }}
-                                        @endif
-                                        autocomplete="off">
-                                    <label class="form-check-label"
-                                        for="choice-option-{{ $key }}-{{ $k }}">{{ Str::limit($option->label, 20, '...') }}</label>
-                                    <span
-                                        class="ml-auto">{{ \App\CentralLogics\Helpers::format_currency($option->optionPrice) }}</span>
+                                    <input class="form-check-input  input-element {{data_get($option, 'stock_type') && data_get($option, 'stock_type') !== 'unlimited' && data_get($option, 'current_stock') <= 0? 'stock_out' : '' }}"
+                                    data-option_id="{{ data_get($option, 'option_id') }}"
+                                           type="{{ ($choice->type == "multi") ? "checkbox" : "radio"}}"
+                                           id="choice-option-{{ $key }}-{{ $k }}"
+                                           name="variations[{{ $key }}][values][label][]" value="{{ $option->label }}"
+                                           @if (isset($values[$key]))
+                                               {{ in_array($option->label, $values[$key]) && !(data_get($option, 'stock_type') && data_get($option, 'stock_type') !== 'unlimited' && data_get($option, 'current_stock') <= 0)? 'checked' : '' }}
+                                           @endif
+                                           {{data_get($option, 'stock_type') && data_get($option, 'stock_type') !== 'unlimited' && data_get($option, 'current_stock') <= 0? 'disabled' : '' }}
+                                           autocomplete="off">
+                                    <label class="form-check-label {{data_get($option, 'stock_type') && data_get($option, 'stock_type') !== 'unlimited' && data_get($option, 'current_stock') <= 0? 'stock_out text-muted' : 'text-dark' }}"
+                                           for="choice-option-{{ $key }}-{{ $k }}">{{ Str::limit($option->label, 20, '...') }}
+
+                                           &nbsp;
+                                           <span
+                                               class="input-label-secondary text--title text--warning {{data_get($option, 'stock_type') && data_get($option, 'stock_type') !== 'unlimited' && data_get($option, 'current_stock') <= 0? '' : 'd-none' }}"
+                                               title="{{ translate('Currently_you_need_to_manage_discount_with_the_Restaurant.') }}">
+                                               <i class="tio-info-outined"></i>
+                                               <small>{{ translate('stock_out') }}</small>
+                                           </span>
+
+                                        </label>
+                                    <span class="ml-auto">{{ Helpers::format_currency($option->optionPrice) }}</span>
                                 </div>
                             @endforeach
                         @endif
                     @endforeach
 
+                    {{-- {{ dd(json_encode($old_selected_variations)) }} --}}
+
+                    <input type="hidden" hidden name="old_selected_variations" value="{{ json_encode($old_selected_variations)  }}"  >
+                    @if (count($old_selected_variations) == 0)
+                    <input type="hidden" hidden name="old_selected_without_variation" value="{{ $cart_item['quantity']   }}"  >
+                    @endif
+                    <input type="hidden" hidden name="old_selected_addons" value="{{ json_encode($old_selected_addons)  }}"  >
+
+                    <input type="hidden" hidden name="option_ids" id="option_ids" >
 
                     <!-- Quantity + Add to cart -->
-                    <div class="d-flex justify-content-between">
-                        <div class="product-description-label mt-2 text-dark h3">{{ translate('messages.quantity') }}:
+                    <div class="d-flex justify-content-between mt-4">
+                        <div class="product-description-label mt-2 text-dark h3">{{translate('messages.quantity')}}:
                         </div>
                         <div class="product-quantity d-flex align-items-center">
                             <div class="input-group input-group--style-2 pr-3 w-160px">
                                 <span class="input-group-btn">
-                                    <button class="btn btn-number text-dark" type="button" data-type="minus"
-                                        data-field="quantity"
-                                        {{ $cart_item['quantity'] <= 1 ? 'disabled="disabled"' : '' }}>
-                                        <i class="tio-remove  font-weight-bold"></i>
+                                    <button class="btn btn-number text-dark" type="button"
+                                            data-type="minus" data-field="quantity"
+                                            {{$cart_item['quantity'] <= 1? 'disabled="disabled"':''}}>
+                                            <i class="tio-remove  font-weight-bold"></i>
                                     </button>
                                 </span>
-                                <input type="text" name="quantity"
-                                    class="form-control input-number text-center cart-qty-field" placeholder="1"
-                                    value="{{ $cart_item['quantity'] }}" min="1" max="100">
+                                <label for="add_new_product_quantity">
+                                 </label>
+                                    <input id="add_new_product_quantity" type="text" name="quantity"
+                                           class="form-control input-number text-center cart-qty-field"
+                                           placeholder="1" value="{{$cart_item['quantity']}}" min="1"
+
+                                           data-maximum_cart_quantity='{{ min( $product?->maximum_cart_quantity ?? '9999999999',$product?->stock_type =='unlimited' ? '999999999' : $product?->item_stock)  }}'
+                                            max="{{ $product->maximum_cart_quantity?? '9999999999' }}">
                                 <span class="input-group-btn">
                                     <button class="btn btn-number text-dark" type="button" data-type="plus"
-                                        data-field="quantity">
-                                        <i class="tio-add  font-weight-bold"></i>
+                                    id="quantity_increase_button"
+                                            data-field="quantity">
+                                            <i class="tio-add  font-weight-bold"></i>
                                     </button>
                                 </span>
                             </div>
                         </div>
                     </div>
                     @php($add_ons = json_decode($product->add_ons))
-                    @if (count($add_ons) > 0 && !in_array('', $add_ons))
+                    @if (count($add_ons) > 0 && $add_ons[0])
                         <div class="h3 p-0 pt-2">{{ translate('messages.addon') }}
                         </div>
 
                         <div class="d-flex justify-content-left flex-wrap">
                             @php($addons = array_column(json_decode($cart_item['add_ons'], true), 'quantity', 'id'))
+
+
                             @foreach (\App\Models\AddOn::withOutGlobalScope(App\Scopes\RestaurantScope::class)->whereIn('id', $add_ons)->active()->get() as $key => $add_on)
                                 @php($checked = array_key_exists($add_on->id, $addons))
                                 <div class="flex-column pb-2">
@@ -187,16 +220,19 @@
                                     <label
                                         class="d-flex align-items-center btn btn-sm check-label mx-1 addon-input text-break"
                                         for="addon{{ $key }}">{{ Str::limit($add_on->name, 20, '...') }} <br>
-                                        {{ \App\CentralLogics\Helpers::format_currency($add_on->price) }}</label>
+                                        {{ Helpers::format_currency($add_on->price) }}</label>
                                     <label class="input-group addon-quantity-input mx-1 shadow bg-white rounded px-1"
-                                           for="addon{{ $key }}">
+                                           for="addon{{ $key }}"  @if (array_key_exists($add_on->id, $addons)) style="visibility:visible;"  @endif>
+
                                         <button class="btn btn-sm h-100 text-dark px-0 decrease-button"
                                                 data-id="{{ $add_on->id }}" type="button"
                                         ><i
                                                 class="tio-remove  font-weight-bold"></i></button>
-                                        <input type="number" name="addon-quantity{{ $add_on->id }}"
-                                               class="form-control text-center border-0 h-100" placeholder="1" value="1"
-                                               min="1" max="100" readonly>
+                                        <input id="addon_quantity_input{{ $add_on->id }}" type="number"
+                                               name="addon-quantity{{ $add_on->id }}"
+                                               class="form-control text-center border-0 h-100 " placeholder="1"
+                                               value="{{ array_key_exists($add_on->id, $addons) ?  $addons[$add_on->id]  : 1 }}"
+                                               min="1"  max="9999999999"  readonly>
                                         <button class="btn btn-sm h-100 text-dark px-0 increase-button"
                                                 data-id="{{ $add_on->id }}" type="button"
                                         ><i
@@ -208,7 +244,7 @@
                     @endif
                     <div class="row no-gutters d-none mt-2 text-dark" id="chosen_price_div">
                         <div class="col-2">
-                            <div class="product-description-label">{{ translate('Total_Price') }}:</div>
+                            <div class="product-description-label">{{translate('messages.Total_Price')}}:</div>
                         </div>
                         <div class="col-10">
                             <div class="product-price">
@@ -227,18 +263,33 @@
                             <i class="tio-edit"></i>
                             {{ translate('messages.update') }}
                         </button>
-
                     </div>
                 </form>
             </div>
         </div>
     </div>
 </div>
-
 <script type="text/javascript">
+    "use strict";
     cartQuantityInitialize();
     getVariantPrice();
-    $('#add-to-cart-form input').on('change', function() {
+    $('#add-to-cart-form input').on('change', function () {
         getVariantPrice();
     });
+
+    function getCheckedInputs() {
+
+        var checkedInputs = [];
+    var checkedElements = document.querySelectorAll('.input-element:checked');
+    checkedElements.forEach(function(element) {
+        checkedInputs.push(element.getAttribute('data-option_id'));
+    });
+        $('#option_ids').val(checkedInputs.join(','));
+
+    }
+    var inputElements = document.querySelectorAll('.input-element');
+    inputElements.forEach(function(element) {
+        element.addEventListener('change', getCheckedInputs);
+    });
 </script>
+

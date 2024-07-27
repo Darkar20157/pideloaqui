@@ -97,10 +97,10 @@
 
                     @php($business_name = \App\Models\BusinessSetting::where(['key' => 'business_name'])->first()?->value)
                 <span class="d-block" style="margin-bottom:20px">{{ $business_name }}</span>
-                @php($restaurant_logo = \App\Models\BusinessSetting::where(['key' => 'logo'])->first()?->value)
+                @php($restaurant_logo = \App\Models\BusinessSetting::where(['key' => 'logo'])->first())
 
                 <img class="onerror-image" style="width:120px;display:block;margin:10px auto"
-                src="{{\App\CentralLogics\Helpers::onerror_image_helper($restaurant_logo, dynamicStorage('storage/app/public/business/'.$restaurant_logo), dynamicAsset('/public/assets/admin/img/favicon.png'), 'business/') }}"
+                src="{{ \App\CentralLogics\Helpers::get_full_url('business',$restaurant_logo?->value,$restaurant_logo?->storage[0]?->value ?? 'public', 'favicon') }}"
                 data-onerror-image="{{ dynamicAsset('/public/assets/admin/img/favicon.png') }}" alt="image">
 
                 <span class="privacy">

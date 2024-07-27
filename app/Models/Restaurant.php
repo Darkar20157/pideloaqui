@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use App\CentralLogics\Helpers;
 use App\Models\Vendor;
 use App\Scopes\ZoneScope;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -55,9 +57,10 @@ class Restaurant extends Model
         'closeing_time'=>'datetime',
         'cutlery'=>'boolean',
         'foods_count'=>'integer',
+        'reviews_comments_count'=>'integer',
     ];
 
-    protected $appends = ['gst_status','gst_code','free_delivery_distance_status','free_delivery_distance_value'];
+    protected $appends = ['gst_status','gst_code','free_delivery_distance_status','free_delivery_distance_value','logo_full_url','cover_photo_full_url','meta_image_full_url'];
 
     /**
      * The attributes that should be hidden for arrays.
@@ -68,9 +71,52 @@ class Restaurant extends Model
         'gst','free_delivery_distance'
     ];
 
+    public function getLogoFullUrlAttribute(){
+        $value = $this->logo;
+        if (count($this->storage) > 0) {
+            foreach ($this->storage as $storage) {
+                if ($storage['key'] == 'logo') {
+                    return Helpers::get_full_url('restaurant',$value,$storage['value']);
+                }
+            }
+        }
+
+        return Helpers::get_full_url('restaurant',$value,'public');
+    }
+    public function getCoverPhotoFullUrlAttribute(){
+        $value = $this->cover_photo;
+        if (count($this->storage) > 0) {
+            foreach ($this->storage as $storage) {
+                if ($storage['key'] == 'cover_photo') {
+                    return Helpers::get_full_url('restaurant/cover',$value,$storage['value']);
+                }
+            }
+        }
+
+        return Helpers::get_full_url('restaurant/cover',$value,'public');
+    }
+    public function getMetaImageFullUrlAttribute(){
+        $value = $this->meta_image;
+        if (count($this->storage) > 0) {
+            foreach ($this->storage as $storage) {
+                if ($storage['key'] == 'meta_image') {
+                    return Helpers::get_full_url('restaurant',$value,$storage['value']);
+                }
+            }
+        }
+
+        return Helpers::get_full_url('restaurant',$value,'public');
+    }
+
     public function tags()
     {
         return $this->belongsToMany(Tag::class);
+    }
+
+
+    public function characteristics()
+    {
+        return $this->belongsToMany(Characteristic::class);
     }
 
     public function restaurant_config()
@@ -90,6 +136,10 @@ class Restaurant extends Model
     public function coupon()
     {
         return $this->hasMany(Coupon::class,'restaurant_id');
+    }
+    public function notification_setup()
+    {
+        return $this->hasMany(RestaurantNotificationSetting::class,'restaurant_id');
     }
     public function coupon_valid()
     {
@@ -142,6 +192,11 @@ class Restaurant extends Model
     public function orders()
     {
         return $this->hasMany(Order::class);
+    }
+
+    public function wishlists()
+    {
+        return $this->hasMany(Wishlist::class,'restaurant_id');
     }
 
     public function discount()
@@ -287,12 +342,59 @@ class Restaurant extends Model
             return $query;
     }
 
+    public function storage()
+    {
+        return $this->morphMany(Storage::class, 'data');
+    }
+
     protected static function boot()
     {
         parent::boot();
         static::created(function ($restaurant) {
             $restaurant->slug = $restaurant->generateSlug($restaurant->name);
             $restaurant->save();
+        });
+
+        static::saved(function ($model) {
+            if($model->isDirty('logo')){
+                $value = Helpers::getDisk();
+
+                DB::table('storages')->updateOrInsert([
+                    'data_type' => get_class($model),
+                    'data_id' => $model->id,
+                    'key' => 'logo',
+                ], [
+                    'value' => $value,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+            if($model->isDirty('cover_photo')){
+                $value = Helpers::getDisk();
+
+                DB::table('storages')->updateOrInsert([
+                    'data_type' => get_class($model),
+                    'data_id' => $model->id,
+                    'key' => 'cover_photo',
+                ], [
+                    'value' => $value,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+            if($model->isDirty('meta_image')){
+                $value = Helpers::getDisk();
+
+                DB::table('storages')->updateOrInsert([
+                    'data_type' => get_class($model),
+                    'data_id' => $model->id,
+                    'key' => 'meta_image',
+                ], [
+                    'value' => $value,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
         });
 
     }
@@ -359,6 +461,9 @@ class Restaurant extends Model
 
     protected static function booted()
     {
+        // static::addGlobalScope('storage', function ($builder) {
+        //     $builder->with('storage');
+        // });
         static::addGlobalScope(new ZoneScope);
         static::addGlobalScope('translate', function (Builder $builder) {
             $builder->with(['translations' => function($query){

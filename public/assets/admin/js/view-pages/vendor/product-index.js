@@ -51,6 +51,7 @@ function removeOption(e) {
 $(document).on('click', '.delete_input_button', function () {
     let e = $(this);
     removeOption(e);
+    updatestockCount();
 });
 
 function deleteRow(e) {

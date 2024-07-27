@@ -27,13 +27,13 @@
         <div class="navbar-vertical-container">
             <div class="navbar__brand-wrapper navbar-brand-wrapper justify-content-between">
                 <!-- Logo -->
-                @php($restaurant_logo = \App\Models\BusinessSetting::where(['key' => 'logo'])->first()?->value)
+                @php($restaurant_logo = \App\Models\BusinessSetting::where(['key' => 'logo'])->first())
                 <a class="navbar-brand d-block p-0" href="{{ route('admin.dashboard') }}" aria-label="Front">
                         <img class="navbar-brand-logo sidebar--logo-design"
-                        src="{{\App\CentralLogics\Helpers::onerror_image_helper($restaurant_logo, dynamicStorage('storage/app/public/business/'.$restaurant_logo), dynamicAsset('public/assets/admin/img/160x160/img2.jpg'), 'business/') }}"
+                        src="{{ \App\CentralLogics\Helpers::get_full_url('business',$restaurant_logo?->value,$restaurant_logo?->storage[0]?->value ?? 'public', 'favicon') }}"
                         alt="image">
                         <img class="navbar-brand-logo-mini sidebar--logo-design-2"
-                        src="{{\App\CentralLogics\Helpers::onerror_image_helper($restaurant_logo, dynamicStorage('storage/app/public/business/'.$restaurant_logo), dynamicAsset('public/assets/admin/img/160x160/img2.jpg'), 'business/') }}"
+                        src="{{ \App\CentralLogics\Helpers::get_full_url('business',$restaurant_logo?->value,$restaurant_logo?->storage[0]?->value ?? 'public', 'favicon') }}"
                         alt="image">
                 </a>
                 <!-- End Logo -->
@@ -168,6 +168,16 @@
                         </li>
                     @endif
                     <!-- End Coupon -->
+
+                    {{-- @if (\App\CentralLogics\Helpers::module_permission_check('cashback')) --}}
+                    <li class="navbar-vertical-aside-has-menu {{ Request::is('admin/cashback*') ? 'active' : '' }}">
+                    <a class="js-navbar-vertical-aside-menu-link nav-link" href="{{ route('admin.cashback.add-new') }}" title="{{ translate('messages.cashback') }}">
+                        <i class="tio-settings-back nav-icon"></i>
+                        <span class="navbar-vertical-aside-mini-mode-hidden-elements text-truncate">{{ translate('messages.cashback') }}</span>
+                    </a>
+                    </li>
+                    {{-- @endif --}}
+
                     <!-- Notification -->
                     @if (\App\CentralLogics\Helpers::module_permission_check('notification'))
                         <li
@@ -183,6 +193,55 @@
                         </li>
                     @endif
                     <!-- End Notification -->
+
+
+            <!-- advertisement -->
+            @if (\App\CentralLogics\Helpers::module_permission_check('advertisement'))
+            <li
+                class="navbar-vertical-aside-has-menu  @yield('advertisement')">
+                <a class="js-navbar-vertical-aside-menu-link nav-link nav-link-toggle" href="javascript:"
+                    title="{{ translate('messages.advertisement') }}">
+                    <i class="tio-tv-old nav-icon"></i>
+                    <span
+                        class="navbar-vertical-aside-mini-mode-hidden-elements text-truncate">{{ translate('messages.advertisement') }}</span>
+                </a>
+                <ul class="js-navbar-vertical-aside-submenu nav nav-sub"
+                    style="display: {{ Request::is('admin/advertisement*') ? 'block' : 'none' }}">
+
+                    <li class="nav-item @yield('advertisement_create')">
+                        <a class="nav-link " href="{{ route('admin.advertisement.create') }}"
+                            title="{{ translate('messages.New_Advertisement') }}">
+                            <span class="tio-circle nav-indicator-icon"></span>
+                            <span class="text-truncate">{{ translate('messages.New_Advertisement') }}</span>
+                        </a>
+                    </li>
+                    <li class="nav-item @yield('advertisement_request')">
+                        <a class="nav-link " href="{{ route('admin.advertisement.requestList') }}"
+                            title="{{ translate('messages.Ad_Requests') }}">
+                            <span class="tio-circle nav-indicator-icon"></span>
+                            <span class="text-truncate">{{ translate('messages.Ad_Requests') }}</span>
+                        </a>
+                    </li>
+                    <li class="nav-item @yield('advertisement_list')">
+                        <a class="nav-link " href="{{ route('admin.advertisement.index') }}"
+                            title="{{ translate('messages.Ads_list') }}">
+                            <span class="tio-circle nav-indicator-icon"></span>
+                            <span class="text-truncate">{{ translate('messages.Ads_list') }}</span>
+                        </a>
+                    </li>
+                </ul>
+            </li>
+        @endif
+        <!-- End Campaign -->
+
+
+
+
+
+
+
+
+
                     <!-- Orders -->
                     @if (\App\CentralLogics\Helpers::module_permission_check('order'))
                         <li class="nav-item">
@@ -1057,7 +1116,7 @@
                                             <span class="text-truncate">{{ translate('messages.delivery_men') }}</span>
                                         </a>
                                     </li>
-                              
+
                             </ul>
                         </li>
 
@@ -1306,7 +1365,7 @@
                             <small class="tio-more-horizontal nav-subtitle-replacer"></small>
                         </li>
 
-                        <li class="navbar-vertical-aside-has-menu   {{Request::is('admin/business-settings/fcm-*')|| Request::is('admin/business-settings/payment-method')  || Request::is('admin/business-settings/sms-module')|| Request::is('admin/business-settings/mail-config') || Request::is('admin/social-login/view') || Request::is('admin/business-settings/offline*')||Request::is('admin/business-settings/config*')  || Request::is('admin/business-settings/recaptcha*') || Request::is('admin/business-settings/*') ? 'active' : '' }} @yield('3rd_party')" >
+                        <li class="navbar-vertical-aside-has-menu   {{  Request::is('admin/business-settings/fcm-*')|| Request::is('admin/business-settings/payment-method')  || Request::is('admin/business-settings/sms-module')|| Request::is('admin/business-settings/mail-config') || Request::is('admin/social-login/view') || Request::is('admin/business-settings/offline*')||Request::is('admin/business-settings/config*')  || Request::is('admin/business-settings/recaptcha*') || Request::is('admin/business-settings/*') ? 'active' : '' }} @yield('3rd_party')" >
                             <a class="js-navbar-vertical-aside-menu-link nav-link nav-link-toggle" href="javascript:"
                                 title="{{ translate('3rd_Party_&_Configurations') }}">
                                 <span class="tio-plugin nav-icon"></span>
@@ -1314,10 +1373,10 @@
                                     class="navbar-vertical-aside-mini-mode-hidden-elements text-truncate">{{ translate('messages.3rd_Party_&_Configurations') }}</span>
                             </a>
                             <ul class="js-navbar-vertical-aside-submenu nav nav-sub"
-                                style="display: {{ Request::is('admin/business-settings/deliveryman/join-us/*') || Request::is('admin/business-settings/restaurant/join-us/*') || Request::is('admin/business-settings/fcm-*')|| Request::is('admin/business-settings/payment-method')  || Request::is('admin/business-settings/sms-module')|| Request::is('admin/business-settings/mail-config') || Request::is('admin/social-login/view') ||Request::is('admin/business-settings/config*') || Request::is('admin/business-settings/recaptcha*') || Request::is('admin/business-settings/offline*') || Request::is('admin/login-url/login-page-setup*')? 'block' : 'none' }}  ">
+                                style="display: {{   Request::is('admin/business-settings/deliveryman/join-us/*') || Request::is('admin/business-settings/restaurant/join-us/*') || Request::is('admin/business-settings/fcm-*')|| Request::is('admin/business-settings/payment-method')  || Request::is('admin/business-settings/sms-module')|| Request::is('admin/business-settings/mail-config') || Request::is('admin/social-login/view') ||Request::is('admin/business-settings/config*') || Request::is('admin/business-settings/recaptcha*') || Request::is('admin/business-settings/offline*') || Request::is('admin/login-url/login-page-setup*')? 'block' : 'none' }}  ">
 
 
-                                <li class="nav-item {{ Request::is('admin/business-settings/payment-method') || Request::is('admin/business-settings/sms-module')|| Request::is('admin/business-settings/mail-config') || Request::is('admin/social-login/view') ||Request::is('admin/business-settings/config*') || Request::is('admin/business-settings/recaptcha*')  ? 'active' : '' }}">
+                                <li class="nav-item {{  Request::is('admin/business-settings/notification-setup*')||  Request::is('admin/business-settings/payment-method') || Request::is('admin/business-settings/sms-module')|| Request::is('admin/business-settings/mail-config') || Request::is('admin/social-login/view') ||Request::is('admin/business-settings/config*') || Request::is('admin/business-settings/recaptcha*')  ? 'active' : '' }}">
                                     <a class="nav-link " href="{{ route('admin.business-settings.payment-method') }}"
                                         title="{{ translate('messages.3rd_Party') }}">
                                         <span class="tio-circle nav-indicator-icon"></span>
@@ -1368,6 +1427,16 @@
                                 title="{{ translate('messages.App_&_Web_Settings') }}">
                                 <span class="tio-android nav-icon"></span>
                                 <span class="text-truncate">{{ translate('messages.App_&_Web_Settings') }}</span>
+                            </a>
+                        </li>
+
+
+                        <li class="navbar-vertical-aside-has-menu  @yield('notification_setup')">
+                            <a class="nav-link " href="{{ route('admin.business-settings.notification_setup') }}"
+                                title="{{ translate('messages.Notification_Channels') }} ">
+                                <span class="tio-snooze-notification  nav-icon"></span>
+                                <span class="text-truncate">{{ translate('messages.Notification_Channels') }}
+                                </span>
                             </a>
                         </li>
 
@@ -1634,13 +1703,25 @@
         });
     </script>
     <script>
-        var $rows = $('#navbar-vertical-content li');
-        $('#search').keyup(function() {
-            var val = $.trim($(this).val()).replace(/ +/g, ' ').toLowerCase();
+        // var $rows = $('#navbar-vertical-content li');
+        // $('#search').keyup(function() {
+        //     var val = $.trim($(this).val()).replace(/ +/g, ' ').toLowerCase();
 
-            $rows.show().filter(function() {
-                var text = $(this).text().replace(/\s+/g, ' ').toLowerCase();
-                return !~text.indexOf(val);
+        //     $rows.show().filter(function() {
+        //         var text = $(this).text().replace(/\s+/g, ' ').toLowerCase();
+        //         return !~text.indexOf(val);
+        //     }).hide();
+        // });
+
+        var $navItems = $('#navbar-vertical-content > ul > li');
+        $('#search').keyup(function() {
+                var val = $.trim($(this).val()).replace(/ +/g, ' ').toLowerCase();
+                $navItems.show().filter(function() {
+                    var $listItem = $(this);
+                    var text = $listItem.text().replace(/\s+/g, ' ').toLowerCase();
+                    var $list = $listItem.closest('li');
+
+                return !~text.indexOf(val) && !$list.text().toLowerCase().includes(val);
             }).hide();
         });
     </script>

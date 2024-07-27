@@ -131,15 +131,35 @@
                                     </div>
                                 </div>
                                 <div class="col-md-4 col-sm-6">
-                                    <div class="form-group mb-0">
-                                        <label class="form-label" for="exampleFormControlInput1">{{translate('messages.password')}}
-                                            <span class="input-label-secondary ps-1" title="{{ translate('messages.Must_contain_at_least_one_number_and_one_uppercase_and_lowercase_letter_and_symbol,_and_at_least_8_or_more_characters') }}"><img src="{{ dynamicAsset('/public/assets/admin/img/info-circle.svg') }}" alt="{{ translate('messages.Must_contain_at_least_one_number_and_one_uppercase_and_lowercase_letter_and_symbol,_and_at_least_8_or_more_characters') }}"></span>
+                                    <div class="form-group m-0">
+                                        <div class="js-form-message form-group">
+                                            <label class="input-label"
+                                                for="signupSrPassword">{{ translate('messages.password') }}
+                                                <span class="input-label-secondary ps-1" data-toggle="tooltip" title="{{ translate('messages.Must_contain_at_least_one_number_and_one_uppercase_and_lowercase_letter_and_symbol,_and_at_least_8_or_more_characters') }}"><img src="{{dynamicAsset('public/assets/admin/img/info-circle.svg')}}" alt="{{ translate('messages.Must_contain_at_least_one_number_and_one_uppercase_and_lowercase_letter_and_symbol,_and_at_least_8_or_more_characters') }}"></span>
 
-                                        </label>
-                                        <input type="text" name="password" class="form-control h--45px"
-                                        pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}" title="{{ translate('messages.Must_contain_at_least_one_number_and_one_uppercase_and_lowercase_letter_and_symbol,_and_at_least_8_or_more_characters') }}"
-                                        placeholder="{{ translate('messages.Ex : 8+ Character required') }} "
-                                            required>
+                                            </label>
+
+                                            <div class="input-group input-group-merge">
+                                                <input type="password" class="js-toggle-password form-control h--45px" name="password"
+                                                    id="signupSrPassword"
+                                                    pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}" title="{{ translate('messages.Must_contain_at_least_one_number_and_one_uppercase_and_lowercase_letter_and_symbol,_and_at_least_8_or_more_characters') }}"
+
+                                                    placeholder="{{ translate('messages.Ex:_8+_Character') }}"
+                                                    aria-label="{{translate('messages.password_length_8+')}}"
+                                                    required data-msg="Your password is invalid. Please try again."
+                                                    data-hs-toggle-password-options='{
+                                                                                        "target": [".js-toggle-password-target-1"],
+                                                                                        "defaultClass": "tio-hidden-outlined",
+                                                                                        "showClass": "tio-visible-outlined",
+                                                                                        "classChangeTarget": ".js-toggle-passowrd-show-icon-1"
+                                                                                        }'>
+                                                <div class="js-toggle-password-target-1 input-group-append">
+                                                    <a class="input-group-text" href="javascript:;">
+                                                        <i class="js-toggle-passowrd-show-icon-1 tio-visible-outlined"></i>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

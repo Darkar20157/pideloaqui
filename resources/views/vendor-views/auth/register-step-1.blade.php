@@ -66,13 +66,13 @@
                             @if ($language)
                             <div class="form-group mb-0 lang_form" id="default-form">
                                 <label class="form-label" for="exampleFormControlInput1">{{ translate('messages.restaurant_name') }} ({{translate('messages.default')}})</label>
-                                <input type="text" name="name[]" class="form-control"  placeholder="{{ translate('messages.Ex :_ABC Company') }}" maxlength="191"  oninvalid="document.getElementById('en-link').click()">
+                                <input type="text" name="name[]" class="form-control"  placeholder="{{ translate('messages.Ex :_ABC Company') }}" maxlength="191"   >
                             </div>
                             <input type="hidden" name="lang[]" value="default">
                                 @foreach(json_decode($language) as $lang)
                                     <div class="form-group  mb-0 d-none lang_form" id="{{$lang}}-form">
                                         <label class="form-label" for="exampleFormControlInput1">{{ translate('messages.restaurant_name') }} ({{strtoupper($lang)}})</label>
-                                        <input type="text" name="name[]" class="form-control"  placeholder="{{ translate('messages.Ex :_ABC Company') }}" maxlength="191" oninvalid="document.getElementById('en-link').click()">
+                                        <input type="text" name="name[]" class="form-control"  placeholder="{{ translate('messages.Ex :_ABC Company') }}" maxlength="191"  >
                                     </div>
                                     <input type="hidden" name="lang[]" value="{{$lang}}">
                                 @endforeach

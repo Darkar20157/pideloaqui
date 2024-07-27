@@ -64,7 +64,7 @@
                             ?>
                             <div class="form-group d-none lang_form" id="{{$lang}}-form">
                                 <label class="input-label" for="exampleFormControlInput1">{{translate('messages.name')}} ({{strtoupper($lang)}})</label>
-                                <input id="name" type="text" name="name[]" class="form-control" placeholder="{{translate('messages.new_category')}}" maxlength="191" value="{{$translate[$lang]['name'] ?? null}}"  oninvalid="document.getElementById('en-link').click()">
+                                <input id="name" type="text" name="name[]" class="form-control" placeholder="{{translate('messages.new_category')}}" maxlength="191" value="{{$translate[$lang]['name'] ?? null}}"   >
                             </div>
                             <input type="hidden" name="lang[]" value="{{$lang}}">
                         @endforeach
@@ -85,7 +85,7 @@
                                 <div class="image-box">
                                     <label for="image-input" class="d-flex flex-column align-items-center justify-content-center h-100 cursor-pointer gap-2">
                                         <img class="upload-icon initial-26"
-                                        src="{{\App\CentralLogics\Helpers::onerror_image_helper($category['image'], dynamicStorage('storage/app/public/category/').'/'.$category['image'], dynamicAsset('/public/assets/admin/img/900x400/img1.jpg'), 'category/') }}" alt="Upload Icon">
+                                        src="{{$category['image_full_url'] }}" alt="Upload Icon">
                                         <img src="#" alt="Preview Image" class="preview-image">
                                     </label>
                                     <button type="button" class="delete_image">

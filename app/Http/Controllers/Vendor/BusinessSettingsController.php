@@ -2,7 +2,11 @@
 
 namespace App\Http\Controllers\Vendor;
 
+use App\Models\Category;
+use App\Models\Characteristic;
+use App\Models\Cuisine;
 use App\Models\Restaurant;
+use App\Models\RestaurantNotificationSetting;
 use App\Models\Tag;
 use Illuminate\Http\Request;
 use App\CentralLogics\Helpers;
@@ -21,7 +25,44 @@ class BusinessSettingsController extends Controller
     public function restaurant_index()
     {
         $restaurant =  Restaurant::withoutGlobalScope('translate')->with('translations')->findOrFail(Helpers::get_restaurant_id());
-        return view('vendor-views.business-settings.restaurant-index', compact('restaurant'));
+        $cuisineNames = Cuisine::pluck('name')->toArray();
+        $categoryNames = Category::pluck('name')->toArray();
+        $combinedNames = array_merge($cuisineNames, $categoryNames);
+        $combinedNames = '[' . implode(', ', array_map(fn($name) => "'$name'", $combinedNames)) . ']';
+        return view('vendor-views.business-settings.restaurant-index', compact('restaurant','combinedNames'));
+    }
+
+    public function notification_index()
+    {
+        if(RestaurantNotificationSetting::count() == 0 ){
+            Helpers::restaurantNotificationDataSetup(Helpers::get_restaurant_id());
+        }
+        $data= RestaurantNotificationSetting::where('restaurant_id',Helpers::get_restaurant_id())->get();
+
+
+        $business_name= BusinessSetting::where('key','business_name')->first()?->value;
+        return view('vendor-views.business-settings.notification-index', compact('business_name' ,'data'));
+    }
+
+    public function notification_status_change($key, $type){
+        $data= RestaurantNotificationSetting::where('restaurant_id',Helpers::get_restaurant_id())->where('key',$key)->first();
+        if(!$data){
+            Toastr::error(translate('messages.Notification_settings_not_found'));
+            return back();
+        }
+        if($type == 'Mail' ) {
+            $data->mail_status =  $data->mail_status == 'active' ? 'inactive' : 'active';
+        }
+        elseif($type == 'push_notification' ) {
+            $data->push_notification_status =  $data->push_notification_status == 'active' ? 'inactive' : 'active';
+        }
+        elseif($type == 'SMS' ) {
+            $data->sms_status =  $data->sms_status == 'active' ? 'inactive' : 'active';
+        }
+        $data?->save();
+
+        Toastr::success(translate('messages.Notification_settings_updated'));
+        return back();
     }
 
     public function restaurant_setup(Restaurant $restaurant, Request $request)
@@ -55,6 +96,19 @@ class BusinessSettingsController extends Controller
                 array_push($tag_ids,$tag->id);
             }
         }
+        $characteristic_ids = [];
+        if ($request->characteristics != null) {
+            $characteristics = explode(",", $request->characteristics);
+        }
+        if(isset($characteristics)){
+            foreach ($characteristics as $key => $value) {
+                $characteristic = Characteristic::firstOrNew(
+                    ['characteristic' => $value]
+                );
+                $characteristic->save();
+                array_push($characteristic_ids,$characteristic->id);
+            }
+        }
         $off_day = $request->off_day?implode('',$request->off_day):'';
         $restaurant->minimum_order = $request->minimum_order;
         $restaurant->opening_time = $request->opening_time;
@@ -70,11 +124,14 @@ class BusinessSettingsController extends Controller
         $restaurant->save();
         $restaurant->cuisine()->sync($cuisine_ids);
         $restaurant->tags()->sync($tag_ids);
+        $restaurant->characteristics()->sync($characteristic_ids);
 
         $conf = RestaurantConfig::firstOrNew(
             ['restaurant_id' =>  $restaurant->id]
         );
         $conf->customer_order_date = $request->customer_order_date ?? 0;
+        $conf->extra_packaging_status = $request?->extra_packaging_status??0;
+        $conf->extra_packaging_amount = $request->extra_packaging_amount;
         $conf->save();
 
         Toastr::success(translate('messages.restaurant_settings_updated'));
@@ -131,7 +188,7 @@ class BusinessSettingsController extends Controller
             return back();
         }
 
-        if( ($request->menu == 'instant_order'  || $request->menu == 'customer_date_order_sratus' || $request->menu == 'halal_tag_status' )){
+        if( in_array($request->menu,['instant_order','customer_date_order_sratus','halal_tag_status' ,'is_extra_packaging_active'] ) ){
 
             $conf = RestaurantConfig::firstOrNew(
                 ['restaurant_id' =>  $restaurant->id]

@@ -9,6 +9,7 @@ use Illuminate\Support\Str;
 use App\Models\ItemCampaign;
 use Illuminate\Http\Request;
 use App\CentralLogics\Helpers;
+use Illuminate\Support\Facades\DB;
 use App\Exports\FoodCampaignExport;
 use App\Exports\BasicCampaignExport;
 use App\Http\Controllers\Controller;
@@ -246,7 +247,6 @@ class CampaignController extends Controller
             'restaurant_id' => 'required',
             'start_time' => 'required',
             'end_time' => 'required',
-            'start_date' => 'required',
             'start_date' => 'required',
             'veg' => 'required',
             'description'=>'max:1000',
@@ -675,9 +675,7 @@ class CampaignController extends Controller
 
     public function delete(Campaign $campaign)
     {
-        if (Storage::disk('public')->exists('campaign/' . $campaign->image)) {
-            Storage::disk('public')->delete('campaign/' . $campaign->image);
-        }
+        Helpers::check_and_delete('campaign/' , $campaign->image);
         $campaign?->translations()?->delete();
         $campaign->delete();
         Toastr::success(translate('messages.campaign_deleted_successfully'));
@@ -685,9 +683,7 @@ class CampaignController extends Controller
     }
     public function delete_item(ItemCampaign $campaign)
     {
-        if (Storage::disk('public')->exists('campaign/' . $campaign->image)) {
-            Storage::disk('public')->delete('campaign/' . $campaign->image);
-        }
+        Helpers::check_and_delete('campaign/' , $campaign->image);
         $campaign?->translations()?->delete();
         $campaign->delete();
         Toastr::success(translate('messages.campaign_deleted_successfully'));
@@ -717,10 +713,59 @@ class CampaignController extends Controller
         try
         {
             $restaurant=Restaurant::find($restaurant_id);
-            if(config('mail.status') && Helpers::get_mail_status('campaign_deny_mail_status_restaurant') == '1' && $status == 'rejected') {
-                Mail::to($restaurant->vendor->email)->send(new \App\Mail\VendorCampaignRequestMail($restaurant->name,'denied'));
+
+            $reataurant_push_notification_status= null ;
+            $reataurant_push_notification_title= '' ;
+            $reataurant_push_notification_description= '' ;
+
+            if($status == 'rejected'){
+                $reataurant_push_notification_title= translate('Campaign_Request_Rejected') ;
+                $reataurant_push_notification_description= translate('Campaign_Request_Has_Been_Rejected_By_Admin') ;
+                $push_notification_status=Helpers::getNotificationStatusData('restaurant','restaurant_campaign_join_rejaction');
+                $reataurant_push_notification_status=Helpers::getRestaurantNotificationStatusData($restaurant?->id,'restaurant_campaign_join_rejaction');
+
+                }
+
+                elseif($status == 'confirmed'){
+                    $reataurant_push_notification_description= translate('Campaign_Request_Has_Been_Approved_By_Admin') ;
+                    $reataurant_push_notification_title= translate('Campaign_Request_Approved') ;
+                $push_notification_status=Helpers::getNotificationStatusData('restaurant','restaurant_campaign_join_approval');
+                $reataurant_push_notification_status=Helpers::getRestaurantNotificationStatusData($restaurant?->id,'restaurant_campaign_join_approval');
+
             }
-            if(config('mail.status') && Helpers::get_mail_status('campaign_approve_mail_status_restaurant') == '1' && $status == 'confirmed') {
+
+
+
+            if( $push_notification_status?->push_notification_status  == 'active' && $reataurant_push_notification_status?->push_notification_status  == 'active' && $restaurant?->vendor?->firebase_token ){
+
+                $data = [
+                    'title' => $reataurant_push_notification_title,
+                    'description' => $reataurant_push_notification_description,
+                    'order_id' => '',
+                    'image' => '',
+                    'type' => 'campaign',
+                    'order_status' => '',
+                ];
+                Helpers::send_push_notif_to_device($restaurant->vendor->firebase_token, $data);
+                DB::table('user_notifications')->insert([
+                    'data' => json_encode($data),
+                    'vendor_id' => $restaurant->vendor_id,
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]);
+            }
+
+
+
+            $notification_status= Helpers::getNotificationStatusData('restaurant','restaurant_campaign_join_rejaction');
+            $restaurant_notification_status= Helpers::getRestaurantNotificationStatusData($restaurant->id,'restaurant_campaign_join_rejaction');
+            if( $notification_status?->mail_status == 'active' && $restaurant_notification_status?->mail_status == 'active' && config('mail.status') && Helpers::get_mail_status('campaign_deny_mail_status_restaurant') == '1' && $status == 'rejected') {
+                Mail::to($restaurant->vendor->email)->send(new \App\Mail\VendorCampaignRequestMail($restaurant->name,'denied'));
+                }
+                $notification_status= null ;
+            $notification_status= Helpers::getNotificationStatusData('restaurant','restaurant_campaign_join_approval');
+            $restaurant_notification_status= Helpers::getRestaurantNotificationStatusData($restaurant->id,'restaurant_campaign_join_approval');
+            if(  $notification_status?->mail_status == 'active' && $restaurant_notification_status?->mail_status == 'active' && config('mail.status') && Helpers::get_mail_status('campaign_approve_mail_status_restaurant') == '1' && $status == 'confirmed') {
                 Mail::to($restaurant->vendor->email)->send(new \App\Mail\VendorCampaignRequestMail($restaurant->name,'approved'));
             }
         }

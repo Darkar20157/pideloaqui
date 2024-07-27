@@ -72,6 +72,7 @@
             <th>{{ translate('messages.Total_Item_amount') }}</th>
             <th>{{ translate('messages.Item_Discount') }}</th>
             <th>{{ translate('messages.Coupon_Discount') }}</th>
+            <th>{{ translate('messages.Referral_Discount') }}</th>
             <th>{{ translate('messages.Discounted_Amount') }}</th>
             <th>{{ translate('messages.vat/tax') }}</th>
             <th>{{ translate('messages.Delivery_Charge') }}</th>
@@ -80,6 +81,7 @@
             <th>{{ translate('messages.Restaurant_Discount') }}</th>
             <th>{{ translate('messages.Admin_Commission') }}</th>
             <th>{{ \App\CentralLogics\Helpers::get_business_data('additional_charge_name')??translate('messages.Additional_Charge') }}</th>
+            <th>{{ translate('messages.extra_packaging_amount') }}</th>
             <th>{{ translate('commission_On_Delivery_Charge') }}</th>
             <th>{{ translate('Admin_Net_Income') }}</th>
             <th>{{ translate('Restaurant_Net_Income') }}</th>
@@ -111,12 +113,13 @@
                 </td>
 
                 <td>
-                    {{ \App\CentralLogics\Helpers::format_currency($ot->order['order_amount']  - $ot?->additional_charge - $ot->order['dm_tips']-$ot->order['delivery_charge'] - $ot['tax'] + $ot->order['coupon_discount_amount'] + $ot->order['restaurant_discount_amount']) }}
+                    {{ \App\CentralLogics\Helpers::format_currency($ot->order['order_amount']  - $ot?->additional_charge - $ot->order['dm_tips']-$ot->order['delivery_charge'] - $ot['tax'] - $ot->order['extra_packaging_amount'] + $ot->order['coupon_discount_amount'] + $ot->order['restaurant_discount_amount'] + $ot->order['ref_bonus_amount'] ) }}
                 </td>
 
-                <td>{{ \App\CentralLogics\Helpers::format_currency($ot->order->details->sum('discount_on_food')) }}</td>
+                <td>{{ \App\CentralLogics\Helpers::format_currency($ot->order->details()->sum(DB::raw('discount_on_food * quantity'))) }}</td>
                 <td>{{ \App\CentralLogics\Helpers::format_currency($ot->order['coupon_discount_amount']) }}</td>
-                <td>  {{ \App\CentralLogics\Helpers::number_format_short($ot->order['coupon_discount_amount'] + $ot->order['restaurant_discount_amount']) }}</td>
+                <td>{{ \App\CentralLogics\Helpers::format_currency($ot->order['ref_bonus_amount']) }}</td>
+                <td>  {{ \App\CentralLogics\Helpers::number_format_short($ot->order['coupon_discount_amount'] + $ot->order['restaurant_discount_amount'] + $ot->order['ref_bonus_amount']) }}</td>
                 <td>{{ \App\CentralLogics\Helpers::format_currency($ot->tax) }}</td>
                 <td>{{ \App\CentralLogics\Helpers::format_currency($ot['delivery_charge'] + $ot['delivery_fee_comission']) }}</td>
                 <td>{{ \App\CentralLogics\Helpers::format_currency($ot->order_amount) }}</td>
@@ -131,9 +134,10 @@
                     };
                 @endphp
                 <td>
-                    {{ \App\CentralLogics\Helpers::format_currency($ot->admin_commission - $ot?->additional_charge ), }}
+                    {{ \App\CentralLogics\Helpers::format_currency($ot->admin_commission - $ot?->additional_charge + $ot?->admin_expens ) }}
                 </td>
                 <td>{{ \App\CentralLogics\Helpers::format_currency($ot?->additional_charge) }}</td>
+                <td>{{ \App\CentralLogics\Helpers::format_currency(($ot->extra_packaging_amount)) }}</td>
                 <td>{{ \App\CentralLogics\Helpers::format_currency($ot->delivery_fee_comission) }}</td>
                 <td>{{ \App\CentralLogics\Helpers::format_currency($ot['admin_commission'] + $ot->delivery_fee_comission) }}</td>
                 <td>{{ \App\CentralLogics\Helpers::format_currency($ot->restaurant_amount - $ot->tax) }}</td>

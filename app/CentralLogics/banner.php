@@ -25,7 +25,8 @@ class BannerLogic
                         'type'=>$banner->type,
                         'image'=>$banner->image,
                         'restaurant'=> $restaurant?Helpers::restaurant_data_formatting(data:$restaurant, multi_data:false):null,
-                        'food'=>null
+                        'food'=>null,
+                        'image_full_url'=>$banner->image_full_url,
                     ];
                 }
             }
@@ -42,6 +43,7 @@ class BannerLogic
                         'image'=>$banner->image,
                         'restaurant'=> null,
                         'food'=> $food?Helpers::product_data_formatting(data:$food, multi_data:false, trans:false, local:app()->getLocale()):null,
+                        'image_full_url'=>$banner->image_full_url,
                     ];
                 }
             }

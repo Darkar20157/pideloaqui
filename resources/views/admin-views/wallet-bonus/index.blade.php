@@ -60,7 +60,7 @@
                                                     <input type="text" maxlength="255" name="title[]" id="default_title"
                                                         class="form-control" placeholder="{{ translate('messages.Ex:_EID_Dhamaka') }}"
 
-                                                        oninvalid="document.getElementById('en-link').click()">
+                                                         >
                                                 </div>
                                             </div>
                                             <div class="col-6">
@@ -72,7 +72,7 @@
                                                     <input maxlength="255" type="text" name="description[]" id="default_description"
                                                         class="form-control" placeholder="{{ translate('messages.Ex:_EID_Dhamaka') }}"
 
-                                                        oninvalid="document.getElementById('en-link').click()">
+                                                         >
                                                 </div>
                                             </div>
                                         </div>
@@ -90,7 +90,7 @@
                                                             </label>
                                                             <input type="text" maxlength="255" name="title[]" id="{{ $lang }}_title"
                                                                 class="form-control" placeholder="{{ translate('messages.Ex:_EID_Dhamaka') }}"
-                                                                oninvalid="document.getElementById('en-link').click()">
+                                                                 >
                                                         </div>
                                                     </div>
                                                     <div class="col-6">
@@ -101,7 +101,7 @@
                                                             </label>
                                                             <input type="text" maxlength="255" name="description[]" id="{{ $lang }}_description"
                                                                 class="form-control" placeholder="{{ translate('messages.Ex:_EID_Dhamaka') }}"
-                                                                oninvalid="document.getElementById('en-link').click()">
+                                                                 >
                                                         </div>
                                                     </div>
                                                 </div>

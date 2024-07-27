@@ -224,7 +224,7 @@ class DeliveryManController extends Controller
         if (!empty($request->file('identity_image'))) {
             foreach ($request->identity_image as $img) {
                 $identity_image = Helpers::upload(dir:'delivery-man/',format: 'png', image:$img);
-                array_push($id_img_names, $identity_image);
+                array_push($id_img_names, ['img'=>$identity_image, 'storage'=> Helpers::getDisk()]);
             }
             $identity_image = json_encode($id_img_names);
         } else {
@@ -258,7 +258,7 @@ class DeliveryManController extends Controller
                 foreach($data as $file){
                     if(is_file($file)){
                         $file_name = Helpers::upload('additional_documents/dm/', $file->getClientOriginalExtension(), $file);
-                        $additional[] = $file_name ;
+                        $additional[] = ['file'=>$file_name, 'storage'=> Helpers::getDisk()];
                     }
                     $additional_documents[$key] = $additional;
                 }
@@ -282,47 +282,12 @@ class DeliveryManController extends Controller
         $delivery_man = DeliveryMan::find($request->id);
         $delivery_man->status = $request->status;
 
-//        try
-//        {
-//            if($request->status == 0)
-//            {   $delivery_man->auth_token = null;
-//                if(isset($delivery_man->fcm_token))
-//                {
-//                    $data = [
-//                        'title' => translate('messages.suspended'),
-//                        'description' => translate('messages.your_account_has_been_suspended'),
-//                        'order_id' => '',
-//                        'image' => '',
-//                        'type'=> 'block'
-//                    ];
-//                    Helpers::send_push_notif_to_device($delivery_man->fcm_token, $data);
-//
-//                    DB::table('user_notifications')->insert([
-//                        'data'=> json_encode($data),
-//                        'delivery_man_id'=>$delivery_man->id,
-//                        'created_at'=>now(),
-//                        'updated_at'=>now()
-//                    ]);
-//                }
-//                if (config('mail.status') && Helpers::get_mail_status('suspend_mail_status_dm') == '1') {
-//
-//                    try {
-//                        Mail::to($delivery_man['email'])->send(new \App\Mail\DmSuspendMail($delivery_man['f_name']));
-//                    }catch(\Exception $exception){
-//                        info([$exception->getFile(),$exception->getLine(),$exception->getMessage()]);
-//                    }
-//                }
-//            }
-//
-//        }
-//        catch (\Exception $e) {
-//            Toastr::warning(translate('messages.push_notification_faild'));
-//        }
-
         try {
             if ($request->status == 0) {
                 $delivery_man->auth_token = null;
-                if(isset($delivery_man->fcm_token))
+                $deliveryman_push_notification_status=Helpers::getNotificationStatusData('deliveryman','deliveryman_account_block');
+
+                if( $deliveryman_push_notification_status?->push_notification_status  == 'active' && isset($delivery_man->fcm_token))
                 {
                     $data = [
                         'title' => translate('messages.suspended'),
@@ -342,12 +307,40 @@ class DeliveryManController extends Controller
                 }
 
                 $mail_status = Helpers::get_mail_status('suspend_mail_status_dm');
-                if ( config('mail.status') && $mail_status == '1') {
+                $notification_status= Helpers::getNotificationStatusData('deliveryman','deliveryman_account_block');
+
+                if ( $notification_status?->mail_status == 'active' &&  config('mail.status') && $mail_status == '1') {
                     Mail::to($delivery_man['email'])->send(new \App\Mail\DmSuspendMail('suspend',$delivery_man['f_name']));
                 }
             }else{
+
+
+                $deliveryman_push_notification_status=Helpers::getNotificationStatusData('deliveryman','deliveryman_account_unblock');
+                if( $deliveryman_push_notification_status?->push_notification_status  == 'active' && isset($delivery_man->fcm_token))
+                {
+                    $data = [
+                        'title' => translate('messages.Account_activation'),
+                        'description' => translate('messages.your_account_has_been_activated'),
+                        'order_id' => '',
+                        'image' => '',
+                        'type'=> 'unblock'
+                    ];
+                    Helpers::send_push_notif_to_device($delivery_man->fcm_token, $data);
+
+                    DB::table('user_notifications')->insert([
+                        'data'=> json_encode($data),
+                        'delivery_man_id'=>$delivery_man->id,
+                        'created_at'=>now(),
+                        'updated_at'=>now()
+                    ]);
+                }
+
+
+                $notification_status=null;
+                $notification_status= Helpers::getNotificationStatusData('deliveryman','deliveryman_account_unblock');
+
                 $mail_status = Helpers::get_mail_status('unsuspend_mail_status_dm');
-                if ( config('mail.status') && $mail_status == '1') {
+                if ( $notification_status?->mail_status == 'active' &&  config('mail.status') && $mail_status == '1') {
                     Mail::to($delivery_man['email'])->send(new \App\Mail\DmSuspendMail('unsuspend',$delivery_man['f_name']));
                 }
             }
@@ -388,12 +381,17 @@ class DeliveryManController extends Controller
         if($request->status == 'approved') $delivery_man->status = 1;
         $delivery_man->save();
         try{
+            $notification_status= Helpers::getNotificationStatusData('deliveryman','deliveryman_registration_approval');
+
             if($request->status== 'approved'){
-                if(config('mail.status') && Helpers::get_mail_status('approve_mail_status_dm') == '1'){
+                if($notification_status?->mail_status == 'active' && config('mail.status') && Helpers::get_mail_status('approve_mail_status_dm') == '1'){
                     Mail::to($delivery_man->email)->send(new \App\Mail\DmSelfRegistration('approved',$delivery_man->f_name.' '.$delivery_man->l_name));
-                }
-            }else{
-                if(config('mail.status') && Helpers::get_mail_status('deny_mail_status_dm')== '1'){
+                    }
+                    }else{
+
+                        $notification_status=null;
+                $notification_status= Helpers::getNotificationStatusData('deliveryman','deliveryman_registration_deny');
+                if($notification_status?->mail_status == 'active' && config('mail.status') && Helpers::get_mail_status('deny_mail_status_dm')== '1'){
                     Mail::to($delivery_man->email)->send(new \App\Mail\DmSelfRegistration('denied', $delivery_man->f_name.' '.$delivery_man->l_name));
                 }
             }
@@ -448,14 +446,12 @@ class DeliveryManController extends Controller
 
         if ($request->has('identity_image')){
             foreach (json_decode($delivery_man['identity_image'], true) as $img) {
-                if (Storage::disk('public')->exists('delivery-man/' . $img)) {
-                    Storage::disk('public')->delete('delivery-man/' . $img);
-                }
+                Helpers::check_and_delete('delivery-man/' , $img);
             }
             $img_keeper = [];
             foreach ($request->identity_image as $img) {
                 $identity_image = Helpers::upload(dir:'delivery-man/', format:'png', image:$img);
-                array_push($img_keeper, $identity_image);
+                array_push($img_keeper, ['img'=>$identity_image, 'storage'=> Helpers::getDisk()]);
             }
             $identity_image = json_encode($img_keeper);
         } else {
@@ -483,14 +479,10 @@ class DeliveryManController extends Controller
     public function delete(Request $request)
     {
         $delivery_man = DeliveryMan::find($request->id);
-        if (Storage::disk('public')->exists('delivery-man/' . $delivery_man['image'])) {
-            Storage::disk('public')->delete('delivery-man/' . $delivery_man['image']);
-        }
+        Helpers::check_and_delete('delivery-man/' , $delivery_man['image']);
 
         foreach (json_decode($delivery_man['identity_image'], true) as $img) {
-            if (Storage::disk('public')->exists('delivery-man/' . $img)) {
-                Storage::disk('public')->delete('delivery-man/' . $img);
-            }
+            Helpers::check_and_delete('delivery-man/' , $img);
         }
         if($delivery_man->userinfo){
 

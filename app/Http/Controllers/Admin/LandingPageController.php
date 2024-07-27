@@ -98,14 +98,8 @@ class LandingPageController extends Controller
             return back();
         }
 
-        if (Storage::disk('public')->exists('reviewer_image/' . $testimonial->reviewer_image)) {
-            Storage::disk('public')->delete('reviewer_image/' . $testimonial->reviewer_image);
-        }
-
-        if (Storage::disk('public')->exists('reviewer_image/' . $testimonial->company_image)) {
-            Storage::disk('public')->delete('reviewer_image/' . $testimonial->company_image);
-        }
-
+        Helpers::check_and_delete('reviewer_image/' , $testimonial->reviewer_image);
+        Helpers::check_and_delete('reviewer_image/' , $testimonial->company_image);
         $testimonial->delete();
         Toastr::success(translate('messages.testimonial_deleted_successfully'));
         return back();
@@ -299,9 +293,7 @@ class LandingPageController extends Controller
             return back();
         }
 
-        if (Storage::disk('public')->exists('feature_image/' . $feature->image)) {
-            Storage::disk('public')->delete('feature_image/' . $feature->image);
-        }
+        Helpers::check_and_delete('feature_image/' , $feature->image);
 
         $feature?->translations()?->delete();
         $feature?->delete();
@@ -332,10 +324,12 @@ class LandingPageController extends Controller
         // $button_content=json_decode($header_button_content?? null ,true );
         $image_content=json_decode($header_image_content?->value?? null ,true );
         $header_floating_content=json_decode($header_floating_content_data?->value?? null ,true );
+        $header_content_image_full_url = Helpers::get_full_url('header_image',$image_content['header_content_image'] ?? 'double_screen_image.png',$image_content['header_content_image_storage']??'public') ;
+        $header_bg_image_full_url = Helpers::get_full_url('header_image',$image_content['header_bg_image'] ?? null,$image_content['header_bg_image_storage']??'public') ;
 
         $language=BusinessSetting::where('key','language')->first()?->value ?? null;
 
-        return view('admin-views.landing_page.header',compact('header_title','header_sub_title','header_tag_line','header_image_content','header_floating_content_data','header_app_button_name','header_app_button_status','header_floating_content_data','header_button_content','image_content','header_floating_content','language'));
+        return view('admin-views.landing_page.header',compact('header_title','header_sub_title','header_tag_line','header_image_content','header_floating_content_data','header_app_button_name','header_app_button_status','header_floating_content_data','header_button_content','image_content','header_floating_content','language','header_content_image_full_url','header_bg_image_full_url'));
     }
 
     public function about_us(){
@@ -348,7 +342,7 @@ class LandingPageController extends Controller
 
         $about_us_app_button_name=\App\Models\DataSetting::with('translations')->withoutGlobalScope('translate')->where('type','admin_landing_page')->where('key','about_us_app_button_name')->first() ?? null ;
         $about_us_app_button_status=\App\Models\DataSetting::with('translations')->withoutGlobalScope('translate')->where('type','admin_landing_page')->where('key','about_us_app_button_status')->first()?->value ?? null ;
-        $about_us_content_image=$header_image_content?->value?? null ;
+        $about_us_content_image = Helpers::get_full_url('about_us_image',$header_image_content?->value?? null,$header_image_content?->storage[0]?->value ?? 'public');
         $language=BusinessSetting::where('key','language')->first()?->value ?? null;
 
 
@@ -380,6 +374,7 @@ class LandingPageController extends Controller
         $earn_money_sub_title=DataSetting::withoutGlobalScope('translate')->with('translations')->where('type','admin_landing_page')->where('key','earn_money_sub_title')->first() ?? null;
         $earn_money_reg_title=DataSetting::withoutGlobalScope('translate')->with('translations')->where('type','admin_landing_page')->where('key','earn_money_reg_title')->first() ?? null;
         $earn_money_reg_image=DataSetting::withoutGlobalScope('translate')->with('translations')->where('type','admin_landing_page')->where('key','earn_money_reg_image')->first() ?? null;
+        $earn_money_reg_image_full_url = Helpers::get_full_url('earn_money',$earn_money_reg_image?->value?? null,$earn_money_reg_image?->storage[0]?->value ?? 'public');
 
         $earn_money_restaurant_req_button_name=DataSetting::withoutGlobalScope('translate')->with('translations')->where('type','admin_landing_page')->where('key','earn_money_restaurant_req_button_name')->first() ?? null;
         $earn_money_restaurant_req_button_status=DataSetting::withoutGlobalScope('translate')->with('translations')->where('type','admin_landing_page')->where('key','earn_money_restaurant_req_button_status')->first() ?? null;
@@ -392,7 +387,7 @@ class LandingPageController extends Controller
         $earn_money_delivery_man_req_button_link=DataSetting::withoutGlobalScope('translate')->with('translations')->where('type','admin_landing_page')->where('key','earn_money_delivery_man_req_button_link')->first()?->value ?? null;
         $language=BusinessSetting::where('key','language')->first()?->value ?? null;
 
-        return view('admin-views.landing_page.earn_money', compact('earn_money_title','earn_money_sub_title','earn_money_reg_title','earn_money_reg_image','earn_money_restaurant_req_button_name','earn_money_restaurant_req_button_status','earn_money_restaurant_req_button_link','earn_money_delivety_man_req_button_name','earn_money_delivery_man_req_button_status','earn_money_delivery_man_req_button_link','language'));
+        return view('admin-views.landing_page.earn_money', compact('earn_money_title','earn_money_sub_title','earn_money_reg_title','earn_money_reg_image','earn_money_restaurant_req_button_name','earn_money_restaurant_req_button_status','earn_money_restaurant_req_button_link','earn_money_delivety_man_req_button_name','earn_money_delivery_man_req_button_status','earn_money_delivery_man_req_button_link','language','earn_money_reg_image_full_url'));
     }
 
     public function services(){
@@ -699,9 +694,7 @@ class LandingPageController extends Controller
             return back();
         }
 
-        if (Storage::disk('public')->exists('react_service_image/' . $service->image)) {
-            Storage::disk('public')->delete('react_service_image/' . $service->image);
-        }
+        Helpers::check_and_delete('react_service_image/' , $service->image);
 
         $service?->translations()?->delete();
         $service?->delete();
@@ -892,9 +885,7 @@ class LandingPageController extends Controller
             return back();
         }
 
-        if (Storage::disk('public')->exists('react_promotional_banner/' . $react_promotional_banner->image)) {
-            Storage::disk('public')->delete('react_promotional_banner/' . $react_promotional_banner->image);
-        }
+        Helpers::check_and_delete('react_promotional_banner/' , $react_promotional_banner->image);
 
         $react_promotional_banner?->translations()?->delete();
         $react_promotional_banner?->delete();
@@ -1841,10 +1832,14 @@ class LandingPageController extends Controller
             $data = [];
             $imageName1 = null;
             $imageName2 = null;
+            $storage1 = 'public';
+            $storage2 = 'public';
             if($header_image_content){
                 $data = json_decode($header_image_content?->value, true);
                 $imageName1 =$data['header_content_image'] ?? null;
                 $imageName2 =$data['header_bg_image'] ?? null;
+                $storage1 =$data['header_content_image_storage'] ?? 'public';
+                $storage2 =$data['header_bg_image_storage'] ?? 'public';
             }
 
             if ($header_image_content == null) {
@@ -1855,20 +1850,26 @@ class LandingPageController extends Controller
             if ($request->has('header_content_image'))   {
                 if (empty($imageName1)) {
                     $imageName1 = Helpers::upload( dir:'header_image/',format: 'png',image: $request->file('header_content_image'));
+                    $storage1 = Helpers::getDisk();
                     }  else{
                     $imageName1= Helpers::update( dir: 'header_image/',old_image: $data['header_content_image'],format: 'png', image:$request->file('header_content_image')) ;
+                    $storage1 = Helpers::getDisk();
                     }
             }
             if ($request->has('header_bg_image'))   {
                 if (empty($imageName2)) {
                     $imageName2 = Helpers::upload( dir:'header_image/',format: 'png',image: $request->file('header_bg_image'));
+                    $storage2 = Helpers::getDisk();
                     }  else{
                     $imageName2= Helpers::update( dir: 'header_image/',old_image: $data['header_bg_image'],format: 'png', image:$request->file('header_bg_image')) ;
+                    $storage2 = Helpers::getDisk();
                     }
             }
             $img_data = [
                 'header_content_image' => $imageName1,
                 'header_bg_image' => $imageName2 ,
+                'header_content_image_storage' => $storage1,
+                'header_bg_image_storage' => $storage2 ,
             ];
             $header_image_content->value =  json_encode($img_data);
             $header_image_content->save();

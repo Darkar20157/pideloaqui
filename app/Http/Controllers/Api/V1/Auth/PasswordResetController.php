@@ -59,26 +59,33 @@ class PasswordResetController extends Controller
             ]);
 
             try {
-                $mailResponse=null;
-                if (config('mail.status') && Helpers::get_mail_status('forget_password_mail_status_user') == '1') {
+            $mailResponse=null;
+            $notification_status= Helpers::getNotificationStatusData('customer','customer_forget_password');
+                if ($notification_status?->mail_status == 'active' && config('mail.status') && Helpers::get_mail_status('forget_password_mail_status_user') == '1') {
                     Mail::to($customer['email'])->send(new \App\Mail\UserPasswordResetMail($token,$customer['f_name']));
                     $mailResponse='success';
                 }
             } catch (\Throwable $th) {
+                $mailResponse=null;
                 info($th->getMessage());
             }
 
-            $published_status = 0;
-            $payment_published_status = config('get_payment_publish_status');
-            if (isset($payment_published_status[0]['is_published'])) {
-                $published_status = $payment_published_status[0]['is_published'];
+            $response =null;
+            $customer_sms_status=Helpers::getNotificationStatusData('customer','customer_forget_password');
+            if($customer_sms_status?->sms_status  == 'active'){
+                    $published_status = 0;
+                    $payment_published_status = config('get_payment_publish_status');
+                    if (isset($payment_published_status[0]['is_published'])) {
+                        $published_status = $payment_published_status[0]['is_published'];
+                    }
+
+                    if($published_status == 1){
+                        $response = SmsGateway::send($request['phone'],$token);
+                    }else{
+                        $response = SMS_module::send($request['phone'],$token);
+                    }
             }
 
-            if($published_status == 1){
-                $response = SmsGateway::send($request['phone'],$token);
-            }else{
-                $response = SMS_module::send($request['phone'],$token);
-            }
 
             if($response == 'success' && $mailResponse == 'success')
             {

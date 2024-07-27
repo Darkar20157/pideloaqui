@@ -8,10 +8,10 @@
                     @php($restaurant_data=\App\CentralLogics\Helpers::get_restaurant_data())
                     <a class="navbar-brand pt-0 pb-0" href="{{route('vendor.dashboard')}}" aria-label="Front">
                             <img class="navbar-brand-logo"
-                            src="{{\App\CentralLogics\Helpers::onerror_image_helper($restaurant_data?->logo, dynamicStorage('storage/app/public/restaurant/'.$restaurant_data?->logo), dynamicAsset('public/assets/admin/img/160x160/img2.jpg'), 'restaurant/') }}"
+                            src="{{ $restaurant_data?->logo_full_url }}"
                             alt="image">
                             <img class="navbar-brand-logo-mini"
-                            src="{{\App\CentralLogics\Helpers::onerror_image_helper($restaurant_data?->logo, dynamicStorage('storage/app/public/restaurant/'.$restaurant_data?->logo), dynamicAsset('public/assets/admin/img/160x160/img2.jpg'), 'restaurant/') }}"
+                            src="{{ $restaurant_data?->logo_full_url }}"
                             alt="image">
 
                         <div class="ps-2">
@@ -119,6 +119,55 @@
                 @endif
                 <!-- End Coupon -->
 
+
+                @if (\App\CentralLogics\Helpers::employee_module_permission_check('coupon'))
+
+                <li class="nav-item">
+                    <small
+                        class="nav-subtitle">{{translate('Advertisement Management')}}</small>
+                    <small class="tio-more-horizontal nav-subtitle-replacer"></small>
+                </li>
+
+                <li class="navbar-vertical-aside-has-menu @yield('advertisement_create')">
+                <a class="js-navbar-vertical-aside-menu-link nav-link"
+                    href="{{ route('vendor.advertisement.create') }}"
+                    title="{{ translate('messages.New_Advertisement') }}">
+                    <i class="tio-tv-old nav-icon"></i>
+                    <span
+                        class="navbar-vertical-aside-mini-mode-hidden-elements text-truncate">{{ translate('messages.New_Advertisement') }}</span>
+                </a>
+                </li>
+
+
+                <li class="navbar-vertical-aside-has-menu @yield('advertisement')">
+                    <a class="js-navbar-vertical-aside-menu-link nav-link nav-link-toggle"
+                        href="javascript:" title="{{translate('messages.Advertisement_List')}}"
+                    >
+                        <i class="tio-format-bullets nav-icon"></i>
+                        <span
+                            class="navbar-vertical-aside-mini-mode-hidden-elements text-truncate">{{translate('messages.Advertisement_List')}}</span>
+                    </a>
+                    <ul class="js-navbar-vertical-aside-submenu nav nav-sub"
+                    style="display: {{ !Request::is('restaurant-panel/advertisement/create*') && Request::is('restaurant-panel/advertisement*')?'block':'none'}}">
+                        <li class="nav-item @yield('advertisement_pending_list')">
+                            <a class="nav-link " href="{{route('vendor.advertisement.index',['type'=> 'pending'])}}"
+                                title="{{translate('messages.Pending')}}">
+                                <span class="tio-circle nav-indicator-icon"></span>
+                                <span class="text-truncate">{{translate('messages.Pending')}}</span>
+                            </a>
+                        </li>
+
+                        <li class="nav-item @yield('advertisement_list')">
+                            <a class="nav-link " href="{{route('vendor.advertisement.index')}}"
+                                title="{{translate('messages.Ad_List')}}">
+                                <span class="tio-circle nav-indicator-icon"></span>
+                                <span class="text-truncate">{{translate('messages.Ad_List')}}</span>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+
+                @endif
 
                     @if(\App\CentralLogics\Helpers::employee_module_permission_check('order'))
                     <li class="nav-item">
@@ -449,6 +498,14 @@
                         </a>
                     </li>
                     @endif
+                    <li class="navbar-vertical-aside-has-menu {{Request::is('restaurant-panel/business-settings/notification-setup')?'active':''}}">
+                        <a class="nav-link " href="{{route('vendor.business-settings.notification-setup')}}" title="{{translate('messages.notification_setup')}}"
+                        >
+                            <span class="tio-notifications nav-icon"></span>
+                            <span
+                                class="text-truncate">{{translate('messages.notification_setup')}}</span>
+                        </a>
+                    </li>
 
                     @if(\App\CentralLogics\Helpers::employee_module_permission_check('my_shop'))
                     <li class="navbar-vertical-aside-has-menu {{Request::is('restaurant-panel/restaurant/view')?'active':''}}">
@@ -642,8 +699,17 @@
                     @endif
                     <!-- End Employee -->
 
-                    <li class="nav-item pt-100px">
-
+                    <li class="nav-item px-20 pb-5">
+                        <div class="promo-card">
+                            <div class="position-relative">
+                                <img src="{{dynamicAsset('public/assets/admin/img/promo.png')}}" class="mw-100" alt="">
+                                <h4 class="mb-2 mt-3">{{ translate('Want_to_get_highlighted?') }}</h4>
+                                <p class="mb-4">
+                                    {{ translate('Create_ads_to_get_highlighted_on_the_app_and_web_browser') }}
+                                </p>
+                                <a href="{{ route('vendor.advertisement.create') }}" class="btn btn--primary">{{ translate('Create_Ads') }}</a>
+                            </div>
+                        </div>
                     </li>
                 </ul>
             </div>

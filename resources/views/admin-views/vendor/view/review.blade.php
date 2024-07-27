@@ -293,6 +293,7 @@
                             <th class="pl-4">{{translate('messages.reviewer_info')}}</th>
                             <th>{{translate('messages.review')}}</th>
                             <th>{{translate('messages.date')}}</th>
+                            <th class="w-30p text-center">{{translate('messages.restaurant_reply')}}</th>
                             <th class="text-center w-100px">{{translate('messages.status')}}</th>
                         </tr>
                     </thead>
@@ -311,12 +312,7 @@
                                 <a class="media align-items-center" href="{{route('admin.food.view',[$review->food['id']])}}">
                                     <img class="avatar avatar-lg mr-3 onerror-image"
 
-                                         src="{{ \App\CentralLogics\Helpers::onerror_image_helper(
-                                                $review?->food['image'] ?? '',
-                                                dynamicStorage('storage/app/public/product').'/'.$review?->food['image'] ?? '',
-                                                dynamicAsset('public/assets/admin/img/100x100/food-default-image.png'),
-                                                'product/'
-                                            ) }}"
+                                         src="{{ $review?->food['image_full_url'] ?? dynamicAsset('public/assets/admin/img/100x100/food-default-image.png') }}"
 
 
                                          data-onerror-image="{{dynamicAsset('public/assets/admin/img/100x100/food-default-image.png')}}" alt="{{$review->food->name}} image">
@@ -351,14 +347,20 @@
                                     <span class="d-block rating">
                                         {{$review->rating}} <i class="tio-star"></i>
                                     </span>
-                                    <small class="d-block">
+                                    <small class="d-block" data-toggle="tooltip" data-placement="left"
+                                    data-original-title="{{ $review['comment']}}" >
                                         {{Str::limit($review['comment'], 80)}}
                                     </small>
                                 </div>
                             </td>
                             <td>
-                                {{ Carbon\Carbon::parse($review['created_at'])->locale(app()->getLocale())->translatedFormat( 'd M Y ' .config('timeformat')) }}
+                                {{ \App\CentralLogics\Helpers::time_date_format($review->created_at)  }}
                             </td>
+                            <td>
+                                <p class="text-wrap text-center" data-toggle="tooltip" data-placement="top"
+                                   data-original-title="{{ $review?->reply }}">{!! $review->reply?Str::limit($review->reply, 50, '...'): translate('messages.Not_replied_Yet') !!}</p>
+                            </td>
+
                             <td>
                                 <label class="toggle-switch toggle-switch-sm" for="reviewCheckbox{{$review->id}}">
                                     <input type="checkbox" data-id="status-{{$review['id']}}" data-message="{{$review->status?translate('messages.you_want_to_hide_this_review_for_customer'):translate('messages.you_want_to_show_this_review_for_customer')}}" class="toggle-switch-input status_form_alert" id="reviewCheckbox{{$review->id}}" {{$review->status?'checked':''}}>

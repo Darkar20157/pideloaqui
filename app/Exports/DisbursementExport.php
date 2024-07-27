@@ -2,6 +2,7 @@
 
 namespace App\Exports;
 
+use App\CentralLogics\Helpers;
 use Illuminate\Contracts\View\View;
 use Maatwebsite\Excel\Concerns\FromView;
 use Maatwebsite\Excel\Events\AfterSheet;
@@ -14,6 +15,8 @@ use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
+use PhpOffice\PhpSpreadsheet\Worksheet\MemoryDrawing;
+
 class DisbursementExport implements  FromView, ShouldAutoSize, WithStyles ,WithHeadings, WithEvents
 {
 
@@ -68,8 +71,21 @@ class DisbursementExport implements  FromView, ShouldAutoSize, WithStyles ,WithH
     }
 
     public function setImage($workSheet) {
-        $logo = \App\Models\BusinessSetting::where(['key' => 'logo'])->first()->value;
-        $drawing = new Drawing();
+        $logo = \App\Models\BusinessSetting::where(['key' => 'logo'])->first();
+        $image_full_url =Helpers::get_full_url('business', $logo?->value?? '', $logo?->storage[0]?->value ?? 'public','upload_image');
+        $tempImagePath = null;
+
+        if(!is_file(storage_path('app/public/business/'.$logo?->value) )){
+            $tempImagePath = Helpers::getTemporaryImageForExport($image_full_url);
+            $imagePath = Helpers::getImageForExport($image_full_url);
+
+            $drawing = new MemoryDrawing();
+            $drawing->setImageResource($imagePath);
+        }else{
+            $drawing = new Drawing();
+            $drawing->setPath(is_file(storage_path('app/public/business/'.$logo?->value))?storage_path('app/public/business/'.$logo?->value):public_path('/assets/admin/img/160x160/img2.jpg'));
+        }
+
         $drawing->setPath(is_file(storage_path('app/public/business/'.$logo))?storage_path('app/public/business/'.$logo):public_path('/assets/admin/img/160x160/img2.jpg'));
         $drawing->setWidth(150);
         $drawing->setHeight(62);
@@ -77,8 +93,10 @@ class DisbursementExport implements  FromView, ShouldAutoSize, WithStyles ,WithH
         $drawing->setResizeProportional(true);
         $drawing->setOffsetX(5);
         $drawing->setOffsetY(3);
-
         $drawing->setWorksheet($workSheet);
+        if($tempImagePath){
+            imagedestroy($tempImagePath);
+        }
     }
 
     public function registerEvents(): array

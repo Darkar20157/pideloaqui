@@ -189,8 +189,10 @@ class RestaurantController extends Controller
             $item['customer_name'] = null;
             if($item->food)
             {
+                $item['food_id'] = $item?->food?->id;
                 $item['food_name'] = $item?->food?->name;
                 $item['food_image'] = $item?->food?->image;
+                $item['food_image_full_url'] = $item?->food?->image_full_url;
                 if(count($item?->food?->translations)>0)
                 {
                     $translate = array_column($item->food->translations->toArray(), 'value', 'key');

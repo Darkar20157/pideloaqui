@@ -372,6 +372,7 @@
                         success: function (data) {
                             if (data.success === 2) {
                                 toastr.error('{{translate('email_configuration_error')}} !!');
+                                toastr.error(data.message);
                             } else if (data.success === 1) {
                                 toastr.success('{{translate('email_configured_perfectly!')}}!');
                             } else {

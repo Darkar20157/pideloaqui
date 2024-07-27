@@ -79,7 +79,7 @@
 
                             <div class="form-group lang_form" id="default-form">
                                 <label class="input-label" for="exampleFormControlInput1">{{ translate('messages.business_Zone_name')}} ({{ translate('messages.default') }})</label>
-                                <input type="text" name="name[]" class="form-control" placeholder="{{translate('messages.Type_new_zone_name_here')}}" maxlength="191" value="{{$zone?->getRawOriginal('name')}}"  oninvalid="document.getElementById('en-link').click()">
+                                <input type="text" name="name[]" class="form-control" placeholder="{{translate('messages.Type_new_zone_name_here')}}" maxlength="191" value="{{$zone?->getRawOriginal('name')}}"   >
                             </div>
                             <input type="hidden" name="lang[]" value="default">
                             @if($language)
@@ -97,7 +97,7 @@
                             ?>
                             <div class="form-group d-none lang_form" id="{{$lang}}-form">
                                 <label class="input-label" for="exampleFormControlInput1">{{ translate('messages.business_Zone_name')}} ({{strtoupper($lang)}})</label>
-                                <input type="text" name="name[]" class="form-control" placeholder="{{translate('messages.Type_new_zone_name_here')}}" maxlength="191" value="{{$translate[$lang]['name']??''}}" oninvalid="document.getElementById('en-link').click()">
+                                <input type="text" name="name[]" class="form-control" placeholder="{{translate('messages.Type_new_zone_name_here')}}" maxlength="191" value="{{$translate[$lang]['name']??''}}"  >
                             </div>
                             <input type="hidden" name="lang[]" value="{{$lang}}">
                         @endforeach

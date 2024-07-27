@@ -5,7 +5,7 @@
 @endpush
 
 @section('content')
-    <center><h1>Please do not refresh this page...</h1></center>
+    <div class="text-center"><h1>Please do not refresh this page...</h1></div>
 
 
     <form action="{!!route('razor-pay.payment',['payment_id'=>$data->id])!!}" id="form" method="POST">
@@ -16,9 +16,9 @@
                 data-key="{{ config()->get('razor_config.api_key') }}"
                 data-amount="{{round($data->payment_amount, 2)*100}}"
                 data-buttontext="Pay {{ round($data->payment_amount, 2) . ' ' . $data->currency_code }}"
-                data-name="lorem"
+                data-name="{{ $business_name ?? 'FoodApp' }}"
                 data-description="{{$data->payment_amount}}"
-                data-image="def.png"
+                data-image="{{ $business_logo ?? 'default.png' }}"
                 data-prefill.name="{{$payer->name ?? ''}}"
                 data-prefill.email="{{$payer->email ?? ''}}"
                 data-theme.color="#ff7529">

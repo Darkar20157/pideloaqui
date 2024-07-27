@@ -98,7 +98,7 @@
 
                                 <div class="image-box">
                                     <label for="image-input" class="d-flex flex-column align-items-center justify-content-center h-100 cursor-pointer gap-2">
-                                    <img width="30" class="upload-icon" src="{{asset('public/assets/admin/img/upload-icon.png')}}" alt="Upload Icon">
+                                    <img width="30" class="upload-icon" src="{{dynamicAsset('public/assets/admin/img/upload-icon.png')}}" alt="Upload Icon">
                                     <span class="upload-text">{{ translate('Upload Image')}}</span>
                                     <img src="#" alt="Preview Image" class="preview-image">
                                     </label>
@@ -184,14 +184,14 @@
 
                                             <div class="img_area_with_preview z-index-2">
                                                 <img id="additional_Image_1" class="bg-white d-none"
-                                                     src="{{ asset('public/assets/admin/img/upload-icon.png-dummy') }}" alt="">
+                                                     src="{{ dynamicAsset('public/assets/admin/img/upload-icon.png-dummy') }}" alt="">
                                             </div>
                                             <div
                                                 class="position-absolute h-100 top-0 w-100 d-flex align-content-center justify-content-center">
                                                 <div
                                                     class="d-flex flex-column justify-content-center align-items-center">
                                                     <img alt="" width="30"
-                                                         src="{{ asset('public/assets/admin/img/upload-icon.png') }}">
+                                                         src="{{ dynamicAsset('public/assets/admin/img/upload-icon.png') }}">
                                                     <div class="text-muted mt-3">{{ translate('Upload_Picture') }}</div>
                                                     <div class="fs-10 text-muted mt-1">{{translate('Upload jpg, png, jpeg, gif maximum 2 MB')}}</div>
                                                 </div>
@@ -273,7 +273,7 @@
                                                         <p class="mb-2 form-label">{{translate($item['input_data'])  }}</p>
                                                         <div class="image-box banner" >
                                                             <label class="d-flex flex-column align-items-center justify-content-center h-100 cursor-pointer gap-2">
-                                                                <img  width='30' id="additional_data_Image_1" class="upload-icon " src="{{asset('public/assets/admin/img/upload-icon.png')}}" alt="Upload Icon">
+                                                                <img  width='30' id="additional_data_Image_1" class="upload-icon " src="{{dynamicAsset('public/assets/admin/img/upload-icon.png')}}" alt="Upload Icon">
                                                                 <span class="upload-text text-center px-2" data-text="{{ translate('Select a file')}}">{{ translate('Select a file')}}</span>
                                                                 <span class="upload-text2 text-center px-2" data-text="{{ translate('JPG, PNG or PDF, file size no more than 2MB')}}">{{ translate('JPG, PNG or PDF, file size no more than 2MB')}}</span>
                                                                 <img src="#" alt="Preview Image" class="preview-image">
@@ -312,14 +312,14 @@
 
                                                             <div class="img_area_with_preview z-index-2">
                                                                 <img id="additional_data_Image_1" class="bg-white d-none"
-                                                                     src="{{ asset('public/assets/admin/img/upload-icon.png-dummy') }}" alt="">
+                                                                     src="{{ dynamicAsset('public/assets/admin/img/upload-icon.png-dummy') }}" alt="">
                                                             </div>
                                                             <div
                                                                 class="position-absolute h-100 top-0 w-100 d-flex align-content-center justify-content-center">
                                                                 <div
                                                                     class="d-flex flex-column justify-content-center align-items-center">
                                                                     <img alt="" width="30"
-                                                                         src="{{ asset('public/assets/admin/img/upload-icon.png') }}">
+                                                                         src="{{ dynamicAsset('public/assets/admin/img/upload-icon.png') }}">
                                                                     <div class="text-muted mt-3">{{ translate('Upload_Picture') }}</div>
                                                                     <div class="fs-10 text-muted mt-1">{{translate('Upload jpg, png, jpeg, gif maximum 2 MB')}}</div>
                                                                 </div>
@@ -365,25 +365,62 @@
                         </div>
                         <div class="col-md-4">
                             <div class="form-group m-0">
-                                <label class="input-label"
-                                    for="exampleFormControlInput1">{{ translate('messages.password') }}
-                                    <span class="input-label-secondary ps-1" title="{{ translate('messages.Must_contain_at_least_one_number_and_one_uppercase_and_lowercase_letter_and_symbol,_and_at_least_8_or_more_characters') }}"><img src="{{ dynamicAsset('/public/assets/admin/img/info-circle.svg') }}" alt="{{ translate('messages.Must_contain_at_least_one_number_and_one_uppercase_and_lowercase_letter_and_symbol,_and_at_least_8_or_more_characters') }}"></span>
-                                </label>
-                                <input type="text" name="password"
-                                pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}" title="{{ translate('messages.Must_contain_at_least_one_number_and_one_uppercase_and_lowercase_letter_and_symbol,_and_at_least_8_or_more_characters') }}"
-                                class="form-control h--45px" placeholder="{{ translate('Ex:_8+_Character') }}"
-                                    required>
+                                <div class="js-form-message form-group">
+                                    <label class="input-label"
+                                        for="signupSrPassword">{{ translate('messages.password') }}
+                                        <span class="input-label-secondary ps-1" data-toggle="tooltip" title="{{ translate('messages.Must_contain_at_least_one_number_and_one_uppercase_and_lowercase_letter_and_symbol,_and_at_least_8_or_more_characters') }}"><img src="{{dynamicAsset('public/assets/admin/img/info-circle.svg')}}" alt="{{ translate('messages.Must_contain_at_least_one_number_and_one_uppercase_and_lowercase_letter_and_symbol,_and_at_least_8_or_more_characters') }}"></span>
+
+                                    </label>
+
+                                    <div class="input-group input-group-merge">
+                                        <input type="password" class="js-toggle-password form-control h--45px" name="password"
+                                            id="signupSrPassword"
+                                            pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}" title="{{ translate('messages.Must_contain_at_least_one_number_and_one_uppercase_and_lowercase_letter_and_symbol,_and_at_least_8_or_more_characters') }}"
+
+                                            placeholder="{{ translate('messages.Ex:_8+_Character') }}"
+                                            aria-label="{{translate('messages.password_length_8+')}}"
+                                            required data-msg="Your password is invalid. Please try again."
+                                            data-hs-toggle-password-options='{
+                                                                                "target": [".js-toggle-password-target-1"],
+                                                                                "defaultClass": "tio-hidden-outlined",
+                                                                                "showClass": "tio-visible-outlined",
+                                                                                "classChangeTarget": ".js-toggle-passowrd-show-icon-1"
+                                                                                }'>
+                                        <div class="js-toggle-password-target-1 input-group-append">
+                                            <a class="input-group-text" href="javascript:;">
+                                                <i class="js-toggle-passowrd-show-icon-1 tio-visible-outlined"></i>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <!-- This is Static -->
                         <div class="col-md-4">
-                            <div class="form-group m-0">
+                            <div class="js-form-message form-group">
                                 <label class="input-label"
-                                for="exampleFormControlInput1">{{ translate('messages.confirm_password') }}</label>
-                                <input type="text" name="password" class="form-control h--45px"
-                                pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}" title="{{ translate('messages.Must_contain_at_least_one_number_and_one_uppercase_and_lowercase_letter_and_symbol,_and_at_least_8_or_more_characters') }}"
-                                placeholder="{{ translate('Ex:_8+_Character') }}"
-                                required>
+                                    for="signupSrConfirmPassword">{{ translate('messages.confirm_password') }}</label>
+
+                                <div class="input-group input-group-merge">
+                                    <input type="password" class="js-toggle-password form-control h--45px" name="confirmPassword"
+                                        id="signupSrConfirmPassword"
+                                        pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}" title="{{ translate('messages.Must_contain_at_least_one_number_and_one_uppercase_and_lowercase_letter_and_symbol,_and_at_least_8_or_more_characters') }}"
+
+                                        placeholder="{{ translate('messages.Ex:_8+_Character') }}"
+                                        aria-label="{{translate('messages.password_length_8+')}}"
+                                        required data-msg="Password does not match the confirm password."
+                                        data-hs-toggle-password-options='{
+                                                                                "target": [".js-toggle-password-target-2"],
+                                                                                "defaultClass": "tio-hidden-outlined",
+                                                                                "showClass": "tio-visible-outlined",
+                                                                                "classChangeTarget": ".js-toggle-passowrd-show-icon-2"
+                                                                                }'>
+                                    <div class="js-toggle-password-target-2 input-group-append">
+                                        <a class="input-group-text" href="javascript:;">
+                                            <i class="js-toggle-passowrd-show-icon-2 tio-visible-outlined"></i>
+                                        </a>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <!-- This is Static -->
@@ -452,7 +489,7 @@
                                     <div class="position-absolute h-100 top-0 w-100 d-flex align-content-center justify-content-center">
                                         <div class="d-flex flex-column justify-content-center align-items-center">
                                             <img alt="" width="30"
-                                                         src="{{ asset('public/assets/admin/img/upload-icon.png') }}">
+                                                         src="{{ dynamicAsset('public/assets/admin/img/upload-icon.png') }}">
                                             <div class="text-muted mt-3">{{ translate('Upload_Picture') }}</div>
                                             <div class="fs-10 text-muted mt-1">{{translate('Upload jpg, png, jpeg, gif maximum 2 MB')}}</div>
                                         </div>
@@ -526,14 +563,14 @@
 
                             <div class="img_area_with_preview z-index-2">
                                 <img id="additional_data_Image_${datasetIndex}" class="bg-white d-none"
-                                        src="{{ asset('public/assets/admin/img/upload-icon.png-dummy') }}" alt="">
+                                        src="{{ dynamicAsset('public/assets/admin/img/upload-icon.png-dummy') }}" alt="">
                             </div>
                             <div
                                 class="position-absolute h-100 top-0 w-100 d-flex align-content-center justify-content-center">
                                 <div
                                     class="d-flex flex-column justify-content-center align-items-center">
                                     <img alt="" width="30"
-                                            src="{{ asset('public/assets/admin/img/upload-icon.png') }}">
+                                            src="{{ dynamicAsset('public/assets/admin/img/upload-icon.png') }}">
                                     <div class="text-muted mt-3">{{ translate('Upload_Picture') }}</div>
                                     <div class="fs-10 text-muted mt-1">{{translate('Upload jpg, png, jpeg, gif maximum 2 MB')}}</div>
                                 </div>

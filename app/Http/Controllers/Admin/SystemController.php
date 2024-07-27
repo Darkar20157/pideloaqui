@@ -62,6 +62,14 @@ class SystemController extends Controller
         $request->validate([
             'password' => ['required','same:confirm_password', Password::min(8)->mixedCase()->letters()->numbers()->symbols()->uncompromised()],
             'confirm_password' => 'required',
+        ],[
+            'password.min_length' => translate('The password must be at least :min characters long'),
+            'password.mixed' => translate('The password must contain both uppercase and lowercase letters'),
+            'password.letters' => translate('The password must contain letters'),
+            'password.numbers' => translate('The password must contain numbers'),
+            'password.symbols' => translate('The password must contain symbols'),
+            'password.uncompromised' => translate('The password is compromised. Please choose a different one'),
+            'password.custom' => translate('The password cannot contain white spaces.'),
         ]);
 
         $admin = Admin::findOrFail(auth('admin')->id());
@@ -121,5 +129,13 @@ class SystemController extends Controller
             return response()->json(['message' => translate('landing_page_is_off.')]);
         }
         return response()->json(['message' => translate('landing_page_is_on.')]);
+    }
+    public function system_currency(Request $request)
+    {
+        $currency_check=Helpers::checkCurrency($request['currency']);
+        if( $currency_check !== true ){
+        return response()->json(['data'=> translate($currency_check) ],200);
+        }
+        return response()->json([],200);
     }
 }

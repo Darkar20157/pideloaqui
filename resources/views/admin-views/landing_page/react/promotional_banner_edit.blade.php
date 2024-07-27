@@ -127,12 +127,7 @@
                                         <label class="upload-img-3 m-0 d-block">
                                             <div class="img">
 
-                                                <img  src="{{ \App\CentralLogics\Helpers::onerror_image_helper(
-                                                            $react_promotional_banner?->image,
-                                                            dynamicStorage('storage/app/public/react_promotional_banner').'/'.$react_promotional_banner?->image,
-                                                            dynamicAsset('/public/assets/admin/img/upload-3.png'),
-                                                            'react_promotional_banner/'
-                                                        ) }}"
+                                                <img  src="{{ $react_promotional_banner?->image_full_url ?? dynamicAsset('/public/assets/admin/img/upload-3.png') }}"
                                                   data-onerror-image="{{dynamicAsset('/public/assets/admin/img/upload-3.png')}}"
                                                   class="vertical-img max-w-187px onerror-image" alt="">
                                             </div>
@@ -145,7 +140,7 @@
                         </div>
                         <div class="btn--container justify-content-end mt-3">
                             <button type="reset" class="btn btn--reset">{{translate('Reset')}}</button>
-                            <button type="submit"   class="btn btn--primary mb-2">{{translate('messages.Update')}}</button>
+                            <button type="submit"   class="btn btn--primary">{{translate('messages.Update')}}</button>
                         </div>
                     </div>
                 </div>

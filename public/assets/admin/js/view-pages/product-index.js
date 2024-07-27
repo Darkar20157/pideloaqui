@@ -45,6 +45,10 @@ function removeOption(e) {
 $(document).on('click', '.delete_input_button', function () {
     let e = $(this);
     removeOption(e);
+    if($('.view_new_option').length <= 0){
+        $('#item_stock').prop('readonly', false).prop('required', true);
+    }
+    updatestockCount();
 });
 
 function deleteRow(e) {
@@ -86,5 +90,4 @@ $("#customFileEg1").change(function() {
 
 $('#category_id').on('change', function () {
     parent_category_id = $(this).val();
-    console.log(parent_category_id);
 });

@@ -44,12 +44,7 @@
                         <td class="media cart--media align-items-center cursor-pointer quick-View-Cart-Item"
                             data-product-id="{{$cartItem['id']}}" data-item-key="{{$key}}">
                             <img class="avatar avatar-sm mr-2 onerror-image"
-                                 src="{{ Helpers::onerror_image_helper(
-                            data_get($cartItem,'image'),
-                            dynamicStorage('storage/app/public/product').'/'.data_get($cartItem,'image'),
-                            dynamicAsset('public/assets/admin/img/160x160/img2.jpg'),
-                            'product/'
-                        ) }}"
+                                 src="{{ $cartItem['image_full_url'] }}"
                              data-onerror-image="{{dynamicAsset('public/assets/admin/img/160x160/img2.jpg')}}"
                              alt="{{data_get($cartItem,'image')}} image">
 
@@ -63,6 +58,9 @@
                             <label>
                                 <input type="number" data-key="{{$key}}"
                                 data-value="{{$cartItem['quantity']}}"
+                                data-option_ids="{{  $cartItem['variation_option_ids']  }}"
+                                data-food_id="{{  $cartItem['id']  }}"
+
                                 class="w-50px text-center rounded border  update-Quantity"
                                        value="{{$cartItem['quantity']}}" min="1"
                                        max="{{$cartItem['maximum_cart_quantity'] ?? '9999999999'}}" >

@@ -48,7 +48,7 @@
                 @php($role = $role ?? null )
                 <a class="auth-logo mb-5" href="javascript:">
                     <img class="z-index-2 onerror-image"
-                    src="{{\App\CentralLogics\Helpers::onerror_image_helper($systemlogo?->value, dynamicStorage('storage/app/public/business').'/'.$systemlogo?->value, dynamicAsset('/public/assets/admin/img/auth-fav.png'), 'business/') }}"
+                    src="{{ \App\CentralLogics\Helpers::get_full_url('business',$systemlogo?->value,$systemlogo?->storage[0]?->value ?? 'public', 'authfav') }}"
                     data-onerror-image="{{ dynamicAsset('/public/assets/admin/img/auth-fav.png') }}" alt="image">
                 </a>
                 <div class="text-center">
@@ -396,7 +396,7 @@
 
 <!-- IE Support -->
 <script>
-    if (/MSIE \d|Trident.*rv:/.test(navigator.userAgent)) document.write('<script src="{{asset('public//assets/admin')}}/vendor/babel-polyfill/polyfill.min.js"><\/script>');
+    if (/MSIE \d|Trident.*rv:/.test(navigator.userAgent)) document.write('<script src="{{dynamicAsset('public//assets/admin')}}/vendor/babel-polyfill/polyfill.min.js"><\/script>');
 </script>
 </body>
 </html>

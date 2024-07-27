@@ -78,7 +78,8 @@ class NotificationController extends Controller
 
         if($request->has('image'))
         {
-            $notification->image = url('/').'/storage/app/public/notification/'.$image_name;
+            $notification->image = $notification->toArray()['image_full_url'];
+//            $notification->image = url('/').'/storage/app/public/notification/'.$image_name;
         }
 
         try {
@@ -139,7 +140,8 @@ class NotificationController extends Controller
         ];
         $topic = $request->zone == 'all'?$topic_all_zone[$request->tergat]:$topic_zone_wise[$request->tergat];
             if($image_name){
-                $notification->image = url('/').'/storage/app/public/notification/'.$image_name;
+                $notification->image = $notification->toArray()['image_full_url'];
+//                $notification->image = url('/').'/storage/app/public/notification/'.$image_name;
             }
 
         try {
@@ -164,9 +166,7 @@ class NotificationController extends Controller
     public function delete(Request $request)
     {
         $notification = Notification::findOrFail($request->id);
-        if (Storage::disk('public')->exists('notification/' . $notification['image'])) {
-            Storage::disk('public')->delete('notification/' . $notification['image']);
-        }
+        Helpers::check_and_delete('notification/' , $notification['image']);
         $notification?->delete();
         Toastr::success(translate('messages.notification_deleted_successfully'));
         return back();

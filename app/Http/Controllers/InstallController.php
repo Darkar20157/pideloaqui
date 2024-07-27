@@ -147,6 +147,7 @@ class InstallController extends Controller
         Helpers::insert_business_settings_key('take_away', '1');
         Helpers::insert_business_settings_key('repeat_order_option', '1');
         Helpers::insert_business_settings_key('home_delivery', '1');
+        Helpers::insert_business_settings_key('country_picker_status', '1');
 
         $previousRouteServiceProvier = base_path('app/Providers/RouteServiceProvider.php');
         $newRouteServiceProvier = base_path('app/Providers/RouteServiceProvider.txt');
@@ -205,7 +206,7 @@ class InstallController extends Controller
                     BUYER_USERNAME=' . session('username') . '
                     SOFTWARE_ID=MzM1NzE3NTA=
 
-                    SOFTWARE_VERSION=7.5.0
+                    SOFTWARE_VERSION=7.7
                     REACT_APP_KEY=43218516
                     ';
             $file = fopen(base_path('.env'), 'w');

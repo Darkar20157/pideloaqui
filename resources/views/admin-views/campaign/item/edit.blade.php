@@ -81,7 +81,7 @@
                                             <div class="d-none lang_form" id="{{$lang}}-form">
                                                 <div class="form-group">
                                                     <label class="input-label" for="{{$lang}}_title">{{translate('messages.title')}} ({{strtoupper($lang)}})</label>
-                                                    <input type="text"  name="title[]" id="{{$lang}}_title" class="form-control" placeholder="{{translate('messages.new_campaign')}}" value="{{$translate[$lang]['title']??$campaign['title']}}" oninvalid="document.getElementById('en-link').click()">
+                                                    <input type="text"  name="title[]" id="{{$lang}}_title" class="form-control" placeholder="{{translate('messages.new_campaign')}}" value="{{$translate[$lang]['title']??$campaign['title']}}"  >
                                                 </div>
                                                 <input type="hidden" name="lang[]" value="{{$lang}}">
                                                 <div class="form-group mb-0">
@@ -113,7 +113,7 @@
                                         <p class="mb-0">{{ translate('Food_Image') }} </p>
                                         <div class="image-box">
                                             <label for="image-input" class="d-flex flex-column align-items-center justify-content-center h-100 cursor-pointer gap-2">
-                                            <img class="upload-icon initial-26"  src="{{\App\CentralLogics\Helpers::onerror_image_helper($campaign->image, dynamicStorage('storage/app/public/campaign/').'/'.$campaign->image, dynamicAsset('public/assets/admin/img/100x100/2.png'), 'campaign/') }}"alt="Upload Icon">
+                                            <img class="upload-icon initial-26"  src="{{ $campaign->image_full_url }}"alt="Upload Icon">
                                             {{-- <span class="upload-text">{{ translate('Upload Image')}}</span> --}}
                                             <img src="#" alt="Preview Image" class="preview-image">
                                             </label>
@@ -178,7 +178,7 @@
                                             </div>
 
                                         </div>
-                                        <div class="col-sm-6 col-md-4">
+                                        {{-- <div class="col-sm-6 col-md-4">
                                             <div class="form-group mb-0">
                                                 <label class="input-label" for="exampleFormControlSelect1">{{translate('messages.category')}}<span
                                                         class="input-label-secondary">*</span></label>
@@ -201,7 +201,50 @@
 
                                                 </select>
                                             </div>
+                                        </div> --}}
+
+
+                                        <div class="col-sm-6 col-md-4">
+                                            @php($categories=\App\Models\Category::where(['position' => 0])->get(['id','name']))
+
+                                            @php($product_category = json_decode($campaign->category_ids))
+                                            <div class="form-group mb-0">
+                                                <label class="input-label"
+                                                    for="exampleFormControlSelect1">{{ translate('messages.category') }}<span class="form-label-secondary text-danger"
+                                                    data-toggle="tooltip" data-placement="right"
+                                                    data-original-title="{{ translate('messages.Required.')}}"> *
+                                                    </span></label>
+                                                        <select name="category_id" id="category-id" class="form-control js-select2-custom get-request">
+                                                        @foreach ($categories as $category)
+                                                            <option value="{{ $category['id'] }}"
+                                                                {{ $category->id == $product_category[0]->id ? 'selected' : '' }}>
+                                                                {{ $category['name'] }}</option>
+                                                        @endforeach
+                                                    </select>
+                                            </div>
                                         </div>
+                                        <div class="col-sm-6 col-md-4">
+                                            <div class="form-group mb-0">
+                                                <label class="input-label"
+                                                    for="exampleFormControlSelect1">{{ translate('messages.sub_category') }}<span
+                                                        class="input-label-secondary" data-toggle="tooltip"
+                                                        data-placement="right"
+                                                        data-original-title="{{ translate('messages.category_required_warning') }}"><img
+                                                            src="{{ dynamicAsset('/public/assets/admin/img/info-circle.svg') }}"
+                                                            alt="{{ translate('messages.category_required_warning') }}"></span></label>
+                                                            <select name="sub_category_id" id="sub-categories"
+                                                            data-id="{{ count($product_category) >= 2 ? $product_category[1]->id : '' }}"
+                                                            class="form-control js-select2-custom">
+                                                        </select>
+                                            </div>
+                                        </div>
+
+
+
+
+
+
+
                                         <div class="col-sm-6 col-md-4">
                                             <div class="form-group mb-0">
                                                 <label class="input-label" for="exampleFormControlInput1">{{translate('messages.item_type')}}</label>
@@ -369,6 +412,7 @@
 <script src="{{dynamicAsset('public/assets/admin')}}/js/tags-input.min.js"></script>
 <script>
     "use strict";
+    var restaurant_id = "{{$campaign['restaurant_id']}}";
     let element = "";
     let countRow = 0;
     $(document).ready(function(){
@@ -765,6 +809,23 @@
                 }
             });
         });
+
+        $('.get-request').on('change', function () {
+            let route = '{{ url('/') }}/admin/food/get-categories?parent_id='+$(this).val();
+            let id = 'sub-categories';
+            getRequest(route, id);
+        });
+
+
+        function getRequest(route, id) {
+            $.get({
+                url: route,
+                dataType: 'json',
+                success: function(data) {
+                    $('#' + id).empty().append(data.options);
+                },
+            });
+        }
 
         $('#reset_btn').click(function(){
             location.reload(true);

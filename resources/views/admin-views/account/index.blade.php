@@ -152,6 +152,8 @@
                             <th class="text-center w-120px">{{translate('messages.action')}}</th>
                         </tr>
                     </thead>
+                    @php($data= null)
+
                     <tbody id="set-rows">
                     @foreach($account_transaction as $k=>$at)
                         <tr>
@@ -159,10 +161,13 @@
                             <td scope="row">{{$k+$account_transaction->firstItem()}}</td>
                             <td>
                                 @if($at->restaurant)
-                                <a href="{{route('admin.restaurant.view',[$at->restaurant['id']])}}">{{ Str::limit($at->restaurant->name, 20, '...') }}</a>
+                                @php($data=$at->restaurant)
+                                <a href="{{route('admin.restaurant.view',[$data->id])}}">{{ Str::limit($data->name, 20, '...') }}</a>
                                 @elseif($at->deliveryman)
-                                <a href="{{route('admin.delivery-man.preview',[$at->deliveryman->id])}}">{{ $at->deliveryman->f_name }} {{ $at->deliveryman->l_name }}</a>
+                                @php($data=$at->deliveryman)
+                                <a href="{{route('admin.delivery-man.preview',[$data->id])}}">{{ $data->f_name }} {{ $data->l_name }}</a>
                                 @else
+                                @php($data=null)
                                     {{translate('messages.not_found')}}
                                 @endif
                             </td>
@@ -174,18 +179,18 @@
                             <td>{{ translate($at['method']) }}</td>
                             <td class="text-capitalize">{{  $at['ref'] ? translate($at['ref']) : translate('messages.N/A') }} </td>
                             <td>
-
                                 <div class="btn--container justify-content-center"> <a href="#"
                                     data-payment_method="{{ $at->method }}"
                                     data-ref="{{translate($at['ref'])}}"
                                     data-amount="{{\App\CentralLogics\Helpers::format_currency($at['amount'])}}"
                                     data-date="{{\App\CentralLogics\Helpers::time_date_format($at->created_at)}}"
                                     data-type="{{ $at->from_type == 'deliveryman' ?  translate('DeliveryMan_Info') : translate('Restaurant_Info') }}"
-                                    data-phone="{{ $at->restaurant ?  $at?->restaurant?->phone : $at?->deliveryman?->phone  }}"
-                                    data-address="{{ $at->restaurant ?  $at?->restaurant?->address : $at?->deliveryman?->last_location?->location ?? translate('address_not_found') }}"
-                                    data-latitude="{{ $at->restaurant ?  $at?->restaurant?->latitude : $at?->deliveryman?->last_location?->location ?? 0 }}"
-                                    data-longitude="{{ $at->restaurant ?  $at?->restaurant?->longitude : $at?->deliveryman?->last_location?->location ?? 0 }}"
-                                    data-name="{{ $at->restaurant ?  $at?->restaurant?->name : $at?->deliveryman?->f_name.' '.$at?->deliveryman?->l_name }}"
+                                    data-phone="{{ $data?->phone }}"
+
+                                    data-address="{{ $at->from_type == 'restaurant' ?  $data->address : $data->last_location?->location ?? translate('address_not_found') }}"
+                                    data-latitude="{{$at->from_type == 'restaurant' ?   $data?->latitude : $data?->last_location?->latitude ?? 0 }}"
+                                    data-longitude="{{$at->from_type == 'restaurant' ?   $data?->longitude : $data?->last_location?->longitude ?? 0 }}"
+                                    data-name="{{$at->from_type == 'restaurant' ?   $data?->name : $data?->f_name.' '.$data?->l_name }}"
 
                                     class="btn action-btn btn--warning btn-outline-warning withdraw-info-show" ><i class="tio-visible"></i>
                                     </a>

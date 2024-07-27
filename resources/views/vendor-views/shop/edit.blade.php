@@ -59,7 +59,7 @@
                                         <div class="form-group lang_form" id="default-form">
                                                 <label class="input-label" for="exampleFormControlInput1">{{ translate('messages.restaurant') }}
                                                     {{ translate('messages.name') }} ({{translate('messages.default')}})</label>
-                                            <input type="text" name="name[]" class="form-control" placeholder="{{ translate('messages.restaurant_name') }}" maxlength="191" value="{{$shop?->getRawOriginal('name')}}" oninvalid="document.getElementById('en-link').click()">
+                                            <input type="text" name="name[]" class="form-control" placeholder="{{ translate('messages.restaurant_name') }}" maxlength="191" value="{{$shop?->getRawOriginal('name')}}"  >
                                         </div>
                                         @if ($language)
                                             <input type="hidden" name="lang[]" value="default">
@@ -78,7 +78,7 @@
                                                 ?>
                                                 <div class="form-group d-none lang_form" id="{{$lang}}-form">
                                                     <label class="input-label" for="exampleFormControlInput1">{{ translate('messages.restaurant_name') }} ({{strtoupper($lang)}})</label>
-                                                    <input type="text" name="name[]" class="form-control" placeholder="{{ translate('messages.restaurant_name') }}" maxlength="191" value="{{$translate[$lang]['name']??''}}" oninvalid="document.getElementById('en-link').click()">
+                                                    <input type="text" name="name[]" class="form-control" placeholder="{{ translate('messages.restaurant_name') }}" maxlength="191" value="{{$translate[$lang]['name']??''}}"  >
                                                 </div>
                                                 <input type="hidden" name="lang[]" value="{{$lang}}">
                                             @endforeach
@@ -129,7 +129,7 @@
                         <div class="card-body d-flex flex-column">
                             <div class="text-center my-auto py-4 py-xl-5">
                                 <img class="initial-91" id="viewer"
-                                src="{{\App\CentralLogics\Helpers::onerror_image_helper($shop?->logo, dynamicStorage('storage/app/public/restaurant/'.$shop?->logo), dynamicAsset('public/assets/admin/img/image-place-holder.png'), 'restaurant/') }}"
+                                src="{{ $shop?->logo_full_url ?? dynamicAsset('public/assets/admin/img/image-place-holder.png') }}"
                                 alt="image">
                             </div>
                             <div class="custom-file">
@@ -150,7 +150,7 @@
                         <div class="card-body">
                             <div class="text-center my-auto py-4 py-xl-5">
                                 <img  class="initial-92" id="coverImageViewer"
-                                src="{{\App\CentralLogics\Helpers::onerror_image_helper($shop?->cover_photo, dynamicStorage('storage/app/public/restaurant/cover/'.$shop?->cover_photo), dynamicAsset('public/assets/admin/img/restaurant_cover.jpg'), 'restaurant/cover/') }}"
+                                src="{{ $shop?->cover_photo_full_url ?? dynamicAsset('public/assets/admin/img/restaurant_cover.jpg') }}"
                                 alt="image">
                             </div>
                             <div class="custom-file">

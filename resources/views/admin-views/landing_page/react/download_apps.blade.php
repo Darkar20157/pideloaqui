@@ -1,3 +1,4 @@
+@php use App\CentralLogics\Helpers; @endphp
 @extends('layouts.admin.app')
 
 @section('title', translate('messages.landing_page_settings'))
@@ -47,12 +48,7 @@
                     <div class="position-relative d-inline-block">
                         <label class="upload-img-3 upload-image-5 border--dashed border-1px m-0 rounded border-9EADC1">
                             <div class="img">
-                                <img  src="{{ \App\CentralLogics\Helpers::onerror_image_helper(
-                                    $react_download_apps_banner_image?->value,
-                                    dynamicStorage('storage/app/public/react_download_apps_image').'/'.$react_download_apps_banner_image?->value,
-                                    dynamicAsset('/public/assets/admin/img/upload.png'),
-                                    'react_download_apps_image/'
-                                ) }}"
+                                <img  src="{{ Helpers::get_full_url('react_download_apps_image', $react_download_apps_banner_image?->value,$react_download_apps_banner_image?->storage[0]?->value ?? 'public','upload_image')}}"
                                 data-onerror-image="{{dynamicAsset('/public/assets/admin/img/upload.png')}}"
                                 class="onerror-image" alt="">
                             </div>
@@ -69,7 +65,7 @@
 
                 <div class="btn--container justify-content-end mt-3">
                     <button type="reset" class="btn btn--reset">{{translate('Reset')}}</button>
-                    <button type="submit"   class="btn btn--primary mb-2">{{translate('Save')}}</button>
+                    <button type="submit"   class="btn btn--primary">{{translate('Save')}}</button>
                 </div>
                 </form>
             </div>
@@ -222,12 +218,7 @@
                                 <div class="position-relative d-inline-block">
                                     <label class="upload-img-3 m-0">
                                         <div class="img">
-                                            <img  src="{{ \App\CentralLogics\Helpers::onerror_image_helper(
-                                                $react_download_apps_image?->value,
-                                                dynamicStorage('storage/app/public/react_download_apps_image').'/'.$react_download_apps_image?->value,
-                                                dynamicAsset('/public/assets/admin/img/upload-3.png'),
-                                                'react_download_apps_image/'
-                                            ) }}"
+                                            <img  src="{{ Helpers::get_full_url('react_download_apps_image', $react_download_apps_image?->value,$react_download_apps_image?->storage[0]?->value ?? 'public','upload_1_1')}}"
                                             data-onerror-image="{{dynamicAsset('/public/assets/admin/img/upload-3.png')}}"
                                             class="vertical-img max-w-187px onerror-image" alt="">
                                         </div>
@@ -321,7 +312,7 @@
 
                     <div class="btn--container justify-content-end mt-3">
                         <button type="reset" class="btn btn--reset">{{translate('Reset')}}</button>
-                        <button type="submit"   class="btn btn--primary mb-2">{{translate('Save')}}</button>
+                        <button type="submit"   class="btn btn--primary">{{translate('Save')}}</button>
                     </div>
             </form>
             </div>

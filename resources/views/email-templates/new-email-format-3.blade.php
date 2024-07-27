@@ -213,16 +213,16 @@
                     <div class="mb-1" id="mail-body">{!! $body?? translate('Hi_Sabrina,') !!}</div>
                     <span class="d-block text-center mb-3">
                         @if ($data?->button_url)
-                        <a href="{{ $data['button_url']??'#' }}" class="cmn-btn" id="mail-button">{{ $data['button_name']??'Submit' }}</a>
+                        <a type="button"  href="{{ $data['button_url']??'#' }}" class="cmn-btn" id="mail-button">{{ $data['button_name']??'Submit' }}</a>
                         @endif                    </span>
                     <table class="bg-section p-10 w-100">
                         <tbody>
                             <tr>
                                 <td class="p-10">
                                     <span class="d-block text-center">
-                                        @php($restaurant_logo = \App\Models\BusinessSetting::where(['key' => 'logo'])->first()->value)
+                                        @php($restaurant_logo = \App\Models\BusinessSetting::where(['key' => 'logo'])->first())
                                         <img class="mb-2 mail-img-2"
-                                        src="{{\App\CentralLogics\Helpers::onerror_image_helper(data_get($data,'logo'), dynamicStorage('storage/app/public/email_template/'.data_get($data,'logo')),  dynamicStorage('storage/app/public/business/'.$restaurant_logo), 'email_template/') }}"
+                                        src="{{ $data?->logo ? $data->logo_full_url : \App\CentralLogics\Helpers::get_full_url('business',$restaurant_logo?->value,$restaurant_logo?->storage[0]?->value ?? 'public', 'favicon') }}"
                                         alt="image">
                                         <h3 class="mb-3 mt-0">{{ translate('Order_Info') }}</h3>
                                     </span>
@@ -372,6 +372,17 @@
                                                                         <td class="p-1 px-3">{{ translate('messages.coupon_discount') }}</td>
                                                                         <td class="text-right p-1 px-3">{{ \App\CentralLogics\Helpers::format_currency($order->coupon_discount_amount) }}</td>
                                                                     </tr>
+
+                                                                    @if ($order?->ref_bonus_amount > 0 )
+                                                                    <tr>
+                                                                        <td style="width: 40%"></td>
+                                                                        <td class="p-1 px-3">{{ translate('messages.Referral_Discount') }}</td>
+                                                                        <td class="text-right p-1 px-3">{{ \App\CentralLogics\Helpers::format_currency($order->ref_bonus_amount) }}</td>
+                                                                    </tr>
+                                                                    @endif
+
+
+
                                                                     @if ($order->tax_status == 'excluded' || $order->tax_status == null  )
                                                                     <tr>
                                                                         <td style="width: 40%"></td>
@@ -390,7 +401,14 @@
                                                                         <td class="p-1 px-3">{{ \App\CentralLogics\Helpers::get_business_data('additional_charge_name')??translate('messages.additional_charge') }}</td>
                                                                         <td class="text-right p-1 px-3">{{ \App\CentralLogics\Helpers::format_currency($order->additional_charge) }}</td>
                                                                     </tr>
-                                                                @endif
+                                                                    @endif
+                                                                    @if ($order?->extra_packaging_amount > 0 )
+                                                                    <tr>
+                                                                        <td style="width: 40%"></td>
+                                                                        <td class="p-1 px-3">{{ translate('messages.Extra_Packaging_Amount') }}</td>
+                                                                        <td class="text-right p-1 px-3">{{ \App\CentralLogics\Helpers::format_currency($order->extra_packaging_amount) }}</td>
+                                                                    </tr>
+                                                                    @endif
                                                                     <tr>
                                                                         <td style="width: 40%"></td>
                                                                         <td class="p-1 px-3">

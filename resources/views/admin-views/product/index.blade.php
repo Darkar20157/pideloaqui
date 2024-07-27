@@ -64,7 +64,7 @@
                                         class="form-control"
                                         placeholder="{{ translate('messages.new_food') }}"
 
-                                        oninvalid="document.getElementById('en-link').click()">
+                                         >
                                 </div>
                                 <input type="hidden" name="lang[]" value="default">
                                 <div class="form-group mb-0">
@@ -89,7 +89,7 @@
                                             <input type="text" name="name[]" id="{{ $lang }}_name"
                                                 class="form-control"
                                                 placeholder="{{ translate('messages.new_food') }}"
-                                                oninvalid="document.getElementById('en-link').click()">
+                                                 >
                                         </div>
                                         <input type="hidden" name="lang[]" value="{{ $lang }}">
                                         <div class="form-group mb-0">
@@ -130,7 +130,7 @@
 
                                 <div class="image-box">
                                     <label for="image-input" class="d-flex flex-column align-items-center justify-content-center h-100 cursor-pointer gap-2">
-                                    <img width="30" class="upload-icon" src="{{asset('public/assets/admin/img/upload-icon.png')}}" alt="Upload Icon">
+                                    <img width="30" class="upload-icon" src="{{dynamicAsset('public/assets/admin/img/upload-icon.png')}}" alt="Upload Icon">
                                     <span class="upload-text">{{ translate('Upload Image')}}</span>
                                     <img src="#" alt="Preview Image" class="preview-image">
                                     </label>
@@ -313,12 +313,12 @@
                                 <div class="col-md-3">
                                     <div class="form-group mb-0">
                                         <label class="input-label"
-                                            for="exampleFormControlInput1">{{ translate('messages.price') }}<span class="form-label-secondary text-danger"
+                                            for="exampleFormControlInput1">{{ translate('messages.Unit_Price') }} {{ \App\CentralLogics\Helpers::currency_symbol() }}<span class="form-label-secondary text-danger"
                                             data-toggle="tooltip" data-placement="right"
                                             data-original-title="{{ translate('messages.Required.')}}"> *
                                             </span></label>
-                                        <input type="number" min="0" max="999999999999.99"
-                                            step="0.01" value="1" name="price" class="form-control"
+                                        <input type="number" min="0" max="999999999999.999"
+                                            step="0.001" value="1" name="price" class="form-control"
                                             placeholder="{{ translate('messages.Ex:_100') }}" required>
                                     </div>
                                 </div>
@@ -367,6 +367,35 @@
                                         <input type="number"  placeholder="{{ translate('messages.Ex:_10') }}" class="form-control" name="maximum_cart_quantity" min="0" id="cart_quantity">
                                     </div>
                                 </div>
+
+                                <div class="col-md-3">
+                                    <div class="form-group mb-0">
+                                        <label class="input-label"
+                                            for="exampleFormControlInput1">{{ translate('messages.Stock_Type') }}
+                                        </label>
+                                        <select name="stock_type" id="stock_type" class="form-control js-select2-custom">
+                                            <option value="unlimited">{{ translate('messages.Unlimited_Stock') }}</option>
+                                            <option value="limited">{{ translate('messages.Limited_Stock')  }}</option>
+                                            <option value="daily">{{ translate('messages.Daily_Stock')  }}</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-3 hide_this" id="">
+                                    <div class="form-group mb-0">
+                                        <label class="input-label"
+                                            for="item_stock">{{ translate('messages.Item_Stock') }}
+                                            <span class="input-label-secondary text--title" data-toggle="tooltip"
+                                            data-placement="right"
+                                            data-original-title="{{ translate('This_Stock_amount_will_be_counted_as_the_base_stock._But_if_you_want_to_manage_variation_wise_stock,_then_need__to_manage_it_below_with_food_variation_setup.') }}">
+                                            <i class="tio-info-outined"></i>
+                                        </span>
+                                        </label>
+                                        <input type="number"  placeholder="{{ translate('messages.Ex:_10') }}" class="form-control stock_disable" name="item_stock" min="0" max="999999999" id="item_stock">
+                                    </div>
+                                </div>
+
+
                             </div>
                         </div>
                     </div>
@@ -428,8 +457,49 @@
     <script src="{{ dynamicAsset('public/assets/admin/js/spartan-multi-image-picker.js') }}"></script>
     <script src="{{dynamicAsset('public/assets/admin')}}/js/view-pages/product-index.js"></script>
     <script>
+
+
         "use strict";
-        $(document).ready(function() {
+        $('#stock_type').on('change', function () {
+                if($(this).val() == 'unlimited') {
+                    $('.stock_disable').prop('readonly', true).prop('required', false).attr('placeholder', '{{ translate('Unlimited') }}').val('');
+                    $('.hide_this').addClass('d-none');
+                } else {
+                    $('.stock_disable').prop('readonly', false).prop('required', true).attr('placeholder', '{{ translate('messages.Ex:_100') }}');
+                    $('.hide_this').removeClass('d-none');
+                    // if($('.view_new_option').length > 0){
+                    //     $('#item_stock').prop('readonly', true).prop('required', false);
+                    // }
+                }
+        });
+
+        updatestockCount();
+
+            function updatestockCount(){
+                if($('#stock_type').val()==  'unlimited'){
+                        $('.stock_disable').prop('readonly', true).prop('required', false).attr('placeholder', '{{ translate('Unlimited') }}').val('');
+                        $('.hide_this').addClass('d-none');
+                    } else{
+                        $('.stock_disable').prop('readonly', false).prop('required', true).attr('placeholder', '{{ translate('messages.Ex:_100') }}');
+                         $('.hide_this').removeClass('d-none');
+                    }
+                    // if($('.view_new_option').length > 0){
+                    //     $('#item_stock').prop('readonly', true).prop('required', false);
+                    // }
+
+
+                    // $(".count_stock").on('input', function() {
+                    //     var sum = 0;
+                    //     $(".count_stock").each(function() {
+                    //         const value = parseFloat($(this).val()) || 0;
+                    //         sum += value;
+                    //     });
+                    //     $("#item_stock").val(sum);
+                    // });
+
+
+            }
+    $(document).ready(function() {
             $("#add_new_option_button").click(function(e) {
                 $('#empty-variation').hide();
                 count++;
@@ -461,7 +531,7 @@
 
                                 <div class="col-xl-4 col-lg-6">
                                     <div>
-                                        <label class="input-label text-capitalize d-flex align-items-center"><span class="line--limit-1">{{ translate('messages.selcetion_type') }} </span>
+                                        <label class="input-label text-capitalize d-flex align-items-center"><span class="line--limit-1">{{ translate('messages.Variation_Selection_Type') }} </span>
                                         </label>
                                         <div class="resturant-type-group px-0">
                                             <label class="form-check form--check mr-2 mr-md-4">
@@ -489,11 +559,11 @@
     <div class="col-xl-4 col-lg-6">
         <div class="row g-2">
             <div class="col-6">
-                <label for="">{{ translate('Min') }}</label>
+                <label for="">{{ translate('Min_Option_to_Select') }}</label>
                                             <input id="min_max1_` + count + `" required  name="options[` + count + `][min]" class="form-control" type="number" min="1">
                                         </div>
                                         <div class="col-6">
-                                            <label for="">{{ translate('Max') }}</label>
+                                            <label for="">{{ translate('Max_Option_to_Select') }}</label>
                                             <input id="min_max2_` + count + `"   required name="options[` + count + `][max]" class="form-control" type="number" min="1">
                                         </div>
                                     </div>
@@ -504,7 +574,7 @@
                                 <div class="bg-white border rounded p-3 pb-0 mt-3">
                                     <div  id="option_price_view_` + count + `">
                                         <div class="row g-3 add_new_view_row_class mb-3">
-                                            <div class="col-md-4 col-sm-6">
+                                            <div class="col-md-3 col-sm-6">
                                                 <label for="">{{ translate('Option_name') }} &nbsp;<span class="form-label-secondary text-danger"
                                 data-toggle="tooltip" data-placement="right"
                                 data-original-title="{{ translate('messages.Required.')}}"> *
@@ -513,13 +583,18 @@
                     count +
                     `][values][0][label]" id="">
                                             </div>
-                                            <div class="col-md-4 col-sm-6">
-                                                <label for="">{{ translate('Additional_price') }} &nbsp;<span class="form-label-secondary text-danger"
+                                            <div class="col-md-3 col-sm-6">
+                                                <label for="">{{ translate('Additional_price') }} ({{ \App\CentralLogics\Helpers::currency_symbol() }})&nbsp;<span class="form-label-secondary text-danger"
                                 data-toggle="tooltip" data-placement="right"
                                 data-original-title="{{ translate('messages.Required.')}}"> *
                                 </span></label>
                                                 <input class="form-control" required type="number" min="0" step="0.01" name="options[` +
                     count + `][values][0][optionPrice]" id="">
+                                            </div>
+                                            <div class="col-md-3 col-sm-6 hide_this">
+                                                <label for="">{{ translate('Stock') }}</label>
+                                                <input class="form-control stock_disable count_stock" required type="number" min="0" max="9999999" name="options[` +
+                    count + `][values][0][total_stock]" id="">
                                             </div>
                                         </div>
                                     </div>
@@ -534,6 +609,7 @@
                     </div>`;
 
                 $("#add_new_option").append(add_option_view);
+                updatestockCount();
             });
         });
 
@@ -542,23 +618,30 @@
             countRow = 1 + $('#option_price_view_' + data).children('.add_new_view_row_class').length;
             let add_new_row_view = `
             <div class="row add_new_view_row_class mb-3 position-relative pt-3 pt-sm-0">
-                <div class="col-md-4 col-sm-5">
+                <div class="col-md-3 col-sm-5">
                         <label for="">{{ translate('Option_name') }} &nbsp;<span class="form-label-secondary text-danger"
                                 data-toggle="tooltip" data-placement="right"
                                 data-original-title="{{ translate('messages.Required.')}}"> *
                                 </span></label>
-                        <input class="form-control" required type="text" name="options[` + count + `][values][` +
-                countRow + `][label]" id="">
+                        <input class="form-control" required type="text" name="options[` + count + `][values][` + countRow + `][label]" id="">
                     </div>
-                    <div class="col-md-4 col-sm-5">
-                        <label for="">{{ translate('Additional_price') }} &nbsp;<span class="form-label-secondary text-danger"
+                    <div class="col-md-3 col-sm-5">
+                        <label for="">{{ translate('Additional_price') }} ({{ \App\CentralLogics\Helpers::currency_symbol() }})&nbsp;<span class="form-label-secondary text-danger"
                                 data-toggle="tooltip" data-placement="right"
                                 data-original-title="{{ translate('messages.Required.')}}"> *
                                 </span></label>
                         <input class="form-control"  required type="number" min="0" step="0.01" name="options[` +
-                count +
-                `][values][` + countRow + `][optionPrice]" id="">
+                count + `][values][` + countRow + `][optionPrice]" id="">
                     </div>
+
+
+                    <div class="col-md-3 col-sm-6 hide_this">
+                                                <label for="">{{ translate('Stock') }}</label>
+                                                <input class="form-control stock_disable count_stock" required type="number" min="0" max="9999999" name="options[` +
+                count + `][values][` + countRow + `][total_stock]" id="">
+                                            </div>
+
+
                     <div class="col-sm-2 max-sm-absolute">
                         <label class="d-none d-sm-block">&nbsp;</label>
                         <div class="mt-1">
@@ -570,6 +653,7 @@
                 </div>
             </div>`;
             $('#option_price_view_' + data).append(add_new_row_view);
+            updatestockCount();
 
         }
 
@@ -686,6 +770,8 @@
             $('#sub-veg').val(0).trigger('change');
             $('#add_on').val(null).trigger('change');
             $('#viewer').attr('src', "{{ dynamicAsset('public/assets/admin/img/upload.png') }}");
+            $('#stock_type').val('unlimited').trigger('change');
+            updatestockCount();
         })
     </script>
 @endpush

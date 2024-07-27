@@ -4,19 +4,20 @@ namespace App\Exports;
 
 
 use Illuminate\Contracts\View\View;
-use Maatwebsite\Excel\Concerns\Exportable;
 use Maatwebsite\Excel\Concerns\FromView;
 use Maatwebsite\Excel\Events\AfterSheet;
+use Maatwebsite\Excel\Concerns\Exportable;
 use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithStyles;
+use PhpOffice\PhpSpreadsheet\Style\Border;
 use Maatwebsite\Excel\Concerns\WithHeadings;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
 use Maatwebsite\Excel\Concerns\WithColumnWidths;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
-use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
-use PhpOffice\PhpSpreadsheet\Style\Border;
-use PhpOffice\PhpSpreadsheet\Style\Alignment;
-
+use PhpOffice\PhpSpreadsheet\Worksheet\MemoryDrawing;
+use App\CentralLogics\Helpers;
 
 class FoodReportExport implements  FromView, ShouldAutoSize, WithStyles,WithColumnWidths ,WithHeadings, WithEvents
 {
@@ -79,11 +80,19 @@ class FoodReportExport implements  FromView, ShouldAutoSize, WithStyles,WithColu
     }
 
     public function setImage($workSheet) {
-        $this->data['foods']->each(function($item,$index) use($workSheet) {
-            $drawing = new Drawing();
-            // $drawing->setName($item->name);
-            // $drawing->setDescription($item->name);
-            $drawing->setPath(is_file(storage_path('app/public/product/'.$item->image))?storage_path('app/public/product/'.$item->image):public_path('/assets/admin/img/160x160/img2.jpg'));
+        $this->data['data']->each(function($item,$index) use($workSheet) {
+            $tempImagePath = null;
+            if(!is_file(storage_path('app/public/product/'.$item->image) )){
+                $tempImagePath = Helpers::getTemporaryImageForExport($item->image_full_url);
+                $imagePath = Helpers::getImageForExport($item->image_full_url);
+
+                $drawing = new MemoryDrawing();
+                $drawing->setImageResource($imagePath);
+            }else{
+                $drawing = new Drawing();
+                $drawing->setPath(is_file(storage_path('app/public/product/'.$item->image))?storage_path('app/public/product/'.$item->image):public_path('/assets/admin/img/160x160/img2.jpg'));
+            }
+
             $drawing->setHeight(25);
             $index+=4;
             $drawing->setCoordinates("B$index");
@@ -91,6 +100,9 @@ class FoodReportExport implements  FromView, ShouldAutoSize, WithStyles,WithColu
             $drawing->setOffsetY(4);
             $drawing->setResizeProportional(true);
             $drawing->setWorksheet($workSheet);
+            if($tempImagePath){
+                imagedestroy($tempImagePath);
+            }
         });
     }
 

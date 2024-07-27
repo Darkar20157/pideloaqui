@@ -36,6 +36,13 @@ class EmployeeController extends Controller
 
         ], [
             'role_id.required' => translate('messages.role_field_is_required'),
+            'password.min_length' => translate('The password must be at least :min characters long'),
+            'password.mixed' => translate('The password must contain both uppercase and lowercase letters'),
+            'password.letters' => translate('The password must contain letters'),
+            'password.numbers' => translate('The password must contain numbers'),
+            'password.symbols' => translate('The password must contain symbols'),
+            'password.uncompromised' => translate('The password is compromised. Please choose a different one'),
+            'password.custom' => translate('The password cannot contain white spaces.'),
         ]);
 
         if ($request->role_id == 1) {
@@ -43,18 +50,16 @@ class EmployeeController extends Controller
             return back();
         }
 
-        Admin::insert([
-            'f_name' => $request->f_name,
-            'l_name' => $request->l_name,
-            'phone' => $request->phone,
-            'zone_id' => $request->zone_id,
-            'email' => $request->email,
-            'role_id' => $request->role_id,
-            'password' => bcrypt($request->password),
-            'image' => Helpers::upload(dir:'admin/', format:'png', image: $request->file('image')),
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        $employee = new Admin();
+        $employee->f_name = $request->f_name;
+        $employee->l_name = $request->l_name;
+        $employee->phone = $request->phone;
+        $employee->zone_id = $request->zone_id;
+        $employee->email = $request->email;
+        $employee->role_id = $request->role_id;
+        $employee->password = bcrypt($request->password);
+        $employee->image = Helpers::upload(dir:'admin/', format:'png', image: $request->file('image'));
+        $employee->save();
 
         Toastr::success(translate('messages.employee_added_successfully'));
         return redirect()->route('admin.employee.list');
@@ -101,6 +106,13 @@ class EmployeeController extends Controller
             'image' => 'nullable|max:2048',
         ], [
             'f_name.required' => translate('messages.first_name_is_required'),
+            'password.min_length' => translate('The password must be at least :min characters long'),
+            'password.mixed' => translate('The password must contain both uppercase and lowercase letters'),
+            'password.letters' => translate('The password must contain letters'),
+            'password.numbers' => translate('The password must contain numbers'),
+            'password.symbols' => translate('The password must contain symbols'),
+            'password.uncompromised' => translate('The password is compromised. Please choose a different one'),
+            'password.custom' => translate('The password cannot contain white spaces.'),
         ]);
 
 
@@ -126,17 +138,18 @@ class EmployeeController extends Controller
             $e['image'] = Helpers::update(dir:'admin/', old_image: $e->image, format: 'png', image:$request->file('image'));
         }
 
-       Admin::where(['id' => $id])->update([
-            'f_name' => $request->f_name,
-            'l_name' => $request->l_name,
-            'phone' => $request->phone,
-            'zone_id' => $request->zone_id,
-            'email' => $request->email,
-            'role_id' => $request->role_id,
-            'password' => $pass,
-            'image' => $e['image'],
-            'updated_at' => now(),
-        ]);
+        $employee = Admin::find($id);
+
+        $employee->f_name = $request->f_name;
+        $employee->l_name = $request->l_name;
+        $employee->phone = $request->phone;
+        $employee->zone_id = $request->zone_id;
+        $employee->email = $request->email;
+        $employee->role_id = $request->role_id;
+        $employee->password = $pass;
+        $employee->image = $e['image'];
+        $employee->save();
+
 
         Toastr::success(translate('messages.employee_updated_successfully'));
         return redirect()->route('admin.employee.list');

@@ -16,6 +16,7 @@ use App\Http\Controllers\SenangPayController;
 use App\Http\Controllers\MercadoPagoController;
 use App\Http\Controllers\BkashPaymentController;
 use App\Http\Controllers\PaystackController;
+use App\Http\Controllers\FirebaseController;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -27,6 +28,7 @@ use App\Http\Controllers\PaystackController;
 |
 */
 
+Route::post('/subscribeToTopic', [FirebaseController::class, 'subscribeToTopic']);
 Route::get('/', 'HomeController@index')->name('home');
 Route::view('subscription/payment/view' , 'Subscription_payment_view')->name('subscription_payment_view');
 

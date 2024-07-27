@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\CentralLogics\Helpers;
 use Illuminate\Database\Eloquent\Model;
 use Carbon\Carbon;
 use App\Scopes\ZoneScope;
@@ -35,7 +36,29 @@ class Order extends Model
         'cutlery'=>'boolean',
         'is_guest'=>'boolean',
         'additional_charge' => 'float',
+        'ref_bonus_amount' => 'float',
+        'extra_packaging_amount' => 'float', 
     ];
+    protected $appends = ['order_proof_full_url'];
+
+    public function getOrderProofFullUrlAttribute(){
+        $images = [];
+        $value = is_array($this->order_proof)?$this->order_proof:json_decode($this->order_proof,true);
+        if ($value){
+            foreach ($value as $item){
+                $item = is_array($item)?$item:(is_object($item) && get_class($item) == 'stdClass' ? json_decode(json_encode($item), true):['img' => $item, 'storage' => 'public']);
+                $images[] = Helpers::get_full_url('order',$item['img'],$item['storage']);
+            }
+        }
+
+        return $images;
+    }
+
+    public function cashback_history()
+    {
+        return $this->hasOne(CashBackHistory::class, 'order_id');
+    }
+
 
     public function guest()
     {

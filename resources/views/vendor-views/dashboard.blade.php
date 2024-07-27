@@ -25,34 +25,93 @@
         </div>
         <!-- End Page Header -->
 
-        <div class="card mb-3">
-            <div class="card-header">
-                <h4 class="card-header-title">
-                    <span class="card-header-icon">
-                        <i class="tio-chart-bar-4"></i>
-                    </span>
-                    {{translate('messages.dashboard_order_statistics')}}
-                </h4>
-                <div>
-                    <select class="custom-select my-1 order_stats_update" name="statistics_type">
-                        <option
-                            value="overall" {{$params['statistics_type'] == 'overall'?'selected':''}}>
-                            {{translate('messages.Overall Statistics')}}
-                        </option>
-                        <option
-                            value="today" {{$params['statistics_type'] == 'today'?'selected':''}}>
-                            {{translate("messages.Today’s Statistics")}}
-                        </option>
-                        <option
-                            value="this_month" {{$params['statistics_type'] == 'this_month'?'selected':''}}>
-                            {{translate("messages.This Month’s Statistics")}}
-                        </option>
-                    </select>
+
+            @if ( Session::get('stock_out_reminder_close_btn') !== true && isset($out_out_count) && $out_out_count  > 99 )
+                    <div class="alert __alert-4 m-0 py-1 px-2 hide-warning" role="alert">
+                        <div class="alert-inner">
+                            <img class="rounded mr-1"  width="25" src="{{ dynamicAsset('/public/assets/admin/img/invalid-icon.png') }}" alt="">
+                            <div class="cont">
+                                <h4 class="mb-2">{{ translate('Warning!') }} </h4>{{  translate('There_isn’t_enough_quantity_on_stock._Please_check_products_in_product_list') }}<a  data-id="stock_out_reminder_close_btn" id="hide-warning"  class="text-primary text-underline add-to-session">{{ translate('remind_me_later') }}</a>  &nbsp; &nbsp; <a href="{{ route('vendor.food.stockOutList') }}" class="text-primary text-underline">{{ translate('Click_To_View') }}</a>
+                            </div>
+                        </div>
+                            <button class="position-absolute right-0 top-50 py-2 px-2 bg-transparent border-0 outline-none shadow-none" id="hide-warning-btn"  type="button">
+                                <i class="tio-clear fz--18"></i>
+                            </button>
+                    </div>
+            @elseif ( Session::get('stock_out_reminder_close_btn') !== true && isset($out_out_count) && $out_out_count  <= 99 &&  $out_out_count  > 1 )
+                    <div class="alert __alert-4 m-0 py-1 px-2 hide-warning max-w-450px" role="alert">
+                        <div class="alert-inner">
+                            <img class="rounded mr-1"  width="25" src="{{ dynamicAsset('/public/assets/admin/img/invalid-icon.png') }}" alt="">
+                            <div class="cont">
+                                <h4 class="mb-2">{{ translate('Warning!') }} </h4>{{  ( $out_out_count -1).'+ '.  translate('more_products_have_out_of_stock.') }}
+                                <br>
+                                <a data-id="stock_out_reminder_close_btn" id="hide-warning"  class="text-primary text-underline add-to-session">{{ translate('remind_me_later') }}</a>  &nbsp; &nbsp; <a href="{{ route('vendor.food.stockOutList') }}" class="text-primary text-underline">{{ translate('Click_To_View') }}</a>
+                            </div>
+                        </div>
+                        <button class="position-absolute right-0 top-50 py-2 px-2 bg-transparent border-0 outline-none shadow-none" id="hide-warning-btn"  type="button">
+                            <i class="tio-clear fz--18"></i>
+                        </button>
+                    </div>
+
+                     @elseif ( Session::get('stock_out_reminder_close_btn') !== true && isset($out_out_count)  &&  $out_out_count  == 1  && isset($food))
+
+                     <div class="alert __alert-4 m-0 py-1 px-2 hide-warning max-w-450px" role="alert">
+                        <div class="alert-inner">
+                            <img class="aspect-1-1 mr-1 object--contain rounded" width="100" src="{{ $food?->image_full_url ?? dynamicAsset('/public/assets/admin/img/100x100/food-default-image.png') }}" alt="">
+                            <div class="cont">
+                                <h4 class="mb-2">{{ $food?->name }} </h4>{{  translate('This product is out of stock.') }}
+                                <br>
+                                <a
+                                data-id="stock_out_reminder_close_btn" id="hide-warning"  class="text-primary text-underline add-to-session">{{ translate('remind_me_later') }}</a>  &nbsp; &nbsp; <a href="{{ route('vendor.food.stockOutList') }}" class="text-primary text-underline">{{ translate('Click_To_View') }}</a>
+                            </div>
+                        </div>
+                        <button class="position-absolute right-0 top-50 py-2 px-2 bg-transparent border-0 outline-none shadow-none" id="hide-warning-btn"  type="button">
+                            <i class="tio-clear fz--18"></i>
+                        </button>
+                    </div>
+
+                @endif
+
+
+
+
+        <div class="restaurant-dashboard-wrapper d-flex flex-wrap gap-3 mb-3">
+            <div class="card restaurant-dashboard-wrapper-card">
+                <div class="card-header p-2">
+                    <h4 class="card-header-title">
+                        {{translate('order_statistics')}}
+                    </h4>
+                    <div>
+                        <select class="custom-select my-1 order_stats_update" name="statistics_type">
+                            <option
+                                value="overall" {{$params['statistics_type'] == 'overall'?'selected':''}}>
+                                {{translate('messages.Overall Statistics')}}
+                            </option>
+                            <option
+                                value="today" {{$params['statistics_type'] == 'today'?'selected':''}}>
+                                {{translate("messages.Today’s Statistics")}}
+                            </option>
+                            <option
+                                value="this_month" {{$params['statistics_type'] == 'this_month'?'selected':''}}>
+                                {{translate("messages.This Month’s Statistics")}}
+                            </option>
+                        </select>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row g-2" id="order_stats">
+                        @include('vendor-views.partials._dashboard-order-stats',['data'=>$data])
+                    </div>
                 </div>
             </div>
-            <div class="card-body">
-                <div class="row g-2" id="order_stats">
-                    @include('vendor-views.partials._dashboard-order-stats',['data'=>$data])
+            <div class="promo-card">
+                <div class="position-relative">
+                    <img src="{{dynamicAsset('public/assets/admin/img/promo.png')}}" class="mw-100" alt="">
+                    <h4 class="mb-2 mt-3 mt-xl-5">{{ translate('Want_to_get_highlighted?') }}</h4>
+                    <p class="mb-4">
+                        {{ translate('Create_ads_to_get_highlighted_on_the_app_and_web_browser') }}
+                    </p>
+                    <a href="{{ route('vendor.advertisement.create') }}" class="btn btn--primary">{{ translate('Create_Ads') }}</a>
                 </div>
             </div>
         </div>
@@ -263,5 +322,29 @@
             // change url page with new params
             window.history.pushState('page2', 'Title', '{{url()->current()}}?' + params);
         }
+
+                $(document).on('click', '.add-to-session', function () {
+                    var session_data = $(this).data("id");
+                    $.ajax({
+                        url: '{{ route('vendor.food.addToSession') }}',
+                        method: 'POST',
+                        data: {
+                            value: session_data,
+                            _token: '{{ csrf_token() }}'
+                            },
+                            success: function(response) {
+
+                            }
+                        });
+                });
+
+                $(document).on('click', '#hide-warning', function () {
+                $('.hide-warning').hide();
+                });
+                $(document).on('click', '#hide-warning-btn', function () {
+                $('.hide-warning').hide();
+                });
+
+
     </script>
 @endpush

@@ -43,7 +43,7 @@
                             <div class="shop-details-banner-content m-0">
                                 <div class="shop-details-banner-content-thumbnail mt-3">
                                     <img class="onerror-image" data-onerror-image="{{dynamicAsset('public/assets/admin/img/160x160/img1.jpg')}}"
-                                         src="{{\App\CentralLogics\Helpers::onerror_image_helper($dm['image'], dynamicStorage('storage/app/public/delivery-man/').'/'.$dm['image'], dynamicAsset('public/assets/admin/img/160x160/img1.jpg'), 'delivery-man/') }}"
+                                         src="{{ $dm['image_full_url'] }}"
                                          alt="{{$dm['f_name']}} {{$dm['l_name']}}">
                                     <h3 class="mt-4 pt-3 mb-4 d-sm-none">{{ $dm->f_name.' '. $dm->l_name }}</h3>
                                 </div>
@@ -155,19 +155,18 @@
                         </div>
 
 
-
                         @if($dm->identity_image  &&  count(json_decode($dm->identity_image ,true)) > 0 )
                         <div class="card-body">
                             <h5 class="mb-3"> {{ translate('Identity_Informations') }} </h5>
                             <div class="d-flex flex-wrap gap-4 align-items-start">
-                                @foreach (json_decode($dm->identity_image , true) as $key => $item)
+                                @foreach ($dm->identity_image_full_url  as $key => $item)
                                         <div class="attachment-card max-w-360">
-                                            <a href="{{ dynamicStorage('storage/app/public/delivery-man/' . $item) }}"
+                                            <a href="{{$item }}"
                                                 download class="download-icon">
                                                 <img src="{{ dynamicAsset('/public/assets/admin/new-img/download-icon.svg') }}"
                                                     alt="">
                                             </a>
-                                            <img src="{{ dynamicStorage('storage/app/public/delivery-man/' . $item) }}"
+                                            <img src="{{$item }}"
                                                 data-toggle="modal" data-target="#image-modal"
                                                 class="aspect-615-350 cursor-pointer mw-100 object--cover" alt="">
                                         </div>
@@ -177,161 +176,184 @@
                         </div>
                         @endif
 
-                        @if($dm->additional_data  &&  count(json_decode($dm->additional_data, true)) > 0 )
+                        @if($dm->additional_data && count(json_decode($dm->additional_data, true)) > 0 )
+                        <div class="row mb-2">
 
-                        <div class="card-header justify-content-between align-items-center">
-                            <label class="input-label text-capitalize d-inline-flex align-items-center m-0">
-                                <span class="line--limit-1"><img src="{{ dynamicAsset('/public/assets/admin/img/company.png') }}"
-                                        alt=""> {{ translate('Additional_Information') }} </span>
-                                <span data-toggle="tooltip" data-placement="right"
-                                    data-original-title="{{ translate('Additional_Information') }}"
-                                    class="input-label-secondary">
-                                    <img src="{{ dynamicAsset('/public/assets/admin/img/info-circle.svg') }}"
-                                        alt="info"></span>
-                            </label>
-                        </div>
-                        <div class="card-body">
-                            <div class="__registration-information">
-                                <div class="item">
-                                    <ul>
+                        <div class="col-lg-12  mt-2">
+                            <div class="card ">
 
-                                        @foreach (json_decode($dm->additional_data, true) as $key => $item)
-                                                @if (is_array($item))
-                                                @foreach ($item as $k =>  $data)
-                                                <li>
-                                                    <span class="left"> {{ $k == 0 ? translate($key)  : ''}} </span>
-                                                    <span class="right">{{   $data }} </span>
-                                                </li>
+                                <div class="card-header justify-content-between align-items-center">
+                                    <label class="input-label text-capitalize d-inline-flex align-items-center m-0">
+                                        <span class="line--limit-1"><img src="{{ dynamicAsset('/public/assets/admin/img/company.png') }}"
+                                                alt=""> {{ translate('Additional_Information') }} </span>
+                                        <span data-toggle="tooltip" data-placement="right"
+                                            data-original-title="{{ translate('Additional_Information') }}"
+                                            class="input-label-secondary">
+                                            <img src="{{ dynamicAsset('/public/assets/admin/img/info-circle.svg') }}" alt="info"></span>
+                                    </label>
+                                </div>
+                                <div class="card-body">
+                                    <div class="__registration-information">
+                                        <div class="item">
+                                            <ul>
+                                                @foreach (json_decode($dm->additional_data, true) as $key => $item)
+                                                    @if (is_array($item))
+
+
+                                                    @foreach ($item as $k => $data)
+                                                    <li>
+                                                        <span class="left"> {{ $k == 0 ? translate($key) : ''}} </span>
+                                                        <span class="right">{{ $data }} </span>
+                                                    </li>
+                                                    @endforeach
+                                                    @else
+                                                    <li>
+                                                        <span class="left"> {{ translate($key) }} </span>
+                                                        <span class="right">{{ $item ?? translate('messages.N/A')}} </span>
+                                                    </li>
+                                                    @endif
                                                 @endforeach
-                                                @else
-                                                <li>
-                                                    <span class="left"> {{ translate($key) }} </span>
-                                                    <span class="right">{{   $item ?? translate('messages.N/A') }} </span>
-                                                </li>
-                                                @endif
-                                        @endforeach
-
-                                    </ul>
+                                            </ul>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                        <div class="card-header justify-content-between align-items-center">
-                            <label class="input-label text-capitalize d-inline-flex align-items-center m-0">
-                                <span class="line--limit-1"><i class="tio-file-text-outlined"></i>
-                                    {{ translate('Documents') }} </span>
-                                <span data-toggle="tooltip" data-placement="right"
-                                    data-original-title="{{ translate('Additional_Documents') }}"
-                                    class="input-label-secondary">
-                                    <img src="{{ dynamicAsset('/public/assets/admin/img/info-circle.svg') }}"
-                                        alt="info"></span>
-                            </label>
                         </div>
-                        <div class="card-body">
-                            <h5 class="mb-3"> {{ translate('Attachments') }} </h5>
-                                <div class="d-flex flex-wrap gap-4 align-items-start">
-                                    @if($dm->additional_documents  &&  count(json_decode($dm->additional_documents, true)) > 0 )
-                                @foreach (json_decode($dm->additional_documents, true) as $key => $item)
-
-                                    @foreach ($item as $file)
-                                        <?php
-                                        $path_info = pathinfo('storage/app/public/additional_documents/dm/' . $file);
-                                        $f_date = $path_info['extension'];
-                                        ?>
-
-                                        @if (in_array($f_date, ['pdf', 'doc', 'docs', 'docx' ]))
-                                                @if ($f_date == 'pdf')
-                                                <div class="attachment-card min-w-260">
-                                                    <label  for="">{{ translate($key) }}</label>
-                                                    <a href="{{ dynamicStorage('storage/app/public/additional_documents/dm/'.$file) }}" target="_blank" rel="noopener noreferrer">
-                                                        <div class="img ">
-
-                                                            <iframe src="https://docs.google.com/gview?url={{ dynamicStorage('storage/app/public/additional_documents/dm/' . $file) }}&embedded=true"></iframe>
-
-
-                                                        </div>
-                                                    </a>
-
-                                                        <a href="{{ dynamicStorage('storage/app/public/additional_documents/dm/' . $file) }}"
-                                                            download class="download-icon mt-3">
-                                                            <img src="{{ dynamicAsset('/public/assets/admin/new-img/download-icon.svg') }}"
-                                                                alt="">
-                                                        </a>
-                                                        <a href="#" class="pdf-info">
-                                                            <img  src="{{ dynamicAsset('/public/assets/admin/new-img/pdf.png') }}"
-                                                                alt="">
-                                                            <div class="w-0 flex-grow-1">
-                                                                <h6 class="title">{{ translate('Click_To_View_The_file.pdf') }}
-                                                                </h6>
-
-                                                            </div>
-                                                        </a>
-                                                    </div>
-                                                @else
-                                                    <div class="attachment-card  min-w-260">
-                                                        <label  for="">{{ translate($key) }}</label>
-                                                        <a href="{{ dynamicStorage('storage/app/public/additional_documents/dm/'.$file) }}" target="_blank" rel="noopener noreferrer">
-                                                        <div class="img">
-
-                                                            <iframe  src="https://docs.google.com/gview?url={{ dynamicStorage('storage/app/public/additional_documents/dm/' . $file) }}&embedded=true"></iframe>
-
-                                                        </div>
-                                                    </a>
-                                                        <a href="{{ dynamicStorage('storage/app/public/additional_documents/dm/' . $file) }}"
-                                                            download class="download-icon mt-3">
-                                                            <img  src="{{ dynamicAsset('/public/assets/admin/new-img/download-icon.svg') }}"
-                                                                alt="">
-                                                        </a>
-                                                        <a href="#" class="pdf-info">
-                                                            <img src="{{ dynamicAsset('/public/assets/admin/new-img/doc.png') }}"
-                                                                alt="">
-                                                            <div class="w-0 flex-grow-1">
-                                                                <h6 class="title">{{ translate('Click_To_View_The_file.doc') }}
-                                                                </h6>
-
-                                                            </div>
-                                                        </a>
-                                                    </div>
-                                                @endif
-                                        @endif
-                                    @endforeach
-                                @endforeach
-                                @endif
-                                </div>
-                            @endif
-                            <br>
-                            <br>
-
-                            @if($dm->additional_documents  &&  count(json_decode($dm->additional_documents, true)) > 0 )
-                            <h5 class="mb-3"> {{ translate('Images') }} </h5>
-
-                            <div class="d-flex flex-wrap gap-4 align-items-start">
-                                @foreach (json_decode($dm->additional_documents, true) as $key => $item)
-                                @foreach ($item as $file)
-
-                                <?php
-                                    $path_info = pathinfo('storage/app/public/additional_documents/dm/' . $file);
-                                    $f_date = $path_info['extension'];
-                                    ?>
-                                    @if (in_array($f_date, ['jpg', 'jpeg', 'png']))
-                                    <div class="attachment-card max-w-360">
-                                            <label  for="">{{ translate($key) }}</label>
-                                            <a href="{{ dynamicStorage('storage/app/public/additional_documents/dm/' . $file) }}"
-                                                download class="download-icon mt-3">
-                                                <img  src="{{ dynamicAsset('/public/assets/admin/new-img/download-icon.svg') }}"
-                                                    alt="">
-                                            </a>
-                                            <img src="{{ dynamicStorage('storage/app/public/additional_documents/dm/' . $file) }}"
-
-                                                class="aspect-615-350 cursor-pointer mw-100 object--cover" alt="">
-                                            </div>
-                                            @endif
-                                            @endforeach
-                                @endforeach
-                            </div>
-                            @endif
-
-                        </div>
+                        @endif
                     </div>
+                        @if($dm->additional_documents && count(json_decode($dm->additional_documents, true)) > 0 )
+                        @php($files= null)
+                        @php($images= true)
+                        <div class="row mb-2">
+                        <div class="col-lg-12 mb-2 mt-2">
+                            <div class="card ">
+                                <div class="card-header justify-content-between align-items-center">
+                                    <label class="input-label text-capitalize d-inline-flex align-items-center m-0">
+                                        <span class="line--limit-1"><i class="tio-file-text-outlined"></i>
+                                            {{ translate('Documents') }} </span>
+                                        <span data-toggle="tooltip" data-placement="right"
+                                            data-original-title="{{ translate('Additional_Documents') }}"
+                                            class="input-label-secondary">
+                                            <img src="{{ dynamicAsset('/public/assets/admin/img/info-circle.svg') }}" alt="info"></span>
+                                    </label>
+                                </div>
+                                <div class="card-body">
+                                    <h5 class="mb-3"> {{ translate('Attachments') }} </h5>
+                                    <div class="d-flex flex-wrap gap-4 align-items-start">
+                                            @foreach (json_decode($dm->additional_documents, true) as $key => $item)
+
+                                            @php($item  = is_string($item) ? json_deocde($item,true) : $item  )
+                                            @foreach ($item as $file)
+
+                                            @php($file =  is_string($file) ? ['file' => $file, 'storage' => 'public'] :  $file )
+                                                        <?php
+                                                            $path_info = pathinfo(\App\CentralLogics\Helpers::get_full_url('additional_documents/dm',$file['file'],$file['storage']));
+                                                            $f_date = $path_info['extension'];
+                                                            if(!in_array($f_date, ['jpg', 'jpeg', 'png'])){
+                                                                $images = false;
+                                                            }
+                                                            ?>
+
+                                                    @if (in_array($f_date, ['pdf', 'doc', 'docs', 'docx' ]))
+                                                    @php($files= true)
+                                                            @if ($f_date == 'pdf')
+                                                                <div class="attachment-card min-w-260">
+                                                                    <label for="">{{ translate($key) }}</label>
+                                                                    <a href="{{ \App\CentralLogics\Helpers::get_full_url('additional_documents/dm',$file['file'],$file['storage']) }}" target="_blank" rel="noopener noreferrer">
+                                                                        <div class="img ">
+
+
+                                                                            <iframe src="https://docs.google.com/gview?url={{ \App\CentralLogics\Helpers::get_full_url('additional_documents/dm',$file['file'],$file['storage']) }}&embedded=true"></iframe>
+
+                                                                        </div>
+                                                                    </a>
+
+                                                                    <a href="{{ \App\CentralLogics\Helpers::get_full_url('additional_documents/dm',$file['file'],$file['storage']) }}" download
+                                                                        class="download-icon mt-3">
+                                                                        <img src="{{ dynamicAsset('/public/assets/admin/new-img/download-icon.svg') }}" alt="">
+                                                                    </a>
+                                                                    <a href="#" class="pdf-info">
+                                                                        <img src="{{ dynamicAsset('/public/assets/admin/new-img/pdf.png') }}" alt="">
+                                                                        <div class="w-0 flex-grow-1">
+                                                                            <h6 class="title">{{ translate('Click_To_View_The_file.pdf') }}
+                                                                            </h6>
+
+                                                                        </div>
+                                                                    </a>
+                                                                </div>
+                                                                @else
+                                                                <div class="attachment-card  min-w-260">
+                                                                    <label for="">{{ translate($key) }}</label>
+                                                                    <a href="{{ \App\CentralLogics\Helpers::get_full_url('additional_documents/dm',$file['file'],$file['storage']) }}" target="_blank" rel="noopener noreferrer">
+                                                                        <div class="img ">
+
+                                                                            <iframe src="https://docs.google.com/gview?url={{ \App\CentralLogics\Helpers::get_full_url('additional_documents/dm',$file['file'],$file['storage']) }}&embedded=true"></iframe>
+
+
+                                                                        </div>
+                                                                    </a>
+                                                                    <a href="{{ \App\CentralLogics\Helpers::get_full_url('additional_documents/dm',$file['file'],$file['storage']) }}" download
+                                                                        class="download-icon mt-3">
+                                                                        <img src="{{ dynamicAsset('/public/assets/admin/new-img/download-icon.svg') }}" alt="">
+                                                                    </a>
+                                                                    <a href="#" class="pdf-info">
+                                                                        <img src="{{ dynamicAsset('/public/assets/admin/new-img/doc.png') }}" alt="">
+                                                                        <div class="w-0 flex-grow-1">
+                                                                            <h6 class="title">{{ translate('Click_To_View_The_file.doc') }}
+                                                                            </h6>
+
+                                                                        </div>
+                                                                    </a>
+                                                                </div>
+                                                            @endif
+                                                    @endif
+
+                                                @endforeach
+                                            @endforeach
+                                        </div>
+
+
+                                        @if ($images)
+
+                                        <h5  class="{{ $files == true ? 'mt-4' : ''  }} mb-3"> {{ translate('Images') }} </h5>
+                                        <div class="d-flex flex-wrap gap-4 align-items-start">
+                                            @foreach (json_decode($dm->additional_documents, true) as $key => $item)
+
+                                            @php($item  = is_string($item) ? json_deocde($item,true) : $item  )
+
+                                            @foreach ($item as $file)
+                                            @php($file =  is_string($file) ? ['file' => $file, 'storage' => 'public'] :  $file )
+                                                    <?php
+                                                        $path_info = pathinfo(\App\CentralLogics\Helpers::get_full_url('additional_documents/dm',$file['file'],$file['storage']) );
+                                                        $f_date = $path_info['extension'];
+                                                        ?>
+                                                    @if (in_array($f_date, ['jpg', 'jpeg', 'png']))
+                                                    <div class="attachment-card max-w-360">
+                                                        <label for="">{{ translate($key) }}</label>
+                                                        <a href="{{ \App\CentralLogics\Helpers::get_full_url('additional_documents/dm',$file['file'],$file['storage']) }}" download
+                                                            class="download-icon mt-3">
+                                                            <img src="{{ dynamicAsset('/public/assets/admin/new-img/download-icon.svg') }}" alt="">
+                                                        </a>
+                                                        <img src="{{ \App\CentralLogics\Helpers::get_full_url('additional_documents/dm',$file['file'],$file['storage'])  }}"
+                                                            class="aspect-615-350 cursor-pointer mw-100 object--cover" alt="">
+                                                    </div>
+                                                    @endif
+                                                @endforeach
+                                            @endforeach
+                                        </div>
+                                        @endif
+
+
+                                </div>
+                            </div>
+                        </div>
+                        </div>
+                        @endif
+                    <!-- Card -->
+
+
+
                 </section>
                 <!-- Banner -->
 

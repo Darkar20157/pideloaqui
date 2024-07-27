@@ -5,6 +5,7 @@
 @push('css_or_js')
 <link href="{{dynamicAsset('public/assets/admin/css/croppie.css')}}" rel="stylesheet">
 <link href="{{ dynamicAsset('public/assets/admin/css/tags-input.min.css') }}" rel="stylesheet">
+<link href="{{ dynamicAsset('public/assets/admin/css/fm.tagator.jquery.css') }}" rel="stylesheet">
 @endpush
 
 @section('content')
@@ -367,6 +368,49 @@
                         </div>
                     </div>
 
+                    @php($extra_packaging_charge = \App\Models\BusinessSetting::where('key', 'extra_packaging_charge')->first())
+                    @php($extra_packaging_charge = $extra_packaging_charge ? $extra_packaging_charge->value : 0)
+                    @if($extra_packaging_charge == 1)
+
+                    <div class="col-xl-4 col-md-4 col-sm-6">
+                        <div class="form-group mb-0">
+                            <label
+                                class="toggle-switch toggle-switch-sm d-flex justify-content-between border  rounded px-3 form-control"
+                                for="is_extra_packaging_active">
+                                <span class="pr-2 d-flex">
+                                    <span class="line--limit-1">
+                                        {{translate('messages.Extra_Packaging_Charge')}}
+                                    </span>
+                                    <span data-toggle="tooltip" data-placement="right"
+                                          data-original-title='{{translate("By_enabling_the_status_customer_will_get_the_option_for_choosing_extra_packaging_charge_when_placing_order._for_extra_package_offer")}}'
+                                          class="input-label-secondary">
+                                        <img src="{{dynamicAsset('public/assets/admin/img/info-circle.svg')}}" alt="i">
+                                    </span>
+                                </span>
+                                <input type="checkbox"
+                                       data-id="is_extra_packaging_active"
+                                       data-type="status"
+                                       data-image-on="{{ dynamicAsset('/public/assets/admin/img/modal/dm-tips-on.png') }}"
+                                       data-image-off="{{ dynamicAsset('/public/assets/admin/img/modal/dm-tips-off.png') }}"
+                                       data-title-on="{{ translate('Want_to_enable_the_extra_packaging_charge_for_this_restaurant?') }}"
+                                       data-title-off="{{ translate('Want_to_disable_the_extra_packaging_charge_for_this_restaurant?') }}"
+                                       data-text-on="<p>{{ translate('By_enabling_the_status_customer_will_get_the_option_for_choosing_extra_packaging_charge_when_placing_order._for_extra_package_offer') }}"
+                                       data-text-off="<p>{{ translate('If_disabled,_customer_will_not_get_the_option_for_choosing_extra_packaging_charge_when_placing_order._for_extra_package_offer.') }}</p>"
+                                       class="toggle-switch-input dynamic-checkbox"
+                                       id="is_extra_packaging_active" {{$restaurant->restaurant_config?->is_extra_packaging_active == 1?'checked':''}}>
+                                <span class="toggle-switch-label">
+                                    <span class="toggle-switch-indicator"></span>
+                                </span>
+                            </label>
+                            <form
+                                action="{{route('vendor.business-settings.toggle-settings',[$restaurant->id,$restaurant->restaurant_config?->is_extra_packaging_active?0:1, 'is_extra_packaging_active'])}}"
+                                method="get" id="is_extra_packaging_active_form">
+                            </form>
+                        </div>
+                    </div>
+
+                    @endif
+
                 </div>
             </div>
         </div>
@@ -383,6 +427,48 @@
                     @csrf
 
                     <div class="row g-3">
+
+                        @if($extra_packaging_charge == 1)
+                        <div class="bg--F7F9FD col-12 radius-10">
+                            <div class="row p-2">
+                                <div class="col-12">
+                                   <div class="row">
+                                       <div class="col-sm-4 col-md-6">
+                                           <label class="toggle-switch toggle-switch-sm d-flex justify-content-between input-label mb-1" for="extra_packaging_status">
+                                               <span class="form-check-label">{{translate('messages.extra_packaging_charge')}} <span class="input-label-secondary" data-toggle="tooltip" data-placement="right" data-original-title="{{translate('By_enabling_the_status_customer_will_get_the_option_for_choosing_extra_packaging_charge_when_placing_order._for_extra_package_offer')}}"><img src="{{dynamicAsset('/public/assets/admin/img/info-circle.svg')}}" alt="{{translate('By_enabling_the_status_customer_will_get_the_option_for_choosing_extra_packaging_charge_when_placing_order._for_extra_package_offer')}}"></span></span>
+                                           </label>
+                                           {{-- <span>{{ translate('Leave the input box empty to not offering extra packaging charge') }}</span> --}}
+                                       </div>
+                                       <div class="col-sm-4 col-md-6 p-4">
+                                           <div class="d-flex g-5 {{ $restaurant->restaurant_config?->is_extra_packaging_active != 1 ?'disabled_warning' :'' }}">
+                                               <div>
+                                                   <div class="form-group form-check form--check">
+                                                       <input  {{ $restaurant->restaurant_config?->is_extra_packaging_active != 1 ?'disabled' :'' }}  type="radio" name="extra_packaging_status" value="0" class="form-check-input "
+                                                              id="optional" {{  $restaurant->restaurant_config?->is_extra_packaging_active ==  1 && $restaurant?->restaurant_config?->extra_packaging_status == '0' ? 'checked' :'' }}>
+                                                       <label class="form-check-label" for="optional">{{translate('messages.optional')}}</label>
+                                                   </div>
+                                               </div>
+                                               <div>
+                                                   <div class="form-group form-check form--check">
+                                                       <input {{  $restaurant->restaurant_config?->is_extra_packaging_active != 1 ?'disabled' :'' }} type="radio" name="extra_packaging_status" value="1" class="form-check-input"
+                                                              id="mandatory" {{ $restaurant->restaurant_config?->is_extra_packaging_active ==  1 &&  $restaurant?->restaurant_config?->extra_packaging_status == '1' ? 'checked' :'' }}>
+                                                       <label class="form-check-label" for="mandatory">{{translate('messages.mandatory')}}</label>
+                                                   </div>
+                                               </div>
+                                           </div>
+                                       </div>
+                                   </div>
+                                </div>
+                                <div class="col-12 border-top pt-3">
+                                    <div class="form-group m-0">
+                                        <label class="input-label text-capitalize" for="title">{{translate('messages.extra_packaging_charge_amount')}}
+                                        </label>
+                                        <input type="number" name="extra_packaging_amount"  step="0.01" {{ $restaurant->restaurant_config?->is_extra_packaging_active == 1 ? 'required' : 'readonly' }} min="0" max="100000" class="form-control" placeholder="" value="{{$restaurant?->restaurant_config?->extra_packaging_amount??''}}">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        @endif
                         @if ($data)
                         <div class="col-sm-{{$data?'4':'6'}} col-12">
                             <div class="form-group m-0">
@@ -489,7 +575,17 @@
 
                         </div>
                     </div>
-                </div>
+                    <div class="col-12 bg--F7F9FD radius-10">
+                        <div class="form-group m-0 p-2">
+                            <label class="input-label" for="cuisine">{{ translate('messages.Set Restaurant Characteristics') }}</label>
+                            <p class="mb-2">{{ translate('Select the Restaurant Type that Best Represents Your Establishment') }}</p>
+                            <input id="activate_tagator2" type="text" name="characteristics" class="tagator form-control" value="@foreach($restaurant->characteristics as $index => $c){{$c->characteristic}}{{ $index < count($restaurant->characteristics) - 1 ? ',' : '' }}@endforeach" data-tagator-show-all-options-on-focus="true" data-tagator-autocomplete="{{$combinedNames}}">
+
+                        </div>
+                    </div>
+
+
+                    </div>
                     <div class="btn--container justify-content-end mt-3">
                         <button type="reset" class="btn btn--reset">{{translate('messages.reset')}}</button>
                         <button type="submit" class="btn btn--primary">{{translate('messages.update')}}</button>
@@ -546,7 +642,7 @@
                                             <input type="text" name="meta_title[]" id="default_title"
                                                 class="form-control" placeholder="{{ translate('messages.meta_title') }}" value="{{$restaurant->getRawOriginal('meta_title')}}"
 
-                                                oninvalid="document.getElementById('en-link').click()">
+                                                 >
                                         </div>
                                         <input type="hidden" name="lang[]" value="default">
                                         <div class="form-group mb-0">
@@ -579,7 +675,7 @@
                                                     </label>
                                                     <input type="text" name="meta_title[]" id="{{ $lang }}_title"
                                                         class="form-control" value="{{ $translate[$lang]['meta_title']??'' }}" placeholder="{{ translate('messages.meta_title') }}"
-                                                        oninvalid="document.getElementById('en-link').click()">
+                                                         >
                                                 </div>
                                                 <input type="hidden" name="lang[]" value="{{ $lang }}">
                                                 <div class="form-group mb-0">
@@ -625,7 +721,7 @@
                                             </label>
                                             <div class="text-center">
                                                     <img class="img--110 min-height-170px min-width-170px" id="viewer"
-                                                    src="{{\App\CentralLogics\Helpers::onerror_image_helper($restaurant?->meta_image, dynamicStorage('storage/app/public/restaurant/'.$restaurant?->meta_image),  dynamicAsset('public/assets/admin/img/upload.png'), 'restaurant/') }}"
+                                                    src="{{$restaurant?->meta_image_full_url ?? dynamicAsset('public/assets/admin/img/upload.png') }}"
                                                     alt="image">
                                             </div>
                                             <input type="file" name="meta_image" id="customFileEg1" class="custom-file-input"
@@ -694,8 +790,25 @@
 
 @push('script_2')
 <script src="{{ dynamicAsset('public/assets/admin') }}/js/tags-input.min.js"></script>
+<script src="{{ dynamicAsset('public/assets/admin') }}/js/fm.tagator.jquery.js"></script>
     <script>
         "use strict";
+
+        $(document).on('click', '.disabled_warning', function (event) {
+            toastr.info('{{translate('messages.extra_packaging_charge_is_disable')}}', {
+                                CloseButton: true,
+                                ProgressBar: true
+                            });
+    });
+
+
+    function call_limite_exceted(){
+        toastr.info('{{translate('You_can_add_max_5_Characteristics')}}', {
+                                CloseButton: true,
+                                ProgressBar: true
+                            });
+    }
+
         $(document).on('click', '.restaurant-open-status', function (event) {
             Swal.fire({
                 title: '{{ !$restaurant->active ? translate('messages.Want_to_make_your_restaurant_available_for_all') :  translate('messages.Want_to_close_your_restaurant_temporarily')}} ?',

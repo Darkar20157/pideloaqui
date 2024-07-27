@@ -42,7 +42,7 @@
                         <div class="lang_form" id="default-form">
                             <div class="form-group">
                                 <label class="input-label" for="default_title">{{translate('messages.title')}} ({{ translate('Default') }})</label>
-                                <input type="text"  name="title[]" id="default_title" class="form-control" placeholder="{{translate('messages.new_campaign')}}" value="{{$campaign->getRawOriginal('title')}}" oninvalid="document.getElementById('en-link').click()">
+                                <input type="text"  name="title[]" id="default_title" class="form-control" placeholder="{{translate('messages.new_campaign')}}" value="{{$campaign->getRawOriginal('title')}}"  >
                             </div>
                             <input type="hidden" name="lang[]" value="default">
                             <div class="form-group">
@@ -70,7 +70,7 @@
                             <div class="d-none lang_form" id="{{$lang}}-form">
                                 <div class="form-group">
                                     <label class="input-label" for="{{$lang}}_title">{{translate('messages.title')}} ({{strtoupper($lang)}})</label>
-                                    <input type="text"  name="title[]" id="{{$lang}}_title" class="form-control" placeholder="{{translate('messages.new_campaign')}}" value="{{$translate[$lang]['title']??$campaign['title']}}" oninvalid="document.getElementById('en-link').click()">
+                                    <input type="text"  name="title[]" id="{{$lang}}_title" class="form-control" placeholder="{{translate('messages.new_campaign')}}" value="{{$translate[$lang]['title']??$campaign['title']}}"  >
                                 </div>
                                 <input type="hidden" name="lang[]" value="{{$lang}}">
                                 <div class="form-group">
@@ -125,7 +125,7 @@
 
                                 <div class="image-box banner2">
                                     <label for="image-input" class="d-flex flex-column align-items-center justify-content-center h-100 cursor-pointer gap-2">
-                                        <img  class="upload-icon initial-34" src="{{\App\CentralLogics\Helpers::onerror_image_helper($campaign?->image, dynamicStorage('storage/app/public/campaign/'.$campaign?->image), dynamicAsset('public/assets/admin/img/900x400/img1.png'), 'campaign/') }}" alt="Upload Icon">
+                                        <img  class="upload-icon initial-34" src="{{$campaign?->image_full_url }}" alt="Upload Icon">
                                         <img src="#" alt="Preview Image" class="preview-image">
                                     </label>
                                 <button type="button" class="delete_image">

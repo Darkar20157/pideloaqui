@@ -11,6 +11,7 @@ Route::group(['namespace' => 'Vendor', 'as' => 'vendor.'], function () {
         Route::get('/get-restaurant-data', 'DashboardController@restaurant_data')->name('get-restaurant-data');
         Route::post('/store-token', 'DashboardController@updateDeviceToken')->name('store.token');
         Route::get('/reviews', 'ReviewController@index')->name('reviews')->middleware(['module:reviews' ,'subscription:reviews']);
+        Route::post('/store-reply/{id}', 'ReviewController@update_reply')->name('review-reply')->middleware(['module:reviews' ,'subscription:reviews']);
 
 
         Route::group(['prefix' => 'pos', 'as' => 'pos.'], function () {
@@ -39,6 +40,22 @@ Route::group(['namespace' => 'Vendor', 'as' => 'vendor.'], function () {
 
             });
         });
+
+        Route::group([ 'prefix' => 'advertisement', 'as' => 'advertisement.' ,'middleware' => ['module:advertisement']], function () {
+
+            Route::get('/', 'AdvertisementController@index')->name('index');
+            Route::get('create/', 'AdvertisementController@create')->name('create');
+            Route::get('details/{advertisement}', 'AdvertisementController@show')->name('show');
+            Route::get('{advertisement}/edit', 'AdvertisementController@edit')->name('edit');
+            Route::post('store', 'AdvertisementController@store')->name('store');
+            Route::put('update/{advertisement}', 'AdvertisementController@update')->name('update');
+            Route::delete('delete/{id}', 'AdvertisementController@destroy')->name('destroy');
+            Route::get('/status', 'AdvertisementController@status')->name('status');
+            Route::get('/copy-advertisement/{advertisement}', 'AdvertisementController@copyAdd')->name('copyAdd');
+            Route::post('/copy-add-post/{advertisement}', 'AdvertisementController@copyAddPost')->name('copyAddPost');
+        });
+
+
 
         Route::group(['prefix' => 'dashboard', 'as' => 'dashboard.'], function () {
             Route::post('order-stats', 'DashboardController@order_stats')->name('order-stats');
@@ -100,6 +117,10 @@ Route::group(['namespace' => 'Vendor', 'as' => 'vendor.'], function () {
             Route::post('search', 'FoodController@search')->name('search');
             Route::get('view/{id}', 'FoodController@view')->name('view');
             Route::get('get-categories', 'FoodController@get_categories')->name('get-categories');
+            Route::get('out-of-stock-list', 'FoodController@stockOutList')->name('stockOutList');
+            Route::post('update-stock', 'FoodController@updateStock')->name('updateStock');
+            Route::post('/add-to-session', 'FoodController@addToSession')->name('addToSession');
+
 
             //Import and export
             Route::get('bulk-import', 'FoodController@bulk_import_index')->name('bulk-import');
@@ -192,6 +213,8 @@ Route::group(['namespace' => 'Vendor', 'as' => 'vendor.'], function () {
         });
         Route::group(['prefix' => 'business-settings', 'as' => 'business-settings.', 'middleware' => ['module:restaurant_setup']], function () {
             Route::get('restaurant-setup', 'BusinessSettingsController@restaurant_index')->name('restaurant-setup');
+            Route::get('notification-setup', 'BusinessSettingsController@notification_index')->name('notification-setup');
+            Route::get('notification-status-change/{key}/{type}', 'BusinessSettingsController@notification_status_change')->name('notification_status_change');
             Route::post('add-schedule', 'BusinessSettingsController@add_schedule')->name('add-schedule');
             Route::get('remove-schedule/{restaurant_schedule}', 'BusinessSettingsController@remove_schedule')->name('remove-schedule');
             Route::get('update-active-status', 'BusinessSettingsController@active_status')->name('update-active-status');
@@ -263,7 +286,7 @@ Route::group(['namespace' => 'Vendor', 'as' => 'vendor.'], function () {
         });
 
         Route::group(['prefix' => 'file-manager', 'as' => 'file-manager.'], function () {
-            Route::get('/download/{file_name}', 'OrderController@download')->name('download');
+            Route::get('/download/{file_name}/{storage?}', 'OrderController@download')->name('download');
         });
     });
 

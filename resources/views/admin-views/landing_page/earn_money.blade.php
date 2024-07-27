@@ -118,7 +118,7 @@
             @endif
             <div class="btn--container justify-content-end mt-3">
                 <button type="reset" class="btn btn--reset">{{translate('Reset')}}</button>
-                <button type="submit"   class="btn btn--primary mb-2">{{translate('Save')}}</button>
+                <button type="submit"   class="btn btn--primary">{{translate('Save')}}</button>
             </div>
 </div>
     </form>
@@ -190,12 +190,7 @@
 
                                 <label class="upload-img-3 m-0 d-block my-auto">
                                     <div class="img">
-                                        <img  src="{{ \App\CentralLogics\Helpers::onerror_image_helper(
-                                            $earn_money_reg_image?->getRawOriginal('value') ?? null,
-                                            dynamicStorage('storage/app/public/earn_money').'/'.$earn_money_reg_image?->getRawOriginal('value') ?? null,
-                                            dynamicAsset('/public/assets/admin/img/upload-3.png'),
-                                            'earn_money/'
-                                        ) }}"
+                                        <img  src="{{ $earn_money_reg_image_full_url }}"
                                               data-onerror-image="{{dynamicAsset('/public/assets/admin/img/upload-3.png')}}"
                                               class="img__aspect-unset mw-100 min-w-187px onerror-image" alt="">
                                     </div>
@@ -374,7 +369,7 @@
 
             <div class="btn--container justify-content-end mt-3">
                 <button type="reset" class="btn btn--reset">{{translate('Reset')}}</button>
-                <button type="submit"   class="btn btn--primary mb-2">{{translate('Save')}}</button>
+                <button type="submit"   class="btn btn--primary">{{translate('Save')}}</button>
             </div>
         </div>
     </form>

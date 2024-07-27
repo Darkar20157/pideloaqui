@@ -81,7 +81,7 @@
                     <div class="col-md-6">
                         <div class="d-flex align-items-center justify-content-center">
                                  <img class="avatar avatar-xxl avatar-4by3 mr-4 mw-120px"
-                                 src="{{\App\CentralLogics\Helpers::onerror_image_helper($dm?->image, dynamicStorage('storage/app/public/delivery-man/'.$dm?->image),  dynamicAsset('public/assets/admin/img/160x160/img1.jpg'), 'delivery-man/') }}"
+                                 src="{{ $dm?->image_full_url ?? dynamicAsset('public/assets/admin/img/160x160/img1.jpg') }}"
                                  alt="image">
                                  <div class="d-block">
                                     <div class="rating--review">
@@ -313,7 +313,7 @@
                                 <div class="d-flex align-items-center">
                                     <div class="avatar avatar-circle">
                                              <img class="avatar-img" width="75" height="75"
-                                             src="{{\App\CentralLogics\Helpers::onerror_image_helper($review?->customer?->image, dynamicStorage('storage/app/public/profile/'.$review?->customer?->image),  dynamicAsset('public/assets/admin/img/160x160/img1.jpg'), 'profile/') }}"
+                                             src="{{ $review?->customer?->image ?? dynamicAsset('public/assets/admin/img/160x160/img1.jpg') }}"
                                              alt="image">
                                     </div>
                                     <div class="ml-3">

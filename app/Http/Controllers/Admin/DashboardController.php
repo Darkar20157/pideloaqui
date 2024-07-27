@@ -177,18 +177,21 @@ class DashboardController extends Controller
     public function user_overview_calc($zone_id)
     {
         $params = session('dash_params');
-        //zone
         if(is_numeric($zone_id))
         {
             $customer = User::where('zone_id', $zone_id);
-            $restaurants = Restaurant::where(['zone_id' => $zone_id]);
-            $delivery_man = DeliveryMan::where('zone_id', $zone_id)->Zonewise();
+            $restaurants = Restaurant::where(['zone_id' => $zone_id])->wherehas('vendor', function($query) {
+                return  $query->where('status' , 1);
+            });
+            $delivery_man = DeliveryMan::where('zone_id', $zone_id)->where('application_status' ,'approved')->Zonewise();
         }
         else
         {
             $customer = User::whereNotNull('id');
-            $restaurants = Restaurant::whereNotNull('id');
-            $delivery_man = DeliveryMan::Zonewise();
+            $restaurants = Restaurant::whereNotNull('id')->wherehas('vendor', function($query) {
+                return  $query->where('status' , 1);
+            });
+            $delivery_man = DeliveryMan::Zonewise()->where('application_status' ,'approved' );
         }
         //user overview
         if ($params['user_overview'] == 'overall') {

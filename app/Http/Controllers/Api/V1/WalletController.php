@@ -42,6 +42,9 @@ class WalletController extends Controller
         ->when($request['type'] && $request['type']=='referrer', function($query){
             $query->whereIn('transaction_type', ['referrer']);
         })
+        ->when($request['type'] && $request['type']=='CashBack', function($query){
+            $query->whereIn('transaction_type', ['CashBack']);
+        })
         ->latest()->paginate($request->limit, ['*'], 'page', $request->offset);
 
 
@@ -84,7 +87,7 @@ class WalletController extends Controller
             if (!$request->has('payment_method')) {
                 return response()->json(['errors' => ['message' => 'Payment not found']], 403);
             }
-            
+
             $wallet = new WalletPayment();
             $wallet->user_id = $customer->id;
             $wallet->amount = $request->amount;

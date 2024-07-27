@@ -419,14 +419,12 @@
                                     <div class="d-flex __gap-12px mt-4">
                                         <label class="__custom-upload-img mr-lg-5">
                                             @php($logo = \App\Models\BusinessSetting::where('key', 'logo')->first())
-                                            @php($logo = $logo->value ?? '')
                                             <label class="form-label">
                                                 {{ translate('logo') }} <span class="text--primary">({{ translate('3:1') }})</span>
                                             </label>
                                             <div class="text-center">
                                                     <img class="img--vertical onerror-image"   id="viewer"
-                                                    src="{{\App\CentralLogics\Helpers::onerror_image_helper($logo, dynamicStorage('storage/app/public/business/'.$logo), dynamicAsset('public/assets/admin/img/upload-img.png'), 'business/') }}"
-                                                    data-onerror-image="{{ dynamicAsset('public/assets/admin/img/upload-img.png') }}" alt="image">
+                                                    src="{{\App\CentralLogics\Helpers::get_full_url('business', $logo?->value?? '', $logo?->storage[0]?->value ?? 'public','upload_image')}}" alt="image">
 
                                             </div>
                                             <input type="file" name="logo" id="customFileEg1" class="custom-file-input"
@@ -435,13 +433,12 @@
 
                                         <label class="__custom-upload-img">
                                             @php($icon = \App\Models\BusinessSetting::where('key', 'icon')->first())
-                                            @php($icon = $icon->value ?? '')
                                             <label class="form-label">
                                                 {{ translate('Favicon') }}  <span class="text--primary">({{ translate('1:1') }})</span>
                                             </label>
                                             <div class="text-center">
                                                     <img class="img--110 onerror-image"   id="iconViewer"
-                                                    src="{{\App\CentralLogics\Helpers::onerror_image_helper($icon, dynamicStorage('storage/app/public/business/'.$icon), dynamicAsset('public/assets/admin/img/upload-img.png'), 'business/') }}"
+                                                    src="{{\App\CentralLogics\Helpers::get_full_url('business', $icon?->value?? '', $icon?->storage[0]?->value ?? 'public','upload_image')}}"
                                                     data-onerror-image="{{ dynamicAsset('public/assets/admin/img/upload-img.png') }}" alt="Fav icon">
                                             </div>
                                             <input type="file" name="icon" id="favIconUpload" class="custom-file-input"
@@ -522,7 +519,9 @@
                                             </option>
                                             <option value="Atlantic/Azores" {{ $tz ? ($tz == 'Atlantic/Azores' ? 'selected' : '') : '' }}> (GMT-01:00) Azores</option>
                                             <option value="Africa/Casablanca" {{ $tz ? ($tz == 'Africa/Casablanca' ? 'selected' : '') : '' }}>(GMT+00:00) Casablanca, Monrovia, Reykjavik</option>
-                                            <option value="Etc/Greenwich" {{ $tz ? ($tz == 'Etc/Greenwich' ? 'selected' : '') : '' }}> (GMT+00:00) Greenwich Mean Time : Dublin, Edinburgh, Lisbon, London</option>
+                                            <option value="Etc/Greenwich" {{ $tz ? ($tz == 'Etc/Greenwich' ? 'selected' : '') : '' }}> (GMT+00:00) Greenwich Mean Time : Dublin, Edinburgh, Lisbon</option>
+                                            <option value="Europe/London" {{ $tz ? ($tz == 'Europe/London' ? 'selected' : '') : '' }}> (GMT+00:00) London</option>
+
                                             <option value="Europe/Amsterdam" {{ $tz ? ($tz == 'Europe/Amsterdam' ? 'selected' : '') : '' }}> (GMT+01:00) Amsterdam, Berlin, Bern, Rome, Stockholm, Vienna</option>
                                             <option value="Europe/Belgrade" {{ $tz ? ($tz == 'Europe/Belgrade' ? 'selected' : '') : '' }}> (GMT+01:00) Belgrade, Bratislava, Budapest, Ljubljana, Prague</option>
                                             <option value="Europe/Brussels" {{ $tz ? ($tz == 'Europe/Brussels' ? 'selected' : '') : '' }}> (GMT+01:00) Brussels, Copenhagen, Madrid, Paris</option>
@@ -604,7 +603,7 @@
                                     <div class="form-group">
                                         <label class="input-label"
                                             for="exampleFormControlInput1">{{ translate('messages.currency') }} ({{ \App\CentralLogics\Helpers::currency_symbol() }})</label>
-                                        <select name="currency" class="form-control js-select2-custom">
+                                        <select id="change_currency" name="currency" class="form-control js-select2-custom">
                                             @foreach (\App\Models\Currency::orderBy('currency_code')->get() as $currency)
                                                 <option value="{{ $currency['currency_code'] }}"
                                                     {{ $currency_code ? ($currency_code->value == $currency['currency_code'] ? 'selected' : '') : '' }}>
@@ -1143,12 +1142,48 @@
                                         </label>
                                     </div>
                                 </div>
+                                <div class="col-sm-6 col-lg-4">
+                                    @php($country_picker_status = \App\Models\BusinessSetting::where('key', 'country_picker_status')->first())
+                                    @php($country_picker_status = $country_picker_status ? $country_picker_status->value : 0)
+                                    <div class="form-group mb-0">
+                                        <label
+                                            class="toggle-switch h--45px toggle-switch-sm d-flex justify-content-between border rounded px-3 py-0 form-control">
+                                            <span class="pr-1 d-flex align-items-center switch--label">
+                                                <span class="line--limit-1">
+                                                    {{translate('messages.country_picker') }}
+                                                </span>
+                                                <span class="form-label-secondary text-danger d-flex"
+                                                    data-toggle="tooltip" data-placement="right"
+                                                    data-original-title="{{ translate('messages.If_you_enable_this_option,_in_all_phone_no_field_will_show_a_country_picker_list.')}}"><img
+                                                        src="{{ dynamicAsset('/public/assets/admin/img/info-circle.svg') }}"
+                                                        alt="{{ translate('messages.customer_varification_toggle') }}">
+                                                </span>
+                                            </span>
+                                            <input type="checkbox"
+                                            data-id="country_picker_status"
+                                            data-type="toggle"
+                                            data-image-on="{{ dynamicAsset('/public/assets/admin/img/modal/mail-success.png') }}"
+                                            data-image-off="{{ dynamicAsset('/public/assets/admin/img/modal/mail-warning.png') }}"
+                                            data-title-on="<strong>{{ translate('messages.Want_to_enable_country_picker?') }}</strong>"
+                                            data-title-off="<strong>{{ translate('messages.Want_to_disable_country_picker?') }}</strong>"
+                                            data-text-on="<p>{{ translate('messages.If_you_enable_this,_user_can_select_country_from_country_picker') }}</p>"
+                                            data-text-off="<p>{{ translate('messages.If_you_disable_this,_user_can_not_select_country_from_country_picker,_default_country_will_be_selected') }}</p>"
+                                            class="status toggle-switch-input dynamic-checkbox-toggle"
+                                            value="1"
+                                                name="country_picker_status" id="country_picker_status"
+                                                {{ $country_picker_status == 1 ? 'checked' : '' }}>
+                                            <span class="toggle-switch-label text">
+                                                <span class="toggle-switch-indicator"></span>
+                                            </span>
+                                        </label>
+                                    </div>
+                                </div>
 
                             </div>
                             <div class="btn--container justify-content-end">
                                 <button type="reset" id="reset_btn" class="btn btn--reset location-reload">{{ translate('messages.Reset') }} </button>
                                 <button type="{{ env('APP_MODE') != 'demo' ? 'submit' : 'button' }}"
-                                class="btn btn--primary mb-2 call-demo"><i class="tio-save-outlined mr-2"></i>{{ translate('messages.save_info')}}</button>
+                                class="btn btn--primary call-demo"><i class="tio-save-outlined mr-2"></i>{{ translate('messages.save_info')}}</button>
                             </div>
                         </div>
                     </div>
@@ -1156,6 +1191,43 @@
                 </form>
 
 
+            </div>
+        </div>
+    </div>
+
+
+    <div class="modal fade" id="currency-warning-modal">
+        <div class="modal-dialog modal-dialog-centered status-warning-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal">
+                        <span aria-hidden="true" class="tio-clear"></span>
+                    </button>
+                </div>
+                <div class="modal-body pb-5 pt-0">
+                    <div class="max-349 mx-auto mb-20">
+                        <div>
+                            <div class="text-center">
+                                <img width="80" src="{{  dynamicAsset('public/assets/admin/img/modal/currency.png') }}" class="mb-20">
+                                <h5 class="modal-title"></h5>
+                            </div>
+                            <div class="text-center" >
+                                <h3 > {{ translate('Are_you_sure_to_change_the_currency_?') }}</h3>
+                                <div > <p>{{ translate('If_you_enable_this_currency,_you_must_active_at_least_one_digital_payment_method_that_supports_this_currency._Otherwise_customers_cannot_pay_via_digital_payments_from_the_app_and_websites._And_Also_restaurants_cannot_pay_you_digitally') }}</h3></p></div>
+                            </div>
+
+                            <div class="text-center mb-4" >
+                                <a class="text--underline" href="{{ route('admin.business-settings.payment-method') }}"> {{ translate('Go_to_payment_method_settings.') }}</a>
+                            </div>
+                            </div>
+
+                        <div class="btn--container justify-content-center">
+                            <button data-dismiss="modal" id="confirm-currency-change" class="btn btn--cancel min-w-120" >{{translate("Cancel")}}</button>
+                            <button data-dismiss="modal"   type="button"  class="btn btn--primary min-w-120">{{translate('OK')}}</button>
+
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -1293,6 +1365,56 @@ src="https://maps.googleapis.com/maps/api/js?key={{ \App\Models\BusinessSetting:
         $(document).on("keydown", "input", function(e) {
             if (e.which === 13) e.preventDefault();
         });
+        $(document).on("change", "#change_currency", function(e) {
+
+            check_currency($(this).val())
+            console.log($(this).val())
+        });
+
+        let selectedCurrency = "{{ $currency_code ? $currency_code->value : 'USD' }}"
+        let currencyConfirmed = false;
+
+        function  check_currency(currency){
+            var total_count;
+            $.ajaxSetup({
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                }
+            });
+            $.ajax({
+                url: "{{route('admin.system_currency')}}",
+                method: 'get',
+                data: {
+                    currency: currency,
+                },
+                beforeSend: function () {
+                },
+                success: function (response) {
+                    if(response.data) {
+                    $('#currency-warning-modal').modal('show');
+                } else {
+                    update_currency(selectedCurrency);
+                }
+                console.log(response);
+                },
+                complete: function () {
+                },
+            });
+        }
+        $(document).on("click", "#confirm-currency-change", function() {
+        currencyConfirmed = true;
+        update_currency(selectedCurrency);
+        $('#currency-warning-modal').modal('hide');
+    });
+
+    // Function to update currency
+    function update_currency(currency) {
+        if(currencyConfirmed) {
+            $("#change_currency").val(currency).trigger('change');
+            console.log("Currency updated to:", currency);
+            currencyConfirmed = false;
+        }
+    }
 
     </script>
 @endpush

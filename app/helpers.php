@@ -1,17 +1,18 @@
 <?php
 
-use App\Mail\OrderVerificationMail;
-use App\Mail\PlaceOrder;
 use App\Models\Admin;
 use App\Models\Order;
+use App\Mail\PlaceOrder;
 use App\Models\Restaurant;
 use App\Models\AdminWallet;
 use App\Models\DeliveryMan;
 use App\Models\WalletPayment;
 use App\CentralLogics\Helpers;
+use App\Models\BusinessSetting;
 use App\CentralLogics\OrderLogic;
 use App\Models\AccountTransaction;
 use Illuminate\Support\Facades\DB;
+use App\Mail\OrderVerificationMail;
 use App\CentralLogics\CustomerLogic;
 use Illuminate\Support\Facades\Mail;
 use App\Models\SubscriptionTransaction;
@@ -74,11 +75,14 @@ if (! function_exists('order_place')) {
             $address = json_decode($order->delivery_address, true);
 
             $order_verification_mail_status = Helpers::get_mail_status('order_verification_mail_status_user');
-            if ( config('mail.status') && config('order_delivery_verification') == 1 && $order_verification_mail_status == '1' && $order->is_guest == 0) {
+
+            $notification_status= Helpers::getNotificationStatusData('customer','customer_delivery_verification');
+
+            if ( $notification_status?->mail_status == 'active' &&  config('mail.status') && config('order_delivery_verification') == 1 && $order_verification_mail_status == '1' && $order->is_guest == 0) {
                 Mail::to($order->customer->email)->send(new OrderVerificationMail($order->otp,$order->customer->f_name));
             }
 
-            if ($order->is_guest == 1 && config('mail.status') && $order_verification_mail_status == '1' && isset($address['contact_person_email'])) {
+            if ( $notification_status?->mail_status == 'active' && $order->is_guest == 1 && config('mail.status') && $order_verification_mail_status == '1' && isset($address['contact_person_email'])) {
                 Mail::to($address['contact_person_email'])->send(new OrderVerificationMail($order->otp,$order->customer->f_name));
             }
 
@@ -111,7 +115,10 @@ if (! function_exists('order_place')) {
             if($wallet_transaction)
             {
                 try{
-                    if(config('mail.status') && Helpers::get_mail_status('add_fund_mail_status_user') == '1') {
+                    Helpers::add_fund_push_notification($data->payer_id);
+                    $notification_status= Helpers::getNotificationStatusData('customer','customer_add_fund_to_wallet');
+
+                    if( $notification_status?->mail_status == 'active' && config('mail.status') && Helpers::get_mail_status('add_fund_mail_status_user') == '1') {
                         Mail::to($wallet_transaction->user->email)->send(new \App\Mail\AddFundToWallet($wallet_transaction));
                     }
                 }catch(\Exception $exception)
@@ -207,8 +214,11 @@ if (! function_exists('order_place')) {
 
             }
                 try {
+
+                    $notification_status= Helpers::getNotificationStatusData('deliveryman','deliveryman_collect_cash');
+
                     if($data->attribute == 'deliveryman_collect_cash_payments' && config('mail.status') && Helpers::get_mail_status('cash_collect_mail_status_dm') == 1 ){
-                        Mail::to($user_data['email'])->send(new \App\Mail\CollectCashMail($account_transaction,$user_data['f_name']));
+                        Mail::to( $notification_status?->mail_status == 'active' && $user_data['email'])->send(new \App\Mail\CollectCashMail($account_transaction,$user_data['f_name']));
                     }
                 } catch (\Exception $exception) {
                     info([$exception->getFile(),$exception->getLine(),$exception->getMessage()]);
@@ -252,5 +262,31 @@ if (!function_exists('dynamicStorage')) {
             $result = $directory;
         }
         return asset($result);
+    }
+}
+
+if (!function_exists('getWebConfig')) {
+    function getWebConfig($name):string|object|array
+    {
+        $config = null;
+        $check = ['currency_model', 'currency_symbol_position', 'system_default_currency', 'language', 'company_name', 'decimal_point_settings', 'product_brand', 'digital_product', 'company_email'];
+
+        if (in_array($name, $check) && session()->has($name)) {
+            $config = session($name);
+        } else {
+            $data = BusinessSetting::where(['key' => $name])->first();
+            if (isset($data)) {
+                $config = json_decode($data['value'], true);
+                if (is_null($config)) {
+                    $config = $data['value'];
+                }
+            }
+
+            if (in_array($name, $check)) {
+                session()->put($name, $config);
+            }
+        }
+
+        return $config;
     }
 }

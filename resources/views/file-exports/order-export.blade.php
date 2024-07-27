@@ -52,6 +52,7 @@
                 <th>{{ translate('messages.Food_Price') }}</th>
                 <th>{{ translate('messages.Food_Discount') }}</th>
                 <th>{{ translate('messages.Coupon_Discount') }}</th>
+                <th>{{ translate('messages.Referral_Discount') }}</th>
                 <th>{{ translate('messages.Discounted_Amount') }}</th>
                 <th>{{ translate('messages.Tax') }}</th>
                 <th>{{ translate('messages.Total_Amount') }}</th>
@@ -82,9 +83,10 @@
                     @endif
                 </td>
                 <td>{{ \App\CentralLogics\Helpers::number_format_short($order['order_amount']-$order['dm_tips']-$order['total_tax_amount']-$order['delivery_charge']+$order['coupon_discount_amount'] + $order['restaurant_discount_amount']) }}</td>
-                <td>{{ \App\CentralLogics\Helpers::number_format_short($order->details->sum('discount_on_food')) }}</td>
+                <td>{{ \App\CentralLogics\Helpers::number_format_short($order->details()->sum(DB::raw('discount_on_food * quantity'))) }}</td>
                 <td>{{ \App\CentralLogics\Helpers::number_format_short($order['coupon_discount_amount']) }}</td>
-                <td>{{ \App\CentralLogics\Helpers::number_format_short($order['coupon_discount_amount'] + $order['restaurant_discount_amount']) }}</td>
+                <td>{{ \App\CentralLogics\Helpers::number_format_short($order['ref_bonus_amount']) }}</td>
+                <td>{{ \App\CentralLogics\Helpers::number_format_short($order['coupon_discount_amount'] + $order['restaurant_discount_amount'] + $order['ref_bonus_amount']) }}</td>
                 <td>{{ \App\CentralLogics\Helpers::number_format_short($order['total_tax_amount']) }}</td>
                 <td>{{ \App\CentralLogics\Helpers::number_format_short($order['order_amount']) }}</td>
                 <td>{{ translate($order->payment_status) }}</td>

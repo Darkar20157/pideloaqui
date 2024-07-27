@@ -17,7 +17,7 @@
                         <span class="sold--count-badge">
                             {{translate('messages.sold')}} : {{$item['order_count']}}
                         </span>
-                        <img class="initial-43 onerror-image" src="{{\App\CentralLogics\Helpers::onerror_image_helper($item['image'], dynamicStorage('storage/app/public/product').'/'.$item['image'], dynamicAsset('public/assets/admin/img/100x100/food.png'), 'product/') }}"
+                        <img class="initial-43 onerror-image" src="{{ $item['image_full_url'] }}"
                              data-onerror-image="{{dynamicAsset('public/assets/admin/img/100x100/food.png')}}" alt="{{$item->name}} image">
                     </div>
                     <div class="text-center mt-2">

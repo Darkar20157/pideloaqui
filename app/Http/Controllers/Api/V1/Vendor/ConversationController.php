@@ -34,7 +34,7 @@ class ConversationController extends Controller
             {
 
                 $name = Helpers::upload(dir:'conversation/',format: 'png', image:$img);
-                array_push($image_name,$name);
+                array_push($image_name,['img'=>$name, 'storage'=> Helpers::getDisk()]);
             }
         } else {
             $image_name = null;
@@ -48,7 +48,7 @@ class ConversationController extends Controller
         if(!$sender){
             $sender = new UserInfo();
             $sender->vendor_id = $vendor->id;
-            $sender->f_name = $vendor?->restaurants[0]?->name;
+            $sender->f_name = $vendor?->restaurants[0]?->getRawOriginal('name');
             $sender->l_name = '';
             $sender->phone = $vendor->phone;
             $sender->email = $vendor->email;
@@ -136,7 +136,9 @@ class ConversationController extends Controller
         $message->conversation_id = $conversation->id;
         $message->sender_id = $sender->id;
         $message->message = $request->message;
-        $message->file = $image_name?json_encode($image_name, JSON_UNESCAPED_SLASHES):null;
+        if($image_name && count($image_name)>0){
+            $message->file = json_encode($image_name, JSON_UNESCAPED_SLASHES);
+        }
         try {
             if($message->save())
             {
@@ -208,7 +210,7 @@ class ConversationController extends Controller
         if(!$sender){
             $sender = new UserInfo();
             $sender->vendor_id = $vendor->id;
-            $sender->f_name = $vendor?->restaurants[0]?->name;
+            $sender->f_name = $vendor?->restaurants[0]?->getRawOriginal('name');
             $sender->l_name = '';
             $sender->phone = $vendor->phone;
             $sender->email = $vendor->email;
@@ -216,10 +218,28 @@ class ConversationController extends Controller
             $sender->save();
         }
 
-        $conversations = Conversation::with(['sender', 'receiver','last_message'])->where(['sender_id' => $sender->id])->orWhere(['receiver_id' => $sender->id])->orderBy('last_message_time', 'DESC')->paginate($limit, ['*'], 'page', $offset);
+        $conversations = Conversation::with(['sender', 'receiver', 'last_message'])
+            ->where(function ($query) use ($sender, $request) {
+                $query->where('sender_id', $sender->id)
+                    ->orWhere('receiver_id', $sender->id);
+            })
+            ->when(isset($request->type), function ($query) use ($request) {
+                $query->where(function ($q) use ($request) {
+                    $q->where(function ($q) use ($request) {
+                        $q->where('receiver_type', $request->type)
+                            ->where('sender_type', 'vendor');
+                    })->orWhere(function ($q) use ($request) {
+                        $q->where('sender_type', $request->type)
+                            ->where('receiver_type', 'vendor');
+                    });
+                });
+            })
+            ->orderBy('last_message_time', 'DESC')
+            ->paginate($limit, ['*'], 'page', $offset);
 
 
         $data =  [
+            'type'=>$request->type ?? null,
             'total_size' => intval($conversations->total()),
             'limit' => intval($limit),
             'offset' => intval($offset),
@@ -251,7 +271,7 @@ class ConversationController extends Controller
         if(!$sender){
             $sender = new UserInfo();
             $sender->vendor_id = $vendor->id;
-            $sender->f_name = $vendor?->restaurants[0]?->name;
+            $sender->f_name = $vendor?->restaurants[0]?->getRawOriginal('name');
             $sender->l_name = '';
             $sender->phone = $vendor->phone;
             $sender->email = $vendor->email;

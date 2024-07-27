@@ -104,7 +104,7 @@
                             <div class="media align-items-center" href="javascript:">
                                 <div class="avatar avatar-circle mr-3">
                                         <img class="avatar-img"
-                                        src="{{\App\CentralLogics\Helpers::onerror_image_helper($subscription?->customer?->image, dynamicStorage('storage/app/public/profile/'.$subscription?->customer?->image), dynamicAsset('public/assets/admin/img/160x160/img1.jpg'), 'profile/') }}"
+                                        src="{{ $subscription?->customer?->image_full_url ?? dynamicAsset('public/assets/admin/img/160x160/img1.jpg') }}"
                                         alt="image">
                                 </div>
                                 <div class="media-body">

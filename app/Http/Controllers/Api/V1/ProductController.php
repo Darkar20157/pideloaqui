@@ -9,7 +9,9 @@ use App\Http\Controllers\Controller;
 use App\Models\Food;
 use App\Models\Restaurant;
 use App\Models\Review;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
@@ -45,19 +47,40 @@ class ProductController extends Controller
             ], 403);
         }
 
+        $search_bar_default_status = \App\Models\BusinessSetting::where('key', 'search_bar_default_status')->first();
+        $search_bar_default_status = $search_bar_default_status ? $search_bar_default_status->value : 1;
+        $search_bar_sort_by_unavailable = \App\Models\PriorityList::where('name', 'search_bar_sort_by_unavailable')->where('type','unavailable')->first();
+        $search_bar_sort_by_unavailable = $search_bar_sort_by_unavailable ? $search_bar_sort_by_unavailable->value : '';
+        $search_bar_sort_by_temp_closed = \App\Models\PriorityList::where('name', 'search_bar_sort_by_temp_closed')->where('type','temp_closed')->first();
+        $search_bar_sort_by_temp_closed = $search_bar_sort_by_temp_closed ? $search_bar_sort_by_temp_closed->value : '';
+
         $zone_id= json_decode($request->header('zoneId'), true);
 
         $key = isset($request['name']) && $request['name'] != 'null'  ?  explode(' ', $request['name']) : null;
-        $key = array_filter($key);
-        $key = array_values($key);
+
+        if(is_array($key)){
+            $key = array_filter($key);
+            $key = array_values($key);
+        }
 
         $limit = $request['limit']??10;
         $offset = $request['offset']??1;
         $type = $request->query('type', 'all');
-        $products = Food::active()->type($type)
+        $query = Food::Active()->type($type)
             ->whereHas('restaurant', function($q)use($zone_id){
                 $q->whereIn('zone_id', $zone_id);
             })
+            ->select(['food.*'])
+            ->selectSub(function ($subQuery) {
+                $subQuery->selectRaw('active as temp_available')
+                    ->from('restaurants')
+                    ->whereColumn('restaurants.id', 'food.restaurant_id');
+            }, 'temp_available')
+            ->selectSub(function ($subQuery) {
+                $subQuery->selectRaw('IF(((select count(*) from `restaurant_schedule` where `restaurants`.`id` = `restaurant_schedule`.`restaurant_id` and `restaurant_schedule`.`day` = ? and `restaurant_schedule`.`opening_time` < ? and `restaurant_schedule`.`closing_time` > ?) > 0), true, false) as open', [now()->dayOfWeek, now()->format('H:i:s'), now()->format('H:i:s')])
+                    ->from('restaurants')
+                    ->whereColumn('restaurants.id', 'food.restaurant_id');
+            }, 'open')
             ->when($request->category_id, function($query)use($request){
                 $query->whereHas('category',function($q)use($request){
                     return $q->whereId($request->category_id)->orWhere('parent_id', $request->category_id);
@@ -133,8 +156,26 @@ class ProductController extends Controller
                             return $query->orderBy('price' ,'desc', );
                         })
 
-            ->orderByRaw("FIELD(name, ?) DESC", [$request['name']])
-            ->paginate($limit, ['*'], 'page', $offset);
+            ->orderByRaw("FIELD(name, ?) DESC", [$request['name']]);
+
+        if ($search_bar_default_status == '1'){
+            $query = $query->latest();
+        }elseif ($search_bar_default_status == '0'){
+            $time = Carbon::now()->toTimeString();
+
+            if($search_bar_sort_by_unavailable == 'remove'){
+                $query = $query->available($time);
+            }elseif($search_bar_sort_by_unavailable == 'last'){
+                $query = $query->orderBy(DB::raw("CASE WHEN available_time_starts <= '$time' AND available_time_ends >= '$time' THEN 0 ELSE 1 END"));
+            }
+
+            if($search_bar_sort_by_temp_closed == 'remove'){
+                $query = $query->having('temp_available', '>', 0);
+            }elseif($search_bar_sort_by_temp_closed == 'last'){
+                $query = $query->orderByDesc('temp_available');
+            }
+        }
+        $products = $query->paginate($limit, ['*'], 'page', $offset);
 
         $data =  [
             'total_size' => $products->total(),
@@ -158,9 +199,10 @@ class ProductController extends Controller
         }
 
         $type = $request->query('type', 'all');
-
+        $longitude= $request->header('longitude');
+        $latitude= $request->header('latitude');
         $zone_id= json_decode($request->header('zoneId'), true);
-        $products = ProductLogic::popular_products(zone_id:$zone_id, limit:$request['limit'],offset: $request['offset'],type: $type);
+        $products = ProductLogic::popular_products(zone_id:$zone_id, limit:$request['limit'],offset: $request['offset'],type: $type,longitude:$longitude,latitude:$latitude);
         $products['products'] = Helpers::product_data_formatting(data:$products['products'], multi_data:true, trans:false, local:app()->getLocale());
         return response()->json($products, 200);
     }
@@ -177,7 +219,9 @@ class ProductController extends Controller
 
         $type = $request->query('type', 'all');
         $zone_id= json_decode($request->header('zoneId'), true);
-        $products = ProductLogic::most_reviewed_products(zone_id:$zone_id,limit: $request['limit'], offset:$request['offset'], type:$type);
+        $longitude= $request->header('longitude');
+        $latitude= $request->header('latitude');
+        $products = ProductLogic::most_reviewed_products(zone_id:$zone_id,limit: $request['limit'], offset:$request['offset'], type:$type,longitude:$longitude,latitude:$latitude);
         $products['products'] = Helpers::product_data_formatting(data:$products['products'],multi_data: true, trans:false, local:app()->getLocale());
         return response()->json($products, 200);
     }
@@ -185,7 +229,7 @@ class ProductController extends Controller
     public function get_product($id)
     {
         try {
-            $product = ProductLogic::get_product($id);
+            $product = ProductLogic::get_product($id , request()?->campaign ? true : false);
             $product = Helpers::product_data_formatting(data:$product, multi_data:false, trans:false, local:app()->getLocale());
             return response()->json($product, 200);
         } catch (\Exception $e) {
@@ -223,7 +267,7 @@ class ProductController extends Controller
 
     public function get_product_reviews($food_id)
     {
-        $reviews = Review::with(['customer', 'food'])->where(['food_id' => $food_id])->active()->get();
+        $reviews = Review::with(['customer', 'food', 'restaurant'])->where(['food_id' => $food_id])->active()->get();
 
         $storage = [];
         foreach ($reviews as $item) {
@@ -260,7 +304,7 @@ class ProductController extends Controller
         $validator = Validator::make($request->all(), [
             'food_id' => 'required',
             'order_id' => 'required',
-            'comment' => 'required',
+            'comment' => 'nullable',
             'rating' => 'required|numeric|max:5',
             'attachment.*' => 'nullable|max:2048',
         ]);

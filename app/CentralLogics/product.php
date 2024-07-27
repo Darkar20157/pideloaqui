@@ -3,12 +3,18 @@
 namespace App\CentralLogics;
 
 use App\Models\Food;
+use App\Models\ItemCampaign;
 use App\Models\Review;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class ProductLogic
 {
-    public static function get_product($id)
+    public static function get_product($id , $campaign=false)
     {
+        if($campaign == true){
+            return ItemCampaign::find($id);
+        }
         return Food::active()->when(is_numeric($id),function ($qurey) use($id){
                         $qurey-> where('id', $id);
                     })
@@ -69,14 +75,81 @@ class ProductLogic
         ];
     }
 
-    public static function popular_products($zone_id, $limit = null, $offset = null, $type='all')
+    public static function popular_products($zone_id, $limit = null, $offset = null, $type='all',$longitude=0,$latitude=0)
     {
+        $popular_food_default_status = \App\Models\BusinessSetting::where('key', 'popular_food_default_status')->first();
+        $popular_food_default_status = $popular_food_default_status ? $popular_food_default_status->value : 1;
+        $popular_food_sort_by_general = \App\Models\PriorityList::where('name', 'popular_food_sort_by_general')->where('type','general')->first();
+        $popular_food_sort_by_general = $popular_food_sort_by_general ? $popular_food_sort_by_general->value : '';
+        $popular_food_sort_by_unavailable = \App\Models\PriorityList::where('name', 'popular_food_sort_by_unavailable')->where('type','unavailable')->first();
+        $popular_food_sort_by_unavailable = $popular_food_sort_by_unavailable ? $popular_food_sort_by_unavailable->value : '';
+        $popular_food_sort_by_temp_closed = \App\Models\PriorityList::where('name', 'popular_food_sort_by_temp_closed')->where('type','temp_closed')->first();
+        $popular_food_sort_by_temp_closed = $popular_food_sort_by_temp_closed ? $popular_food_sort_by_temp_closed->value : '';
+
+
         if($limit != null && $offset != null)
         {
-            $paginator = Food::whereHas('restaurant', function($q)use($zone_id){
-                $q->whereIn('zone_id', $zone_id)->Weekday();
-            })->active()
-            ->has('reviews')->type($type)->popular()->paginate($limit, ['*'], 'page', $offset);
+            if ($popular_food_default_status == '1'){
+                $paginator = Food::whereHas('restaurant', function($q)use($zone_id){
+                    $q->whereIn('zone_id', $zone_id)->Weekday();
+                })->active()->type($type)->has('reviews')->popular()->paginate($limit, ['*'], 'page', $offset);
+            }
+
+            if ($popular_food_default_status == '0'){
+                $time = Carbon::now()->toTimeString();
+
+                $query = Food::Active()->with('restaurant')
+                    ->select(['food.*'])
+                    ->type($type)
+                    // ->leftJoin('restaurants', 'food.restaurant_id', '=', 'restaurants.id')
+                    ->whereHas('restaurant', function($q) use ($zone_id) {
+                        $q->whereIn('zone_id', $zone_id)->Weekday();
+                    })
+                    ->selectSub(function ($subQuery) {
+                        $subQuery->selectRaw('active as temp_available')
+                            ->from('restaurants')
+                            ->whereColumn('restaurants.id', 'food.restaurant_id');
+                    }, 'temp_available')
+                    ->selectSub(function ($subQuery) {
+                        $subQuery->selectRaw('IF(((select count(*) from `restaurant_schedule` where `restaurants`.`id` = `restaurant_schedule`.`restaurant_id` and `restaurant_schedule`.`day` = ? and `restaurant_schedule`.`opening_time` < ? and `restaurant_schedule`.`closing_time` > ?) > 0), true, false) as open', [now()->dayOfWeek, now()->format('H:i:s'), now()->format('H:i:s')])
+                            ->from('restaurants')
+                            ->whereColumn('restaurants.id', 'food.restaurant_id');
+                    }, 'open');
+
+                if($popular_food_sort_by_unavailable == 'remove'){
+                    $query = $query->available($time);
+                }elseif($popular_food_sort_by_unavailable == 'last'){
+                    $query = $query->orderBy(DB::raw("CASE WHEN available_time_starts <= '$time' AND available_time_ends >= '$time' THEN 0 ELSE 1 END"));
+                }
+
+                if($popular_food_sort_by_temp_closed == 'remove'){
+                    $query = $query->having('temp_available', '>', 0);
+                }elseif($popular_food_sort_by_temp_closed == 'last'){
+                    $query = $query->orderByDesc('temp_available');
+                }
+
+                if ($popular_food_sort_by_general == 'nearest_first') {
+                    $query = $query->selectSub(function ($subQuery) use ($longitude, $latitude) {
+                        $subQuery->selectRaw('ST_Distance_Sphere(point(longitude, latitude), point(?, ?)) as distance', [$longitude, $latitude])
+                            ->from('restaurants')
+                            ->whereColumn('restaurants.id', 'food.restaurant_id');
+                    }, 'distance')
+                        ->orderBy('distance');
+                } elseif ($popular_food_sort_by_general == 'rating') {
+                    $query = $query->orderByDesc('avg_rating');
+                } elseif ($popular_food_sort_by_general == 'review_count') {
+                    $query = $query->withCount('reviews')->orderByDesc('reviews_count');
+                } elseif ($popular_food_sort_by_general == 'order_count') {
+                    $query = $query->orderByDesc('order_count');
+                } elseif ($popular_food_sort_by_general == 'a_to_z') {
+                    $query = $query->orderBy('name');
+                } elseif ($popular_food_sort_by_general == 'z_to_a') {
+                    $query = $query->orderByDesc('name');
+                }
+
+                $paginator = $query->paginate($limit, ['*'], 'page', $offset);
+
+            }
 
             return [
                 'total_size' => $paginator->total(),
@@ -85,12 +158,71 @@ class ProductLogic
                 'products' => $paginator->items()
             ];
         }
-        $paginator = Food::active()->type($type)->whereHas('restaurant', function($q)use($zone_id){
-            $q->whereIn('zone_id', $zone_id)->Weekday();
-        })->has('reviews')->popular()->limit(50)->get();
+
+        if ($popular_food_default_status == '1'){
+            $paginator = Food::whereHas('restaurant', function($q)use($zone_id){
+                $q->whereIn('zone_id', $zone_id)->Weekday();
+            })->active()->type($type)->has('reviews')->popular()->limit(50)->get();
+        }
+
+        if ($popular_food_default_status == '0'){
+            $time = Carbon::now()->toTimeString();
+
+            $query = Food::Active()->with('restaurant')
+                ->select(['food.*'])
+                ->type($type)
+                // ->leftJoin('restaurants', 'food.restaurant_id', '=', 'restaurants.id')
+                ->whereHas('restaurant', function($q) use ($zone_id) {
+                    $q->whereIn('zone_id', $zone_id)->Weekday();
+                })
+                ->selectSub(function ($subQuery) {
+                    $subQuery->selectRaw('active as temp_available')
+                        ->from('restaurants')
+                        ->whereColumn('restaurants.id', 'food.restaurant_id');
+                }, 'temp_available')
+                ->selectSub(function ($subQuery) {
+                    $subQuery->selectRaw('IF(((select count(*) from `restaurant_schedule` where `restaurants`.`id` = `restaurant_schedule`.`restaurant_id` and `restaurant_schedule`.`day` = ? and `restaurant_schedule`.`opening_time` < ? and `restaurant_schedule`.`closing_time` > ?) > 0), true, false) as open', [now()->dayOfWeek, now()->format('H:i:s'), now()->format('H:i:s')])
+                        ->from('restaurants')
+                        ->whereColumn('restaurants.id', 'food.restaurant_id');
+                }, 'open');
+
+            if($popular_food_sort_by_unavailable == 'remove'){
+                $query = $query->available($time);
+            }elseif($popular_food_sort_by_unavailable == 'last'){
+                $query = $query->orderBy(DB::raw("CASE WHEN available_time_starts <= '$time' AND available_time_ends >= '$time' THEN 0 ELSE 1 END"));
+            }
+
+            if($popular_food_sort_by_temp_closed == 'remove'){
+                $query = $query->having('temp_available', '>', 0);
+            }elseif($popular_food_sort_by_temp_closed == 'last'){
+                $query = $query->orderByDesc('temp_available');
+            }
+
+            if ($popular_food_sort_by_general == 'nearest_first') {
+                $query = $query->selectSub(function ($subQuery) use ($longitude, $latitude) {
+                    $subQuery->selectRaw('ST_Distance_Sphere(point(longitude, latitude), point(?, ?)) as distance', [$longitude, $latitude])
+                        ->from('restaurants')
+                        ->whereColumn('restaurants.id', 'food.restaurant_id');
+                }, 'distance')
+                    ->orderBy('distance');
+            } elseif ($popular_food_sort_by_general == 'rating') {
+                $query = $query->orderByDesc('avg_rating');
+            } elseif ($popular_food_sort_by_general == 'review_count') {
+                $query = $query->withCount('reviews')->orderByDesc('reviews_count');
+            } elseif ($popular_food_sort_by_general == 'order_count') {
+                $query = $query->orderByDesc('order_count');
+            } elseif ($popular_food_sort_by_general == 'a_to_z') {
+                $query = $query->orderBy('name');
+            } elseif ($popular_food_sort_by_general == 'z_to_a') {
+                $query = $query->orderByDesc('name');
+            }
+
+            $paginator = $query->limit(50)->get();
+
+        }
 
         return [
-            'total_size' => $paginator->count(),
+            'total_size' => count($paginator),
             'limit' => $limit,
             'offset' => $offset,
             'products' => $paginator
@@ -99,15 +231,75 @@ class ProductLogic
     }
 
 
-    public static function most_reviewed_products($zone_id, $limit = null, $offset = null, $type='all')
+    public static function most_reviewed_products($zone_id, $limit = null, $offset = null, $type='all',$longitude=0,$latitude=0)
     {
+        $best_reviewed_food_default_status = \App\Models\BusinessSetting::where('key', 'best_reviewed_food_default_status')->first();
+        $best_reviewed_food_default_status = $best_reviewed_food_default_status ? $best_reviewed_food_default_status->value : 1;
+        $best_reviewed_food_sort_by_general = \App\Models\PriorityList::where('name', 'best_reviewed_food_sort_by_general')->where('type','general')->first();
+        $best_reviewed_food_sort_by_general = $best_reviewed_food_sort_by_general ? $best_reviewed_food_sort_by_general->value : '';
+        $best_reviewed_food_sort_by_unavailable = \App\Models\PriorityList::where('name', 'best_reviewed_food_sort_by_unavailable')->where('type','unavailable')->first();
+        $best_reviewed_food_sort_by_unavailable = $best_reviewed_food_sort_by_unavailable ? $best_reviewed_food_sort_by_unavailable->value : '';
+        $best_reviewed_food_sort_by_temp_closed = \App\Models\PriorityList::where('name', 'best_reviewed_food_sort_by_temp_closed')->where('type','temp_closed')->first();
+        $best_reviewed_food_sort_by_temp_closed = $best_reviewed_food_sort_by_temp_closed ? $best_reviewed_food_sort_by_temp_closed->value : '';
+        $best_reviewed_food_sort_by_rating = \App\Models\PriorityList::where('name', 'best_reviewed_food_sort_by_rating')->where('type','rating')->first();
+        $best_reviewed_food_sort_by_rating = $best_reviewed_food_sort_by_rating ? $best_reviewed_food_sort_by_rating->value : '';
+
         if($limit != null && $offset != null)
         {
-            $paginator = Food::whereHas('restaurant', function($q)use($zone_id){
-                $q->whereIn('zone_id', $zone_id)->Weekday();
-            })->has('reviews')->withCount('reviews')->active()->type($type)
-            ->orderBy('reviews_count','desc')
-            ->paginate($limit, ['*'], 'page', $offset);
+            $query = Food::Active()->with('restaurant')
+                ->select(['food.*'])
+                // ->leftJoin('restaurants', 'food.restaurant_id', '=', 'restaurants.id')
+                ->whereHas('restaurant', function($q) use ($zone_id) {
+                    $q->whereIn('zone_id', $zone_id)->Weekday();
+                })
+                ->selectSub(function ($subQuery) {
+                    $subQuery->selectRaw('active as temp_available')
+                        ->from('restaurants')
+                        ->whereColumn('restaurants.id', 'food.restaurant_id');
+                }, 'temp_available')
+                ->has('reviews')
+                ->withCount('reviews')->type($type);
+
+            if($best_reviewed_food_default_status == '1'){
+                $query = $query->orderBy('reviews_count','desc');
+            }else {
+                $time = Carbon::now()->toTimeString();
+
+                if ($best_reviewed_food_sort_by_unavailable == 'remove') {
+                    $query = $query->available($time);
+                } elseif ($best_reviewed_food_sort_by_unavailable == 'last') {
+                    $query = $query->orderBy(DB::raw("CASE WHEN available_time_starts <= '$time' AND available_time_ends >= '$time' THEN 0 ELSE 1 END"));
+                }
+
+                if ($best_reviewed_food_sort_by_temp_closed == 'remove') {
+                    $query = $query->having('temp_available', '>', 0);
+                } elseif ($best_reviewed_food_sort_by_temp_closed == 'last') {
+                    $query = $query->orderByDesc('temp_available');
+                }
+
+                if ($best_reviewed_food_sort_by_rating == 'four_plus') {
+                    $query = $query->where('avg_rating','>',4);
+                } elseif ($best_reviewed_food_sort_by_rating == 'three_half_plus') {
+                    $query = $query->where('avg_rating','>',3.5);
+                } elseif ($best_reviewed_food_sort_by_rating == 'three_plus') {
+                    $query = $query->where('avg_rating','>',3);
+                }
+
+                if ($best_reviewed_food_sort_by_general == 'nearest_first') {
+                    $query = $query->selectSub(function ($subQuery) use ($longitude, $latitude) {
+                        $subQuery->selectRaw('ST_Distance_Sphere(point(longitude, latitude), point(?, ?)) as distance', [$longitude, $latitude])
+                            ->from('restaurants')
+                            ->whereColumn('restaurants.id', 'food.restaurant_id');
+                    }, 'distance')
+                        ->orderBy('distance');
+                } elseif ($best_reviewed_food_sort_by_general == 'rating') {
+                    $query = $query->orderByDesc('avg_rating');
+                } elseif ($best_reviewed_food_sort_by_general == 'review_count') {
+                    $query = $query->orderByDesc('reviews_count');
+                }
+            }
+
+            $paginator = $query->paginate($limit, ['*'], 'page', $offset);
 
             return [
                 'total_size' => $paginator->total(),
@@ -116,13 +308,59 @@ class ProductLogic
                 'products' => $paginator->items()
             ];
         }
-        $paginator = Food::active()->type($type)->whereHas('restaurant', function($q)use($zone_id){
-            $q->whereIn('zone_id', $zone_id)->Weekday();
-        })
-        ->has('reviews')
-        ->withCount('reviews')
-        ->orderBy('reviews_count','desc')
-        ->limit(50)->get();
+        $query = Food::Active()->with('restaurant')
+            ->select(['food.*'])
+            // ->leftJoin('restaurants', 'food.restaurant_id', '=', 'restaurants.id')
+            ->whereHas('restaurant', function($q) use ($zone_id) {
+                $q->whereIn('zone_id', $zone_id)->Weekday();
+            })
+            ->selectSub(function ($subQuery) {
+                $subQuery->selectRaw('active as temp_available')
+                    ->from('restaurants')
+                    ->whereColumn('restaurants.id', 'food.restaurant_id');
+            }, 'temp_available')
+            ->has('reviews')
+            ->withCount('reviews')->type($type);
+
+        if($best_reviewed_food_default_status == '1'){
+            $query = $query->orderBy('reviews_count','desc');
+        }else {
+            $time = Carbon::now()->toTimeString();
+
+            if ($best_reviewed_food_sort_by_unavailable == 'remove') {
+                $query = $query->available($time);
+            } elseif ($best_reviewed_food_sort_by_unavailable == 'last') {
+                $query = $query->orderBy(DB::raw("CASE WHEN available_time_starts <= '$time' AND available_time_ends >= '$time' THEN 0 ELSE 1 END"));
+            }
+
+            if ($best_reviewed_food_sort_by_temp_closed == 'remove') {
+                $query = $query->having('temp_available', '>', 0);
+            } elseif ($best_reviewed_food_sort_by_temp_closed == 'last') {
+                $query = $query->orderByDesc('temp_available');
+            }
+
+            if ($best_reviewed_food_sort_by_rating == 'four_plus') {
+                $query = $query->where('avg_rating','>',4);
+            } elseif ($best_reviewed_food_sort_by_rating == 'three_half_plus') {
+                $query = $query->where('avg_rating','>',3.5);
+            } elseif ($best_reviewed_food_sort_by_rating == 'three_plus') {
+                $query = $query->where('avg_rating','>',3);
+            }
+
+            if ($best_reviewed_food_sort_by_general == 'nearest_first') {
+                $query = $query->selectSub(function ($subQuery) use ($longitude, $latitude) {
+                    $subQuery->selectRaw('ST_Distance_Sphere(point(longitude, latitude), point(?, ?)) as distance', [$longitude, $latitude])
+                        ->from('restaurants')
+                        ->whereColumn('restaurants.id', 'food.restaurant_id');
+                }, 'distance')
+                    ->orderBy('distance');
+            } elseif ($best_reviewed_food_sort_by_general == 'rating') {
+                $query = $query->orderByDesc('avg_rating');
+            } elseif ($best_reviewed_food_sort_by_general == 'review_count') {
+                $query = $query->orderByDesc('reviews_count');
+            }
+        }
+        $paginator = $query->limit(50)->get();
 
         return [
             'total_size' => $paginator->count(),

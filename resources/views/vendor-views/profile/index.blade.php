@@ -85,7 +85,7 @@
                             class="avatar avatar-xxl avatar-circle avatar-border-lg avatar-uploader profile-cover-avatar"
                             for="avatarUploader">
                                  <img class="avatar-img" id="viewer"
-                                 src="{{\App\CentralLogics\Helpers::onerror_image_helper(\App\CentralLogics\Helpers::get_loggedin_user()?->image, dynamicStorage('storage/app/public/vendor/'.'/'.\App\CentralLogics\Helpers::get_loggedin_user()?->image), dynamicAsset('public/assets/admin/img/160x160/img1.jpg'), 'vendor/') }}"
+                                 src="{{ \App\CentralLogics\Helpers::get_loggedin_user()?->image_full_url ?? dynamicAsset('public/assets/admin/img/160x160/img1.jpg') }}"
                                  alt="image">
                             <input type="file" name="image" class="js-file-attach avatar-uploader-input"
                                    id="customFileEg1"

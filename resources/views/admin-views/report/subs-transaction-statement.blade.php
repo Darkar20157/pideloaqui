@@ -242,17 +242,17 @@ $company_links = json_decode(BusinessSetting::where('key','landing_page_links')-
         <div class="col-md-12">
             <hr class="non-printable">
             <div class="initial-38-1 __trx-print">
-                <div class="pt-3 text-center mb-3 pb-1">
+                {{-- <div class="pt-3 text-center mb-3 pb-1">
                     <img src="{{dynamicAsset('/public/assets/admin/img/success_image 2.png')}}" class="initial-38-2" alt="">
-                </div>
+                </div> --}}
 
                 <div class="text-center pt-2 mb-3">
-                    <h1 class="initial-38-3" >{{ translate('messages.Transaction_Sucessfull') }}</h1>
+                    {{-- <h1 class="initial-38-3" >{{ translate('messages.Transaction_Sucessfull') }}</h1> --}}
                     <h4 class="initial-38-4"> {{ translate('messages.for') }}
                         {{ $transaction->package->package_name }} {{ translate('messages.Package') }}</h4>
 
                     <h4> <span class="text--base">{{ translate('Purches_Status: ') }}</span> {{ translate('Subscribed.') }}</h4>
-                    <h3 class="initial-38-3 name my-3">{{ translate('messages.dear') }} {{$transaction->restaurant->vendor->f_name ?? null}} {{$transaction->restaurant->vendor->l_name ?? null}}</h3>
+                    <h3 class="initial-38-3 name my-3"> {{$transaction->restaurant->vendor->f_name ?? null}} {{$transaction->restaurant->vendor->l_name ?? null}}</h3>
                     <h5 class="pb-4 pt-2 mv-2">
                         {{ translate('Thank_You_for_transcation_with') }} <span class="text--base">{{ $company_name }}</span> {{ translate('messages.in') }}
                         {{ $transaction->package->package_name }} {{ translate('messages.Package') }}

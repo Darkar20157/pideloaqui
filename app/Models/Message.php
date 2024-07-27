@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\CentralLogics\Helpers;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -15,6 +16,8 @@ class Message extends Model
         'is_seen' => 'integer'
     ];
 
+    protected $appends = ['file_full_url'];
+
     public function sender()
     {
         return $this->belongsTo(UserInfo::class, 'sender_id');
@@ -23,5 +26,18 @@ class Message extends Model
     public function conversation()
     {
         return $this->belongsTo(Conversation::class);
+    }
+
+    public function getFileFullUrlAttribute(){
+        $images = [];
+        $value = is_array($this->file)?$this->file:json_decode($this->file,true);
+        if ($value){
+            foreach ($value as $item){
+                $item = is_array($item)?$item:(is_object($item) && get_class($item) == 'stdClass' ? json_decode(json_encode($item), true):['img' => $item, 'storage' => 'public']);
+                $images[] = Helpers::get_full_url('conversation',$item['img'],$item['storage']);
+            }
+        }
+
+        return $images;
     }
 }

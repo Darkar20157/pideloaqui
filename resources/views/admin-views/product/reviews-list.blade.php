@@ -84,8 +84,9 @@
                                     <th class="w-10p">{{translate('messages.food')}}</th>
                                     <th class="w-20p">{{translate('messages.customer')}}</th>
                                     <th class="w-30p">{{translate('messages.review')}}</th>
-                                    <th>{{translate('messages.rating')}}</th>
-                                    <th>{{translate('messages.status')}}</th>
+                                    <th>{{translate('messages.date')}}</th>
+                                    <th class="w-30p text-center">{{translate('messages.restaurant_reply')}}</th>
+                                    <th>{{translate('messages.action')}}</th>
                                 </tr>
                                 </thead>
 
@@ -94,23 +95,25 @@
                                     <tr>
                                         <td>{{$key+$reviews->firstItem()}}</td>
 
-                                        <td>
+                                        <td class="d-flex">
                                             @if ($review->food)
                                                 <a class="media align-items-center mb-1" href="{{route('admin.food.view',[$review->food['id']])}}">
                                                     <img class="avatar avatar-lg mr-3 onerror-image"
-                                                         src="{{ \App\CentralLogics\Helpers::onerror_image_helper(
-                                                            $review->food['image'] ?? '',
-                                                            dynamicStorage('storage/app/public/product').'/'.$review->food['image'] ?? '',
-                                                            dynamicAsset('public/assets/admin/img/100x100/food-default-image.png'),
-                                                            'product/'
-                                                        ) }}"
+                                                         src="{{ $review->food['image_full_url'] }}"
                                                          data-onerror-image="{{dynamicAsset('public/assets/admin/img/100x100/food-default-image.png')}}"
                                                          alt="{{ $review->food['name'] }} image">
+{{--                                                    <div class="media-body">--}}
+{{--                                                        <h5 class="text-hover-primary mb-0">{{Str::limit($review->food['name'],20,'...')}}</h5>--}}
+{{--                                                    </div>--}}
+                                                </a>
+                                            <div class="py-2">
+                                                <a class="media align-items-center mb-1" href="{{route('admin.food.view',[$review->food['id']])}}">
                                                     <div class="media-body">
                                                         <h5 class="text-hover-primary mb-0">{{Str::limit($review->food['name'],20,'...')}}</h5>
                                                     </div>
                                                 </a>
                                                 <a class="mr-5 text-body" href="{{route('admin.order.details',['id'=>$review->order_id])}}"> {{ translate('Order_ID') }}: {{$review->order_id}}</a>
+                                            </div>
                                             @else
                                                 {{translate('messages.Food_deleted!')}}
                                             @endif
@@ -121,17 +124,32 @@
                                                 <a href="{{route('admin.customer.view',[$review->user_id])}}">
                                                     {{$review->customer?$review->customer->f_name:""}} {{$review->customer?$review->customer->l_name:""}}
                                                 </a>
+                                                <p>
+                                                   {{$review->customer?$review->customer->phone:""}}
+                                                </p>
                                             @else
                                                 {{translate('messages.customer_not_found')}}
                                             @endif
                                         </td>
                                         <td>
-                                            <p class="text-wrap">{{$review->comment}}</p>
-                                        </td>
-                                        <td>
                                             <label class="rating">
                                                 {{$review->rating}} <i class="tio-star m-sm-auto"></i>
                                             </label>
+                                            <p class="text-wrap" data-toggle="tooltip" data-placement="left"
+                                               data-original-title="{{ $review?->comment }}">{!! $review->comment?Str::limit($review->comment, 30, '...'):'' !!}</p>
+                                        </td>
+                                        <td class="text-uppercase">
+                                            <div>
+                                                {{ \App\CentralLogics\Helpers::date_format($review->created_at)  }}
+
+                                            </div>
+                                            <div>
+                                                {{ \App\CentralLogics\Helpers::time_format($review->created_at)  }}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <p class="text-wrap text-center" data-toggle="tooltip" data-placement="top"
+                                               data-original-title="{{ $review?->reply }}">{!! $review->reply?Str::limit($review->reply, 50, '...'): translate('messages.Not_replied_Yet') !!}</p>
                                         </td>
                                         <td>
                                             <label class="toggle-switch toggle-switch-sm" for="reviewCheckbox{{$review->id}}">

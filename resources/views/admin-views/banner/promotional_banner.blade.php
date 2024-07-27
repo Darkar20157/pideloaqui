@@ -46,7 +46,7 @@
                                                 ({{translate('messages.default')}})</label>
                                             <input type="text" name="promotional_banner_title[]" id="default_title" class="form-control"
                                                 placeholder="{{translate('messages.new_banner')}}" value="{{ $banner_title?->getRawOriginal('value') ?? null }}"
-                                                oninvalid="document.getElementById('en-link').click()">
+                                                 >
                                         </div>
                                         <input type="hidden" name="lang[]" value="default">
                                     </div>
@@ -71,7 +71,7 @@
                                             <input type="text" name="promotional_banner_title[]" id="{{$lang}}_title" class="form-control"
                                                 placeholder="{{translate('messages.new_banner')}}"
                                                 value="{{$translate[$lang]['promotional_banner_title']??''}}"
-                                                oninvalid="document.getElementById('en-link').click()">
+                                                 >
                                         </div>
                                         <input type="hidden" name="lang[]" value="{{$lang}}">
                                     </div>
@@ -130,12 +130,7 @@
                                 <label class="__upload-img aspect-5-1 m-auto d-block">
                                     <div class="img">
                                         <img class="onerror-image" style="object-fit: cover"
-                                             src="{{ \App\CentralLogics\Helpers::onerror_image_helper(
-                                                $banner_image->value,
-                                                dynamicStorage('storage/app/public/banner') . '/' . $banner_image->value,
-                                                dynamicAsset('/public/assets/admin/img/upload-placeholder.png'),
-                                                'banner/'
-                                            ) }}"
+                                             src="{{ \App\CentralLogics\Helpers::get_full_url('banner',$banner_image->value,$banner_image?->storage[0]?->value ?? 'public','upload_image') }}"
                                              data-onerror-image="{{dynamicAsset('/public/assets/admin/img/upload-placeholder.png')}}" alt="">
                                     </div>
                                     <input type="file" name="promotional_banner_image" hidden>
@@ -156,7 +151,7 @@
 
         </div>
         <div class="btn--container justify-content-end mt-3">
-            <button type="submit" class="btn btn--primary mb-2">{{translate('messages.Save')}}</button>
+            <button type="submit" class="btn btn--primary">{{translate('messages.Save')}}</button>
         </div>
         </form>
 

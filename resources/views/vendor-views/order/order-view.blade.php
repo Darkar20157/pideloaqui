@@ -285,7 +285,6 @@ if($order->delivery_address){
                     <div class="card-body p-0">
                         <?php
                         $total_addon_price = 0;
-                        $product_price = 0;
                         $restaurant_discount_amount = 0;
                         $product_price = 0;
                         $total_addon_price = 0;
@@ -303,13 +302,14 @@ if($order->delivery_address){
                                 @foreach ($order->details as $key => $detail)
                                     @if (isset($detail->food_id))
                                         @php($detail->food = json_decode($detail->food_details, true))
+                                        @php($food = \App\Models\Food::where(['id' => $detail->food['id']])->first())
                                                 <tr>
                                                     <td>
                                                         <div class="media">
                                                             <a class="avatar mr-3 cursor-pointer initial-80"
                                                                 href="{{ route('vendor.food.view', $detail->food['id']) }}">
                                                                 <img class="img-fluid rounded initial-80 onerror-image"
-                                                                     src="{{\App\CentralLogics\Helpers::onerror_image_helper($detail->food['image'], dynamicStorage('storage/app/public/product/').'/'.$detail->food['image'], dynamicAsset('public/assets/admin/img/160x160/img2.jpg'), 'product/') }}"
+                                                                     src="{{ $food['image_full_url'] ?? dynamicAsset('public/assets/admin/img/100x100/food-default-image.png') }}"
                                                                      data-onerror-image="{{ dynamicAsset('public/assets/admin/img/160x160/img2.jpg') }}"
                                                                     alt="Image Description">
                                                             </a>
@@ -383,12 +383,13 @@ if($order->delivery_address){
                                         @php($restaurant_discount_amount += $detail['discount_on_food'] * $detail['quantity'])
                                     @elseif(isset($detail->item_campaign_id))
                                         @php($detail->campaign = json_decode($detail->food_details, true))
+                                        @php($campaign = \App\Models\ItemCampaign::where(['id' => $detail->campaign['id']])->first())
                                         <tr>
                                             <td>
                                                 <div class="media">
                                                     <div class="avatar avatar-xl mr-3">
                                                         <img class="img-fluid rounded initial-80 onerror-image"
-                                                             src="{{\App\CentralLogics\Helpers::onerror_image_helper($detail->campaign['image'], dynamicStorage('storage/app/public/campaign/').'/'.$detail->campaign['image'], dynamicAsset('public/assets/admin/img/160x160/img2.jpg'), 'campaign/') }}"
+                                                             src="{{ $campaign['image_full_url'] ?? dynamicAsset('public/assets/admin/img/100x100/food-default-image.png') }}"
 
                                                              data-onerror-image="{{ dynamicAsset('public/assets/admin/img/160x160/img2.jpg') }}"
                                                             alt="Image Description">
@@ -510,6 +511,13 @@ if($order->delivery_address){
                                         </dt>
                                         <dd class="col-sm-6">
                                             - {{ \App\CentralLogics\Helpers::format_currency($coupon_discount_amount) }}</dd>
+
+                                        @if ($order['ref_bonus_amount'] > 0)
+                                        <dt class="col-sm-6">{{ translate('messages.Referral_Discount') }}:</dt>
+                                        <dd class="col-sm-6">
+                                            - {{ \App\CentralLogics\Helpers::format_currency($order['ref_bonus_amount'] ) }}</dd>
+                                        @endif
+
                                         @if ($order->tax_status == 'excluded' || $order->tax_status == null  )
                                         <dt class="col-sm-6">{{ translate('messages.vat/tax') }}:</dt>
                                         <dd class="col-sm-6">
@@ -548,7 +556,12 @@ if($order->delivery_address){
                                             </dd>
 
                                         @endif
-
+                                        @if ($order['extra_packaging_amount'] > 0)
+                                        <dt class="col-sm-6">{{ translate('messages.Extra_Packaging_Amount') }}:</dt>
+                                        <dd class="col-sm-6">
+                                            + {{ \App\CentralLogics\Helpers::format_currency($order['extra_packaging_amount'] ) }}
+                                        </dd>
+                                        @endif
                                         <dt class="col-sm-6">{{ translate('messages.total') }}:</dt>
                                         <dd class="col-sm-6">
                                             {{ \App\CentralLogics\Helpers::format_currency( $order['order_amount']) }}
@@ -720,7 +733,7 @@ if($order->delivery_address){
                             <div class="avatar avatar-circle">
                                 <img class="avatar-img  initial-81 onerror-image"
                                      data-onerror-image="{{ dynamicAsset('public/assets/admin/img/160x160/img3.jpg') }}"
-                                     src="{{\App\CentralLogics\Helpers::onerror_image_helper($order->delivery_man->image, dynamicStorage('storage/app/public/delivery-man/').'/'.$order->delivery_man->image, dynamicAsset('public/assets/admin/img/160x160/img3.jpg'), 'delivery-man/') }}"
+                                     src="{{ $order->delivery_man?->image_full_url ?? dynamicAsset('public/assets/admin/img/160x160/img3.jpg') }}"
                                     alt="Image Description">
                             </div>
                             <div class="media-body">
@@ -811,11 +824,12 @@ if($order->delivery_address){
                     for="order_proof">{{ translate('messages.image') }} : </label>
                 <div class="row g-3">
                         @foreach ($data as $key => $img)
+                        @php($img = is_array($img)?$img:['img'=>$img,'storage'=>'public'])
                             <div class="col-3">
                                 <img class="img__aspect-1 rounded border w-100 onerror-image" data-toggle="modal"
                                     data-target="#imagemodal{{ $key }}"
                                      data-onerror-image="{{ dynamicAsset('public/assets/admin/img/160x160/img2.jpg') }}"
-                                     src="{{\App\CentralLogics\Helpers::onerror_image_helper($img, dynamicStorage('storage/app/public/order').'/'.$img, dynamicAsset('public/assets/admin/img/160x160/img2.jpg'), 'order/') }}">
+                                     src="{{\App\CentralLogics\Helpers::get_full_url('order',$img['img'],$img['storage']) }}">
                             </div>
                             <div class="modal fade" id="imagemodal{{ $key }}" tabindex="-1"
                                 role="dialog" aria-labelledby="order_proof_{{ $key }}"
@@ -832,12 +846,14 @@ if($order->delivery_address){
                                                     class="sr-only">{{ translate('messages.cancel') }}</span></button>
                                         </div>
                                         <div class="modal-body">
-                                            <img src="{{ dynamicStorage('storage/app/' . 'public/order/' . $img) }}"
+                                            <img src="{{\App\CentralLogics\Helpers::get_full_url('order',$img['img'],$img['storage']) }}"
                                                 class="initial--22 w-100">
                                         </div>
+                                        @php($storage = $img['storage'] ?? 'public')
+                                        @php($file = $storage == 's3'?base64_encode('order/' . $img['img']):base64_encode('public/order/' . $img['img']))
                                         <div class="modal-footer">
                                             <a class="btn btn-primary"
-                                                href="{{ route('vendor.file-manager.download', base64_encode('public/order/' . $img)) }}"><i
+                                                href="{{ route('vendor.file-manager.download', [$file,$storage]) }}"><i
                                                     class="tio-download"></i>
                                                 {{ translate('messages.download') }}
                                             </a>
@@ -866,7 +882,7 @@ if($order->delivery_address){
                                 <div class="avatar avatar-circle">
                                     <img class="avatar-img  initial-81 onerror-image "
                                          data-onerror-image="{{ dynamicAsset('public/assets/admin/img/160x160/img1.jpg') }}"
-                                         src="{{\App\CentralLogics\Helpers::onerror_image_helper($order->customer->image, dynamicStorage('storage/app/public/profile/').'/'.$order->customer->image, dynamicAsset('public/assets/admin/img/160x160/img1.jpg'), 'profile/') }}"
+                                         src="{{ $order->customer?->image_full_url ?? dynamicAsset('public/assets/admin/img/160x160/img1.jpg') }}"
                                         alt="Image Description">
                                 </div>
                                 <div class="media-body">
@@ -1131,7 +1147,7 @@ if($order->delivery_address){
                                             <div class="dm_list_selected media gap-2" data-id="{{ $selected_delivery_man['id'] }}">
                                                 <img class="avatar avatar-60 rounded-10 onerror-image"
                                                      data-onerror-image="{{ dynamicAsset('public/assets/admin/img/160x160/img1.jpg') }}"
-                                                     src="{{\App\CentralLogics\Helpers::onerror_image_helper($selected_delivery_man['image'], dynamicStorage('storage/app/public/delivery-man/').'/'.$selected_delivery_man['image'], dynamicAsset('public/assets/admin/img/160x160/img1.jpg'), 'delivery-man/') }}"
+                                                     src="{{ $selected_delivery_man['image_full_url'] ?? dynamicAsset('public/assets/admin/img/160x160/img1.jpg') }}"
                                                     alt="{{ $selected_delivery_man['name'] }}">
                                                     <div class="media-body d-flex gap-1 flex-column">
                                                         <h6 class="mb-1">  {{ $selected_delivery_man['name'] }}</h6>
@@ -1160,7 +1176,7 @@ if($order->delivery_address){
                                                     <div class="dm_list media gap-2" data-id="{{ $dm['id'] }}">
                                                         <img class="avatar avatar-60 rounded-10 onerror-image"
                                                              data-onerror-image="{{ dynamicAsset('public/assets/admin/img/160x160/img1.jpg') }}"
-                                                             src="{{\App\CentralLogics\Helpers::onerror_image_helper($dm['image'], dynamicStorage('storage/app/public/delivery-man/').'/'.$dm['image'], dynamicAsset('public/assets/admin/img/160x160/img1.jpg'), 'delivery-man/') }}"
+                                                             src="{{ $dm['image_full_url'] ?? dynamicAsset('public/assets/admin/img/160x160/img1.jpg') }}"
                                                             alt="{{ $dm['name'] }}">
                                                             <div class="media-body d-flex gap-1 flex-column">
                                                                 <h6 class="mb-1">  {{ $dm['name'] }}</h6>

@@ -32,6 +32,7 @@ class AddOnController extends Controller
         }
         $validator = Validator::make($request->all(), [
             'name' => 'required',
+            'stock_type' => 'required|max:20',
             'price' => 'required|numeric',
             'translations' => 'array'
         ]);
@@ -49,6 +50,8 @@ class AddOnController extends Controller
         $addon->name = $data[0]['value'];
         $addon->price = $request->price;
         $addon->restaurant_id = $vendor?->restaurants[0]?->id;
+        $addon->stock_type = $request->stock_type ?? 'unlimited';
+        $addon->addon_stock = $request->stock_type != 'unlimited' ?  $request->addon_stock : 0;
         $addon->save();
 
         foreach ($data as $key=>$item) {
@@ -79,6 +82,7 @@ class AddOnController extends Controller
             'id' => 'required',
             'name' => 'required',
             'price' => 'required',
+            'stock_type' => 'required|max:20',
             'translations' => 'array'
         ]);
 
@@ -95,6 +99,9 @@ class AddOnController extends Controller
         $addon = AddOn::withoutGlobalScope(RestaurantScope::class)->find($request->id);
         $addon->name = $data[0]['value'];
         $addon->price = $request->price;
+        $addon->stock_type = $request->stock_type ?? 'unlimited';
+        $addon->addon_stock = $request->stock_type != 'unlimited' ?  $request->addon_stock : 0;
+        $addon->sell_count = 0;
         $addon?->save();
 
         foreach ($data as $key=>$item) {

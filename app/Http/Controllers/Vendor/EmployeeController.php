@@ -35,21 +35,27 @@ class EmployeeController extends Controller
             'password' => ['required', Password::min(8)->mixedCase()->letters()->numbers()->symbols()->uncompromised()],
 
 
+        ],[
+            'password.min_length' => translate('The password must be at least :min characters long'),
+            'password.mixed' => translate('The password must contain both uppercase and lowercase letters'),
+            'password.letters' => translate('The password must contain letters'),
+            'password.numbers' => translate('The password must contain numbers'),
+            'password.symbols' => translate('The password must contain symbols'),
+            'password.uncompromised' => translate('The password is compromised. Please choose a different one'),
+            'password.custom' => translate('The password cannot contain white spaces.'),
         ]);
 
-        DB::table('vendor_employees')->insert([
-            'f_name' => $request->f_name,
-            'l_name' => $request->l_name,
-            'phone' => $request->phone,
-            'email' => $request->email,
-            'employee_role_id' => $request->role_id,
-            'password' => bcrypt($request->password),
-            'vendor_id'=> Helpers::get_vendor_id(),
-            'restaurant_id'=>Helpers::get_restaurant_id(),
-            'image' => Helpers::upload(dir:'vendor/', format:'png', image: $request->file('image')),
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        $vendor = new VendorEmployee();
+        $vendor->f_name = $request->f_name;
+        $vendor->l_name = $request->l_name;
+        $vendor->phone = $request->phone;
+        $vendor->email = $request->email;
+        $vendor->employee_role_id = $request->role_id;
+        $vendor->password = bcrypt($request->password);
+        $vendor->vendor_id = Helpers::get_vendor_id();
+        $vendor->restaurant_id =Helpers::get_restaurant_id();
+        $vendor->image = Helpers::upload(dir:'vendor/', format:'png', image: $request->file('image'));
+        $vendor->save();
 
         Toastr::success('Employee added successfully!');
         return redirect()->route('vendor.employee.list');
@@ -98,6 +104,13 @@ class EmployeeController extends Controller
 
         ], [
             'f_name.required' => translate('messages.first_name_is_required'),
+            'password.min_length' => translate('The password must be at least :min characters long'),
+            'password.mixed' => translate('The password must contain both uppercase and lowercase letters'),
+            'password.letters' => translate('The password must contain letters'),
+            'password.numbers' => translate('The password must contain numbers'),
+            'password.symbols' => translate('The password must contain symbols'),
+            'password.uncompromised' => translate('The password is compromised. Please choose a different one'),
+            'password.custom' => translate('The password cannot contain white spaces.'),
         ]);
 
         $e = VendorEmployee::where('restaurant_id', Helpers::get_restaurant_id())->find($id);

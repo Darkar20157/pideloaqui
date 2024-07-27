@@ -14,15 +14,12 @@
                 <span
                     class="badge badge-{{ $product->veg ? 'success' : 'danger' }} position-absolute">{{ $product->veg ? translate('messages.veg') : translate('messages.non_veg') }}</span>
             @endif
-
+            @if ($product?->stock_type !=='unlimited' && $product->item_stock <= 0)
+            <span class="badge badge-danger position-absolute">{{ translate('messages.Out_of_Stock') }}</span>
+            @endif
             <div class="d-flex align-items-center justify-content-center active h-9rem">
                 <img class="img-responsive mr-3 img--100 onerror-image"
-                     src="{{ Helpers::onerror_image_helper(
-                        data_get($product,'image'),
-                        dynamicStorage('storage/app/public/product').'/'.data_get($product,'image'),
-                        dynamicAsset('public/assets/admin/img/100x100/food-default-image.png'),
-                        'product/'
-                    ) }}"
+                     src="{{ data_get($product,'image_full_url') ?? dynamicAsset('public/assets/admin/img/100x100/food-default-image.png') }}"
                      data-onerror-image="{{ dynamicAsset('public/assets/admin/img/100x100/food-default-image.png') }}"
                      data-zoom="{{ dynamicStorage('storage/app/public/product') }}/{{ data_get($product,'image') }}"
                      alt="Product image">
@@ -99,22 +96,36 @@
 
 
                             @foreach ($choice->values as $k => $option)
+
                                 <div class="form-check form--check d-flex pr-5 mr-5">
-                                    <input class="form-check-input"
+                                    <input class="form-check-input  input-element {{data_get($option, 'stock_type') && data_get($option, 'stock_type') !== 'unlimited' && data_get($option, 'current_stock') <= 0? 'stock_out' : '' }}"
+                                    data-option_id="{{ data_get($option, 'option_id') }}"
                                            type="{{ ($choice->type == "multi") ? "checkbox" : "radio"}}"
                                            id="choice-option-{{ $key }}-{{ $k }}"
                                            name="variations[{{ $key }}][values][label][]" value="{{ $option->label }}"
                                            @if (isset($values[$key]))
-                                               {{ in_array($option->label, $values[$key]) ? 'checked' : '' }}
+                                               {{ in_array($option->label, $values[$key]) && !(data_get($option, 'stock_type') && data_get($option, 'stock_type') !== 'unlimited' && data_get($option, 'current_stock') <= 0)? 'checked' : '' }}
                                            @endif
+                                           {{data_get($option, 'stock_type') && data_get($option, 'stock_type') !== 'unlimited' && data_get($option, 'current_stock') <= 0? 'disabled' : '' }}
                                            autocomplete="off">
-                                    <label class="form-check-label"
-                                           for="choice-option-{{ $key }}-{{ $k }}">{{ Str::limit($option->label, 20, '...') }}</label>
+                                    <label class="form-check-label {{data_get($option, 'stock_type') && data_get($option, 'stock_type') !== 'unlimited' && data_get($option, 'current_stock') <= 0? 'stock_out text-muted' : 'text-dark' }}"
+                                           for="choice-option-{{ $key }}-{{ $k }}">{{ Str::limit($option->label, 20, '...') }}
+
+                                           &nbsp;
+                                           <span
+                                               class="input-label-secondary text--title text--warning {{data_get($option, 'stock_type') && data_get($option, 'stock_type') !== 'unlimited' && data_get($option, 'current_stock') <= 0? '' : 'd-none' }}"
+                                               title="{{ translate('Currently_you_need_to_manage_discount_with_the_Restaurant.') }}">
+                                               <i class="tio-info-outined"></i>
+                                               <small>{{ translate('stock_out') }}</small>
+                                           </span>
+
+                                        </label>
                                     <span class="ml-auto">{{ Helpers::format_currency($option->optionPrice) }}</span>
                                 </div>
                             @endforeach
                         @endif
                     @endforeach
+                    <input type="hidden" hidden name="option_ids" id="option_ids" >
 
                     <!-- Quantity + Add to cart -->
                     <div class="d-flex justify-content-between mt-4">
@@ -129,14 +140,17 @@
                                             <i class="tio-remove  font-weight-bold"></i>
                                     </button>
                                 </span>
-                                <label for="quantity">
+                                <label for="add_new_product_quantity">
                                  </label>
-                                    <input id="quantity" type="text" name="quantity"
+                                    <input id="add_new_product_quantity" type="text" name="quantity"
                                            class="form-control input-number text-center cart-qty-field"
                                            placeholder="1" value="{{$cart_item['quantity']}}" min="1"
+
+                                           data-maximum_cart_quantity='{{ min( $product?->maximum_cart_quantity ?? '9999999999',$product?->stock_type =='unlimited' ? '999999999' : $product?->item_stock)  }}'
                                             max="{{ $product->maximum_cart_quantity?? '9999999999' }}">
                                 <span class="input-group-btn">
                                     <button class="btn btn-number text-dark" type="button" data-type="plus"
+                                    id="quantity_increase_button"
                                             data-field="quantity">
                                             <i class="tio-add  font-weight-bold"></i>
                                     </button>
@@ -196,12 +210,18 @@
                             </div>
                         </div>
                     </div>
-
                     <div class="d-flex justify-content-center mt-2">
-                        <button class="btn btn--primary h--45px w-40p add-To-Cart" type="button">
-                            <i class="tio-shopping-cart"></i>
-                            {{translate('messages.update')}}
-                        </button>
+                        @if ($product?->stock_type !=='unlimited' && $product->item_stock <= 0)
+                            <a href="javascript:"
+                            data-product-id="{{$item_key}}"
+                            class="btn  btn--danger  remove-From-Cart"> {{ translate('Remove') }} <i
+                            class="tio-delete-outlined"></i></a>
+                        @else
+                            <button class="btn btn--primary h--45px w-40p add-To-Cart" type="button">
+                                <i class="tio-shopping-cart"></i>
+                                {{translate('messages.update')}}
+                            </button>
+                        @endif
                     </div>
                 </form>
             </div>
@@ -214,6 +234,20 @@
     getVariantPrice();
     $('#add-to-cart-form input').on('change', function () {
         getVariantPrice();
+    });
+
+    function getCheckedInputs() {
+        var checkedInputs = [];
+    var checkedElements = document.querySelectorAll('.input-element:checked');
+    checkedElements.forEach(function(element) {
+        checkedInputs.push(element.getAttribute('data-option_id'));
+    });
+        $('#option_ids').val(checkedInputs.join(','));
+
+    }
+    var inputElements = document.querySelectorAll('.input-element');
+    inputElements.forEach(function(element) {
+        element.addEventListener('change', getCheckedInputs);
     });
 </script>
 

@@ -51,9 +51,16 @@
                                 <select name="transaction_type" id="" class="form-control h--45px" title="{{translate('messages.select_transaction_type')}}">
                                     <option value="">{{translate('messages.all')}}</option>
                                     <option value="add_fund_by_admin" {{isset($transaction_status) && $transaction_status=='add_fund_by_admin'?'selected':''}} >{{translate('messages.add_fund_by_admin')}}</option>
+                                    <option
+                                    value="add_fund" {{isset($transaction_status) && $transaction_status=='add_fund'?'selected':''}}>{{translate('messages.add_fund_by_customer')}}</option>
                                     <option value="order_refund" {{isset($transaction_status) && $transaction_status=='order_refund'?'selected':''}}>{{translate('messages.refund_order')}}</option>
                                     <option value="loyalty_point" {{isset($transaction_status) && $transaction_status=='loyalty_point'?'selected':''}}>{{translate('messages.customer_loyalty_point')}}</option>
                                     <option value="order_place" {{isset($transaction_status) && $transaction_status=='order_place'?'selected':''}}>{{translate('messages.order_place')}}</option>
+                                    <option
+                                    value="CashBack" {{isset($transaction_status) && $transaction_status=='CashBack'?'selected':''}}>{{translate('messages.CashBack')}}</option>
+                                <option
+                                    value="referrer" {{isset($transaction_status) && $transaction_status=='referrer'?'selected':''}}>{{translate('messages.Referrer')}}</option>
+
                                 </select>
                             </div>
                         </div>

@@ -593,7 +593,7 @@
             });
             @endif
         }
-
+        initMap();
         function handleLocationError(browserHasGeolocation, infoWindow, pos) {
             infoWindow.setPosition(pos);
             infoWindow.setContent(
@@ -665,15 +665,10 @@
             });
         });
 
-        function checkAddToCartValidity() {
-            let numberNotChecked = $('#add-to-cart-form input:checkbox:checked').length;
-            let numberNotChecked2 = $('#add-to-cart-form input:radio:checked').length;
-            return numberNotChecked > 0 || numberNotChecked2 > 0;
-
-        }
 
         function getVariantPrice() {
-            if ($('#add-to-cart-form input[name=quantity]').val() > 0 && checkAddToCartValidity()) {
+            getCheckedInputs();
+            if ($('#add-to-cart-form input[name=quantity]').val() > 0) {
                 $.ajaxSetup({
                     headers: {
                         'X-CSRF-TOKEN': $('meta[name="_token"]').attr('content')
@@ -684,11 +679,31 @@
                     url: '{{ route('admin.pos.variant_price') }}',
                     data: $('#add-to-cart-form').serializeArray(),
                     success: function (data) {
+
                         if (data.error === 'quantity_error') {
                             toastr.error(data.message);
-                        } else {
+                        }
+                        else if(data.error === 'stock_out'){
+                            toastr.warning(data.message);
+                            if(data.type == 'addon'){
+                                $('#addon_quantity_button'+data.id).attr("disabled", true);
+                                $('#addon_quantity_input'+data.id).val(data.current_stock);
+                            }
+
+                            else{
+                                $('#quantity_increase_button').attr("disabled", true);
+                                $('#add_new_product_quantity').val(data.current_stock);
+                            }
+                            getVariantPrice();
+                        }
+
+                        else {
                             $('#add-to-cart-form #chosen_price_div').removeClass('d-none');
                             $('#add-to-cart-form #chosen_price_div #chosen_price').html(data.price);
+                            $('.add-To-Cart').removeAttr("disabled");
+                            $('.increase-button').removeAttr("disabled");
+                            $('#quantity_increase_button').removeAttr("disabled");
+
                         }
                     }
                 });
@@ -732,6 +747,13 @@
                         });
                         return false;
                     } else if (data.data === 'variation_error') {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Cart',
+                            text: data.message
+                        });
+                        return false;
+                    } else if (data.data === 'stock_out') {
                         Swal.fire({
                             icon: 'error',
                             title: 'Cart',
@@ -865,6 +887,7 @@
                         });
                     }
                 } else {
+                    $('#quick-view').modal('hide');
                     updateCart();
                     toastr.info('{{ translate('messages.item_has_been_removed_from_cart') }}', {
                         CloseButton: true,
@@ -905,22 +928,44 @@
             });
         }
 
+        $(document).on('change', '[name="quantity"]', function (event) {
+            getVariantPrice();
+            if($('#option_ids').val() == ''){
+                $(this).attr('max', $(this).data('maximum_cart_quantity'));
+            }
+        });
 
         $(document).on('change', '.update-Quantity', function (event) {
+
             let element = $(event.target);
             let minValue = parseInt(element.attr('min'));
             let maxValue = parseInt(element.attr('max'));
             let valueCurrent = parseInt(element.val());
 
             let key = element.data('key');
+            let option_ids = element.data('option_ids');
+            let food_id = element.data('food_id');
+
             let oldvalue = element.data('value');
             if (valueCurrent >= minValue && maxValue >= valueCurrent) {
                 $.post('{{ route('admin.pos.updateQuantity') }}', {
                     _token: '{{ csrf_token() }}',
                     key: key,
+                    option_ids: option_ids,
+                    food_id: food_id,
                     quantity: valueCurrent
-                }, function () {
-                    updateCart();
+                }, function (data) {
+                    if(data.data == 'stock_out'){
+                        element.val(oldvalue);
+                        Swal.fire({
+                            icon: 'error',
+                            title: "{{ translate('Cart') }}",
+                            text: data.message
+                        });
+                    }
+                    else{
+                        updateCart();
+                    }
                 });
             } else {
                 element.val(oldvalue);

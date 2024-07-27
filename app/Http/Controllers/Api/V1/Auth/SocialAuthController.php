@@ -2,8 +2,7 @@
 
 namespace App\Http\Controllers\api\v1\auth;
 
-use App\CentralLogics\CustomerLogic;
-use Carbon\CarbonInterval;
+
 use App\CentralLogics\Helpers;
 use App\Http\Controllers\Controller;
 use App\Models\User;
@@ -14,7 +13,6 @@ use App\CentralLogics\SMS_module;
 use App\Models\BusinessSetting;
 use Illuminate\Support\Carbon;
 use App\Models\WalletTransaction;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\DB;
 use Firebase\JWT\JWT;
 use Illuminate\Support\Facades\Http;
@@ -42,7 +40,13 @@ class SocialAuthController extends Controller
         $unique_id = $request['unique_id'];
         try {
             if ($request['medium'] == 'google') {
-                $res = $client->request('GET',  'https://www.googleapis.com/oauth2/v3/userinfo?access_token=' . $token);
+
+                if($request->access_token  == 1){
+                    $res = $client->request('GET',  'https://www.googleapis.com/oauth2/v3/userinfo?access_token=' . $token);
+                } else{
+                    $res = $client->request('GET', 'https://www.googleapis.com/oauth2/v3/tokeninfo?id_token=' . $token);
+                }
+
                 $data = json_decode($res->getBody()->getContents(), true);
             } elseif ($request['medium'] == 'facebook') {
                 $res = $client->request('GET', 'https://graph.facebook.com/' . $unique_id . '?access_token=' . $token . '&&fields=name,email');
@@ -98,14 +102,15 @@ class SocialAuthController extends Controller
                         }
 
                         $notification_data = [
-                            'title' => translate('messages.Your_referral_code_is_used_by').' '.$fast_name.' '.$last_name,
-                            'description' => translate('Be_prepare_to_receive_when_they_complete_there_first_purchase') ,
+                            'title' => translate('messages.Your_Referral_Code_Has_Been_Used'),
+                            'description' => translate('Congratulations!_Your_referral_code_was_used_by_a_new_user._Get_ready_to_earn_rewards_when_they_complete_their_first_order') ,
                             'order_id' => '',
                             'image' => '',
                             'type' => 'referral_code',
                         ];
+                        $customer_push_notification_status=Helpers::getNotificationStatusData('customer','customer_new_referral_join');
 
-                        if($referar_user?->cm_firebase_token){
+                        if($customer_push_notification_status?->push_notification_status  == 'active' && $referar_user?->cm_firebase_token){
                             Helpers::send_push_notif_to_device($referar_user?->cm_firebase_token, $notification_data);
                             DB::table('user_notifications')->insert([
                                 'data' => json_encode($notification_data),
@@ -163,23 +168,35 @@ class SocialAuthController extends Controller
                         'created_at' => now(),
                         'updated_at' => now(),
                         ]);
-
                     //for payment and sms gateway addon
-                    $published_status = 0;
-                    $payment_published_status = config('get_payment_publish_status');
-                    if (isset($payment_published_status[0]['is_published'])) {
-                        $published_status = $payment_published_status[0]['is_published'];
+
+
+                    $response =null;
+                    $customer_sms_status=Helpers::getNotificationStatusData('customer','customer_registration_otp');
+                    if($customer_sms_status?->sms_status  == 'active'){
+
+                        $published_status = 0;
+                        $payment_published_status = config('get_payment_publish_status');
+                        if (isset($payment_published_status[0]['is_published'])) {
+                            $published_status = $payment_published_status[0]['is_published'];
+                        }
+                        if($published_status == 1){
+                            $response = SmsGateway::send($request['phone'],$otp);
+                        }else{
+                            $response = SMS_module::send($request['phone'],$otp);
+                        }
+
+
                     }
-                    if($published_status == 1){
-                        $response = SmsGateway::send($request['phone'],$otp);
-                    }else{
-                        $response = SMS_module::send($request['phone'],$otp);
-                    }
+
+
+
+
                     if($response != 'success')
                     {
 
                         $errors = [];
-                        array_push($errors, ['code' => 'otp', 'message' => translate('messages.faield_to_send_sms')]);
+                        array_push($errors, ['code' => 'otp', 'message' => translate('messages.failed_to_send_sms')]);
                         return response()->json([
                             'errors' => $errors
                         ], 403);
@@ -251,14 +268,15 @@ class SocialAuthController extends Controller
                         }
 
                         $notification_data = [
-                            'title' => translate('messages.Your_referral_code_is_used_by').' '.$fast_name.' '.$last_name,
-                            'description' => translate('Be prepare to receive when they complete there first purchase') ,
+                            'title' => translate('messages.Your_Referral_Code_Has_Been_Used'),
+                            'description' => translate('Congratulations!_Your_referral_code_was_used_by_a_new_user._Get_ready_to_earn_rewards_when_they_complete_their_first_order') ,
                             'order_id' => '',
                             'image' => '',
                             'type' => 'referral_code',
                         ];
+                        $customer_push_notification_status=Helpers::getNotificationStatusData('customer','customer_new_referral_join');
 
-                        if($referar_user?->cm_firebase_token){
+                        if($customer_push_notification_status?->push_notification_status  == 'active' && $referar_user?->cm_firebase_token){
                             Helpers::send_push_notif_to_device($referar_user?->cm_firebase_token, $notification_data);
                             DB::table('user_notifications')->insert([
                                 'data' => json_encode($notification_data),
@@ -317,24 +335,34 @@ class SocialAuthController extends Controller
                         'created_at' => now(),
                         'updated_at' => now(),
                         ]);
-
                     //for payment and sms gateway addon
-                    $published_status = 0;
-                    $payment_published_status = config('get_payment_publish_status');
-                    if (isset($payment_published_status[0]['is_published'])) {
-                        $published_status = $payment_published_status[0]['is_published'];
+
+
+
+                    $response =null;
+                    $customer_sms_status=Helpers::getNotificationStatusData('customer','customer_registration_otp');
+                    if($customer_sms_status?->sms_status  == 'active'){
+
+                        $published_status = 0;
+                        $payment_published_status = config('get_payment_publish_status');
+                        if (isset($payment_published_status[0]['is_published'])) {
+                            $published_status = $payment_published_status[0]['is_published'];
+                        }
+
+                        if($published_status == 1){
+                            $response = SmsGateway::send($request['phone'],$otp);
+                        }else{
+                            $response = SMS_module::send($request['phone'],$otp);
+                        }
+
                     }
 
-                    if($published_status == 1){
-                        $response = SmsGateway::send($request['phone'],$otp);
-                    }else{
-                        $response = SMS_module::send($request['phone'],$otp);
-                    }
+
                     if($response != 'success')
                     {
 
                         $errors = [];
-                        array_push($errors, ['code' => 'otp', 'message' => translate('messages.faield_to_send_sms')]);
+                        array_push($errors, ['code' => 'otp', 'message' => translate('messages.failed_to_send_sms')]);
                         return response()->json([
                             'errors' => $errors
                         ], 403);
@@ -375,7 +403,11 @@ class SocialAuthController extends Controller
         $unique_id = $request['unique_id'];
         try {
             if ($request['medium'] == 'google') {
-                $res = $client->request('GET',  'https://www.googleapis.com/oauth2/v3/userinfo?access_token=' . $token);
+                if($request->access_token  == 1){
+                    $res = $client->request('GET',  'https://www.googleapis.com/oauth2/v3/userinfo?access_token=' . $token);
+                } else{
+                    $res = $client->request('GET', 'https://www.googleapis.com/oauth2/v3/tokeninfo?id_token=' . $token);
+                }
                 $data = json_decode($res->getBody()->getContents(), true);
             } elseif ($request['medium'] == 'facebook') {
                 $res = $client->request('GET', 'https://graph.facebook.com/' . $unique_id . '?access_token=' . $token . '&&fields=name,email');
@@ -484,21 +516,29 @@ class SocialAuthController extends Controller
                     'created_at' => now(),
                     'updated_at' => now(),
                     ]);
-                $published_status = 0;
-                $payment_published_status = config('get_payment_publish_status');
-                if (isset($payment_published_status[0]['is_published'])) {
-                    $published_status = $payment_published_status[0]['is_published'];
-                }
+                //for payment and sms gateway addon
 
-                if($published_status == 1){
-                    $response = SmsGateway::send($user->phone,$otp);
-                }else{
-                    $response = SMS_module::send($user->phone,$otp);
+
+                $response =null;
+                $customer_sms_status=Helpers::getNotificationStatusData('customer','customer_login_otp');
+                if($customer_sms_status?->sms_status  == 'active'){
+
+                    $published_status = 0;
+                    $payment_published_status = config('get_payment_publish_status');
+                    if (isset($payment_published_status[0]['is_published'])) {
+                        $published_status = $payment_published_status[0]['is_published'];
+                    }
+
+                    if($published_status == 1){
+                        $response = SmsGateway::send($user->phone,$otp);
+                    }else{
+                        $response = SMS_module::send($user->phone,$otp);
+                    }
                 }
                 if($response != 'success')
                 {
                     $errors = [];
-                    array_push($errors, ['code' => 'otp', 'message' => translate('messages.faield_to_send_sms')]);
+                    array_push($errors, ['code' => 'otp', 'message' => translate('messages.failed_to_send_sms')]);
                     return response()->json([
                         'errors' => $errors
                     ], 403);

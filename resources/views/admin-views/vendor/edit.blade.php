@@ -51,7 +51,7 @@
                             <div class="lang_form" id="default-form">
                                 <div class="form-group ">
                                 <label class="input-label" for="exampleFormControlInput1">{{ translate('messages.restaurant_name') }} ({{translate('messages.default')}})</label>
-                                    <input type="text" name="name[]" class="form-control"  placeholder="{{ translate('messages.Ex:_ABC_Company') }} " maxlength="191" value="{{$restaurant?->getRawOriginal('name')}}"  oninvalid="document.getElementById('en-link').click()">
+                                    <input type="text" name="name[]" class="form-control"  placeholder="{{ translate('messages.Ex:_ABC_Company') }} " maxlength="191" value="{{$restaurant?->getRawOriginal('name')}}"   >
                                 </div>
                                 <input type="hidden" name="lang[]" value="default">
 
@@ -84,7 +84,7 @@
 
                                     <div class="form-group" >
                                         <label class="input-label" for="exampleFormControlInput1">{{ translate('messages.restaurant_name') }} ({{strtoupper($lang)}})</label>
-                                        <input type="text" name="name[]" class="form-control"  placeholder="{{ translate('messages.Ex:_ABC_Company') }}  maxlength="191" value="{{$translate[$lang]['name']??''}}" oninvalid="document.getElementById('en-link').click()">
+                                        <input type="text" name="name[]" class="form-control"  placeholder="{{ translate('messages.Ex:_ABC_Company') }}  maxlength="191" value="{{$translate[$lang]['name']??''}}"  >
                                     </div>
                                     <input type="hidden" name="lang[]" value="{{$lang}}">
 
@@ -118,12 +118,7 @@
                                     <center>
                                         <img class="img--110 min-height-170px min-width-170px onerror-image" id="viewer"
                                              data-onerror-image="{{ dynamicAsset('public/assets/admin/img/upload.png') }}"
-                                             src="{{ \App\CentralLogics\Helpers::onerror_image_helper(
-                                            $restaurant->logo ?? '',
-                                            dynamicStorage('storage/app/public/restaurant').'/'.$restaurant->logo ?? '',
-                                            dynamicAsset('public/assets/admin/img/upload.png'),
-                                            'restaurant/'
-                                        ) }}"
+                                             src="{{ $restaurant->logo_full_url ?? dynamicAsset('public/assets/admin/img/upload.png') }}"
                                              alt="logo image" />
                                     </center>
                                     <input type="file" name="logo" id="customFileEg1" class="custom-file-input"
@@ -138,12 +133,7 @@
                                     <center>
                                         <img class="img--vertical min-height-170px min-width-170px onerror-image" id="coverImageViewer"
                                              data-onerror-image="{{ dynamicAsset('public/assets/admin/img/upload-img.png') }}"
-                                             src="{{ \App\CentralLogics\Helpers::onerror_image_helper(
-                                            $restaurant->cover_photo ?? '',
-                                            dynamicStorage('storage/app/public/restaurant/cover').'/'.$restaurant->cover_photo ?? '',
-                                            dynamicAsset('public/assets/admin/img/upload-img.png'),
-                                            'restaurant/cover/'
-                                        ) }}"
+                                             src="{{ $restaurant->cover_photo_full_url ?? dynamicAsset('public/assets/admin/img/upload-img.png') }}"
                                             alt="Fav icon" />
                                     </center>
                                     <input type="file" name="cover_photo" id="coverImageUpload"  class="custom-file-input"

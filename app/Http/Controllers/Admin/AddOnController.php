@@ -57,40 +57,13 @@ class AddOnController extends Controller
         $addon = new AddOn();
         $addon->name = $request->name[array_search('default', $request->lang)];
         $addon->price = $request->price;
+        $addon->stock_type = $request->stock_type;
+        $addon->addon_stock = $request->stock_type != 'unlimited' ?  $request->addon_stock : 0;
         $addon->restaurant_id = $request->restaurant_id;
         $addon->save();
 
-        $default_lang = str_replace('_', '-', app()->getLocale());
+        Helpers::add_or_update_translations(request: $request, key_data:'name' , name_field:'name' , model_name: 'AddOn' ,data_id: $addon->id,data_value: $addon->name);
 
-        foreach($request->lang as $index=>$key)
-        {
-            if ($default_lang == $key && !($request->name[$index])) {
-                if ($key != 'default') {
-                    Translation::updateOrInsert(
-                        [
-                            'translationable_type' => 'App\Models\AddOn',
-                            'translationable_id' => $addon->id,
-                            'locale' => $key,
-                            'key' => 'name'
-                        ],
-                        ['value' => $addon->name]
-                    );
-                }
-            } else {
-                if ($request->name[$index] && $key != 'default') {
-                    Translation::updateOrInsert(
-                        [
-                            'translationable_type' => 'App\Models\AddOn',
-                            'translationable_id' => $addon->id,
-                            'locale' => $key,
-                            'key' => 'name'
-                        ],
-                        ['value' => $request->name[$index]]
-                    );
-                }
-            }
-
-        }
 
         Toastr::success(translate('messages.addon_added_successfully'));
         return back();
@@ -119,38 +92,12 @@ class AddOnController extends Controller
         $addon->name = $request->name[array_search('default', $request->lang)];
         $addon->price = $request->price;
         $addon->restaurant_id = $request->restaurant_id;
+        $addon->stock_type = $request->stock_type;
+        $addon->addon_stock = $request->stock_type != 'unlimited' ?  $request->addon_stock : 0;
+        $addon->sell_count = 0;
         $addon->save();
-        $default_lang = str_replace('_', '-', app()->getLocale());
 
-        foreach($request->lang as $index=>$key)
-        {
-            if ($default_lang == $key && !($request->name[$index])) {
-                if ($key != 'default') {
-                    Translation::updateOrInsert(
-                        [
-                            'translationable_type' => 'App\Models\AddOn',
-                            'translationable_id' => $addon->id,
-                            'locale' => $key,
-                            'key' => 'name'
-                        ],
-                        ['value' => $addon->name]
-                    );
-                }
-            } else {
-                if ($request->name[$index] && $key != 'default') {
-                    Translation::updateOrInsert(
-                        [
-                            'translationable_type' => 'App\Models\AddOn',
-                            'translationable_id' => $addon->id,
-                            'locale' => $key,
-                            'key' => 'name'
-                        ],
-                        ['value' => $request->name[$index]]
-                    );
-                }
-            }
-
-        }
+        Helpers::add_or_update_translations(request: $request, key_data:'name' , name_field:'name' , model_name: 'AddOn' ,data_id: $addon->id,data_value: $addon->name);
 
         Toastr::success(translate('messages.addon_updated_successfully'));
         return redirect(route('admin.addon.add-new'));
@@ -174,17 +121,6 @@ class AddOnController extends Controller
         return back();
     }
 
-    // public function search(Request $request){
-    //     $key = explode(' ', $request['search']);
-    //     $addons=AddOn::where(function ($q) use ($key) {
-    //         foreach ($key as $value) {
-    //             $q->orWhere('name', 'like', "%{$value}%");
-    //         }
-    //     })->limit(50)->get();
-    //     return response()->json([
-    //         'view'=>view('admin-views.addon.partials._table',compact('addons'))->render()
-    //     ]);
-    // }
 
     public function export_addons(Request $request){
         try{

@@ -32,7 +32,7 @@ class ConversationController extends Controller
             foreach($request->file('image') as $key=>$img)
             {
                 $name = Helpers::upload(dir:'conversation/', format:'png',image: $img);
-                array_push($image_name,$name);
+                array_push($image_name,['img'=>$name, 'storage'=> Helpers::getDisk()]);
             }
         } else {
             $image_name = null;
@@ -92,7 +92,7 @@ class ConversationController extends Controller
                 if(!$receiver){
                     $receiver = new UserInfo();
                     $receiver->vendor_id = $vendor->id;
-                    $receiver->f_name = $vendor?->restaurants[0]?->name;
+                    $receiver->f_name = $vendor?->restaurants[0]?->getRawOriginal('name');
                     $receiver->l_name = '';
                     $receiver->phone = $vendor->phone;
                     $receiver->email = $vendor->email;
@@ -142,7 +142,9 @@ class ConversationController extends Controller
         $message->conversation_id = $conversation->id;
         $message->sender_id = $sender->id;
         $message->message = $request->message;
-        $message->file = $image_name?json_encode($image_name, JSON_UNESCAPED_SLASHES):null;
+        if($image_name && count($image_name)>0){
+            $message->file = json_encode($image_name, JSON_UNESCAPED_SLASHES);
+        }
         try {
             if($message->save())
             $conversation->unread_message_count = $conversation->unread_message_count? $conversation->unread_message_count+1:1;
@@ -445,7 +447,7 @@ class ConversationController extends Controller
             {
 
                 $name = Helpers::upload('conversation/', 'png', $img);
-                array_push($image_name,$name);
+                array_push($image_name,['img'=>$name, 'storage'=> Helpers::getDisk()]);
             }
         } else {
             $image_name = null;
@@ -502,7 +504,7 @@ class ConversationController extends Controller
                 if(!$receiver){
                     $receiver = new UserInfo();
                     $receiver->vendor_id = $vendor->id;
-                    $receiver->f_name = $vendor?->restaurants[0]?->name;
+                    $receiver->f_name = $vendor?->restaurants[0]?->getRawOriginal('name');
                     $receiver->l_name = '';
                     $receiver->phone = $vendor->phone;
                     $receiver->email = $vendor->email;

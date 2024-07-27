@@ -50,15 +50,25 @@
                 <form action="{{env('APP_MODE')!='demo'?route('admin.business-settings.update-fcm'):'javascript:'}}" method="post"
                         enctype="multipart/form-data">
                     @csrf
-                    @php($key=\App\Models\BusinessSetting::where('key','push_notification_key')->first())
+                    @php($serviceFileContent = \App\CentralLogics\Helpers::get_business_settings('push_notification_service_file_content'))
                     <div class="form-group">
-                        <label class="input-label form-label"
-                                >{{translate('messages.server_key')}}</label>
-                        <div class="d-flex">
-                            <textarea name="push_notification_key" class="form-control" placeholder="{{translate('Ex: AAAAaBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789')}}"
-                                required>{{env('APP_MODE')!='demo'?$key->value??'':''}}</textarea>
-                            </div>
-                        </div>
+                        <label class="input-label">{{translate('service_file_content')}}
+                            <i class="tio-info cursor-pointer" data-toggle="tooltip" data-placement="top"
+                               title="{{ translate('select and copy all the service file content and add here') }}">
+                            </i>
+                        </label>
+                        <textarea name="push_notification_service_file_content" class="form-control" rows="15"
+                                  required>{{env('APP_MODE')!='demo'?($serviceFileContent?json_encode($serviceFileContent):''):''}}</textarea>
+                    </div>
+{{--                    @php($key=\App\Models\BusinessSetting::where('key','push_notification_key')->first())--}}
+                    <div class="form-group">
+{{--                        <label class="input-label form-label"--}}
+{{--                                >{{translate('messages.server_key')}}</label>--}}
+{{--                        <div class="d-flex">--}}
+{{--                            <textarea name="push_notification_key" class="form-control" placeholder="{{translate('Ex: AAAAaBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789')}}"--}}
+{{--                                required>{{env('APP_MODE')!='demo'?$key->value??'':''}}</textarea>--}}
+{{--                            </div>--}}
+{{--                        </div>--}}
                     <div class="form-group">
                         <label class="input-label" >{{translate('messages.api_key')}}</label>
                         <div class="d-flex">

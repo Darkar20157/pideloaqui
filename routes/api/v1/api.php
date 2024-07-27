@@ -18,6 +18,9 @@ use BeyondCode\LaravelWebSockets\Facades\WebSocketsRouter;
 Route::group(['namespace' => 'Api\V1', 'middleware'=>['localization','react']], function () {
     Route::get('zone/list', 'ZoneController@get_zones');
     Route::get('zone/check', 'ZoneController@zonesCheck');
+    Route::get('advertisement/list', 'AdvertisementController@get_adds');
+
+
     Route::group(['prefix' => 'auth', 'namespace' => 'Auth'], function () {
         Route::post('sign-up', 'CustomerAuthController@register');
         Route::post('login', 'CustomerAuthController@login');
@@ -174,13 +177,23 @@ Route::group(['namespace' => 'Api\V1', 'middleware'=>['localization','react']], 
         Route::post('coupon-search', 'CouponController@search')->name('search');
         Route::get('coupon/view-without-translate', 'CouponController@view_without_translate');
 
+        Route::group([ 'prefix' => 'advertisement', 'as' => 'advertisement.'], function () {
+            Route::get('/', 'AdvertisementController@index');
+            Route::get('details/{id}', 'AdvertisementController@show');
+            Route::delete('delete/{id}', 'AdvertisementController@destroy');
+            Route::post('store', 'AdvertisementController@store');
+            Route::post('update/{id}', 'AdvertisementController@update');
+            Route::put('/status', 'AdvertisementController@status')->name('status');
+            Route::post('copy-add-post', 'AdvertisementController@copyAddPost');
 
+        });
 
         //remove account
         Route::delete('remove-account', 'VendorController@remove_account');
 
         // Business setup
         Route::put('update-business-setup', 'BusinessSettingsController@update_restaurant_setup');
+        Route::get('get-characteristic-suggestion', 'BusinessSettingsController@suggestion_list');
 
         // Reataurant schedule
         Route::post('schedule/store', 'BusinessSettingsController@add_schedule');
@@ -219,7 +232,9 @@ Route::group(['namespace' => 'Api\V1', 'middleware'=>['localization','react']], 
             Route::get('recommended', 'FoodController@recommended');
             Route::POST('search', 'FoodController@search');
             Route::get('reviews', 'FoodController@reviews');
+            Route::put('reply-update', 'FoodController@update_reply');
             Route::get('details/{id}', 'FoodController@get_product');
+            Route::put('update-stock', 'FoodController@updateStock');
 
 
         });
@@ -399,6 +414,13 @@ Route::group(['namespace' => 'Api\V1', 'middleware'=>['localization','react']], 
         Route::get('list', 'CouponController@list');
         Route::get('apply', 'CouponController@apply');
     });
+
+    Route::group(['prefix' => 'cashback', 'middleware' => 'auth:api'], function () {
+        Route::get('list', 'CashBackController@list');
+        Route::get('getCashback', 'CashBackController@getCashback');
+    });
+
+
     Route::get('coupon/restaurant-wise-coupon', 'CouponController@restaurant_wise_coupon');
 
     Route::post('newsletter/subscribe','NewsletterController@index');

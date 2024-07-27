@@ -58,7 +58,23 @@ class DashboardController extends Controller
         $data['top_sell'] = $top_sell;
         $data['most_rated_foods'] = $most_rated_foods;
 
-        return view('vendor-views.dashboard', compact('data', 'earning', 'commission', 'params','delivery_earning'));
+
+        $out_out_count =  Food::where('stock_type','!=' ,'unlimited' )->where(function($query){
+            $query->whereRaw('item_stock - sell_count <= 0')->orWhereHas('newVariationOptions',function($query){
+                $query->whereRaw('total_stock - sell_count <= 0');
+            });
+            })->count();
+
+            $food = null;
+            if($out_out_count == 1 ){
+                $food = Food::where('stock_type','!=' ,'unlimited' )->where(function($query){
+                    $query->whereRaw('item_stock - sell_count <= 0')->orWhereHas('newVariationOptions',function($query){
+                        $query->whereRaw('total_stock - sell_count <= 0');
+                    });
+                    })->first();
+            }
+
+        return view('vendor-views.dashboard', compact('data', 'earning', 'commission', 'params','delivery_earning','out_out_count','food'));
     }
 
     public function restaurant_data()

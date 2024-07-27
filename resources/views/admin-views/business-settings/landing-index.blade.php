@@ -209,7 +209,7 @@ $config = \App\CentralLogics\Helpers::get_business_settings('landing_page');
                         </div>
                         <div class="btn--container justify-content-end mt-3">
                             <button type="reset" id="reset_btn" class="btn btn--reset">{{ translate('Reset') }}</button>
-                            <button type="button" class="btn btn--primary mb-2 zip-upload" id="update_setting"> {{ translate('Save_Information') }}</button>
+                            <button type="button" class="btn btn--primary zip-upload" id="update_setting"> {{ translate('Save_Information') }}</button>
                         </div>
                     </div>
                 </div>

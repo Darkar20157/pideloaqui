@@ -235,12 +235,7 @@
                                         <a href="{{ route('admin.restaurant.view', $restaurant->id) }}" alt="view restaurant"
                                             class="table-rest-info">
                                             <img class="onerror-image"
-                                                    src="{{ \App\CentralLogics\Helpers::onerror_image_helper(
-                                                    $restaurant['logo'] ?? '',
-                                                    dynamicStorage('storage/app/public/restaurant').'/'.$restaurant['logo'] ?? '',
-                                                    dynamicAsset('public/assets/admin/img/100x100/food-default-image.png'),
-                                                    'restaurant/'
-                                                ) }}"
+                                                    src="{{ $restaurant['logo_full_url'] ??  dynamicAsset('public/assets/admin/img/100x100/food-default-image.png') }}"
                                                     data-onerror-image="{{dynamicAsset('public/assets/admin/img/100x100/food-default-image.png')}}"
                                                     alt="{{ $restaurant['logo'] }} image">
                                             <div class="info">

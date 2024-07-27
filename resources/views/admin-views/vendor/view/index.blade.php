@@ -147,12 +147,7 @@
                                     <div class="logo">
                                         <img class="onerror-image" data-onerror-image="{{dynamicAsset('public/assets/admin/img/100x100/restaurant-default-image.png')}}"
 
-                                             src="{{ \App\CentralLogics\Helpers::onerror_image_helper(
-                                                $restaurant->logo ?? '',
-                                                dynamicStorage('storage/app/public/restaurant').'/'.$restaurant->logo ?? '',
-                                                dynamicAsset('public/assets/admin/img/100x100/restaurant-default-image.png'),
-                                                'restaurant/'
-                                            ) }}">
+                                             src="{{ $restaurant->logo_full_url ?? dynamicAsset('public/assets/admin/img/100x100/restaurant-default-image.png') }}">
                                     </div>
                                     <ul class="address-info list-unstyled list-unstyled-py-3 text-dark">
                                         <li>
@@ -203,12 +198,7 @@
                         <div class="resturant--info-address">
                             <div class="avatar avatar-xxl avatar-circle avatar-border-lg">
                                 <img class="avatar-img onerror-image" data-onerror-image="{{dynamicAsset('public/assets/admin/img/160x160/img1.jpg')}}"
-                                     src="{{ \App\CentralLogics\Helpers::onerror_image_helper(
-                                                $restaurant?->vendor?->image ?? '',
-                                                dynamicStorage('storage/app/public/vendor').'/'.$restaurant?->vendor?->image ?? '',
-                                                dynamicAsset('public/assets/admin/img/160x160/img1.jpg'),
-                                                'vendor/'
-                                            ) }}"
+                                     src="{{ $restaurant?->vendor?->image_full_url ?? dynamicAsset('public/assets/admin/img/160x160/img1.jpg') }}"
                                     alt="Image Description">
                             </div>
                             <ul class="address-info address-info-2 list-unstyled list-unstyled-py-3 text-dark">
@@ -340,178 +330,173 @@
         </div>
 
 
-
         @if($restaurant->additional_data && count(json_decode($restaurant->additional_data, true)) > 0 )
-            <div class="row">
+        <div class="row mb-2">
 
-            <div class="col-lg-12  mt-2">
-                <div class="card ">
+        <div class="col-lg-12  mt-2">
+            <div class="card ">
 
-                    <div class="card-header justify-content-between align-items-center">
+                <div class="card-header justify-content-between align-items-center">
+                    <label class="input-label text-capitalize d-inline-flex align-items-center m-0">
+                        <span class="line--limit-1"><img src="{{ dynamicAsset('/public/assets/admin/img/company.png') }}"
+                                alt=""> {{ translate('Additional_Information') }} </span>
+                        <span data-toggle="tooltip" data-placement="right"
+                            data-original-title="{{ translate('Additional_Information') }}"
+                            class="input-label-secondary">
+                            <img src="{{ dynamicAsset('/public/assets/admin/img/info-circle.svg') }}" alt="info"></span>
+                    </label>
+                </div>
+                <div class="card-body">
+                    <div class="__registration-information">
+                        <div class="item">
+                            <ul>
+                                @foreach (json_decode($restaurant->additional_data, true) as $key => $item)
+                                    @if (is_array($item))
 
-                        <h5 class="card-title m-0 d-flex align-items-center">
-                            <span class="card-header-icon mr-2">
-                                <img src="{{ dynamicAsset('/public/assets/admin/img/company.png') }}"
-                                    alt="">
-                            </span>
 
-                            <span class="ml-1">{{ translate('Additional_Information') }}  <span data-toggle="tooltip" data-placement="right"
-                                data-original-title="{{ translate('Additional_Information') }}"
-                                class="input-label-secondary">
-                                <img src="{{ dynamicAsset('/public/assets/admin/img/info-circle.svg') }}" alt="info"></span> </span>
-                        </h5>
-                    </div>
-
-
-
-
-                    <div class="card-body">
-                        <div class="__registration-information">
-                            <div class="item">
-                                <ul>
-                                    @foreach (json_decode($restaurant->additional_data, true) as $key => $item)
-                                        @if (is_array($item))
-                                        @foreach ($item as $k => $data)
-                                            <li>
-                                                <span class="left"> {{ $k == 0 ? translate($key) : ''}} </span>
-                                                <span class="right">{{ $data }} </span>
-                                            </li>
-                                            @endforeach
-                                        @else
-                                        <li>
-                                            <span class="left"> {{ translate($key) }} </span>
-                                            <span class="right">{{ $item ?? translate('messages.N/A') }} </span>
-                                        </li>
-
-                                        @endif
+                                    @foreach ($item as $k => $data)
+                                    <li>
+                                        <span class="left"> {{ $k == 0 ? translate($key) : ''}} </span>
+                                        <span class="right">{{ $data }} </span>
+                                    </li>
                                     @endforeach
-                                </ul>
-                            </div>
+                                    @else
+                                    <li>
+                                        <span class="left"> {{ translate($key) }} </span>
+                                        <span class="right">{{ $item ?? translate('messages.N/A')}} </span>
+                                    </li>
+                                    @endif
+                                @endforeach
+                            </ul>
                         </div>
                     </div>
                 </div>
             </div>
-            @endif
+        </div>
+        </div>
+        @endif
 
-            @if($restaurant->additional_documents && count(json_decode($restaurant->additional_documents, true)) > 0 )
-            <div class="col-lg-12  mt-2">
-                <div class="card ">
-                    <div class="card-header justify-content-between align-items-center">
-
-
-                        <h5 class="card-title m-0 d-flex align-items-center">
-                            <span class="card-header-icon mr-2">
-                                <img src="{{ dynamicAsset('/public/assets/admin/img/company.png') }}"
-                                    alt="">
-                            </span>
-
-                            <span class="ml-1">{{ translate('Additional_Documents') }}  <span data-toggle="tooltip" data-placement="right"
-                                data-original-title="{{ translate('Additional_Documents') }}"
-                                class="input-label-secondary">
-                                <img src="{{ dynamicAsset('/public/assets/admin/img/info-circle.svg') }}" alt="info"></span> </span>
-                        </h5>
-                    </div>
-
-
-
-
-                    <div class="card-body">
-                        <h5 class="mb-3"> {{ translate('Attachments') }} </h5>
-                        <div class="d-flex flex-wrap gap-4 align-items-start">
-                                @foreach (json_decode($restaurant->additional_documents, true) as $key => $item)
-                                    @foreach ($item as $file)
-                                            <?php
-                                                $path_info = pathinfo('storage/app/public/additional_documents/' . $file);
-                                                $f_date = $path_info['extension'];
-                                                ?>
-
-                                        @if (in_array($f_date, ['pdf', 'doc', 'docs', 'docx' ]))
-                                                @if ($f_date == 'pdf')
-                                                    <div class="attachment-card min-w-260">
-                                                        <label for="">{{ translate($key) }}</label>
-                                                        <a href="{{ dynamicStorage('storage/app/public/additional_documents/'.$file) }}" target="_blank" rel="noopener noreferrer">
-                                                            <div class="img">
-
-                                                                    <iframe src="https://docs.google.com/gview?url={{ dynamicStorage('storage/app/public/additional_documents/' . $file) }}&embedded=true"></iframe>
-
-                                                            </div>
-                                                                </a>
-
-
-                                                        <a href="{{ dynamicStorage('storage/app/public/additional_documents/' . $file) }}" download
-                                                            class="download-icon mt-3">
-                                                            <img src="{{ dynamicAsset('/public/assets/admin/new-img/download-icon.svg') }}" alt="">
-                                                        </a>
-                                                        <a href="#" class="pdf-info">
-                                                            <img src="{{ dynamicAsset('/public/assets/admin/new-img/pdf.png') }}" alt="">
-                                                            <div class="w-0 flex-grow-1">
-                                                                <h6 class="title">{{ translate('Click_To_View_The_file.pdf') }}
-                                                                </h6>
-
-                                                            </div>
-                                                        </a>
-                                                    </div>
-                                                    @else
-                                                    <div class="attachment-card  min-w-260">
-                                                        <label for="">{{ translate($key) }}</label>
-                                                        <a href="{{ dynamicStorage('storage/app/public/additional_documents/'.$file) }}" target="_blank" rel="noopener noreferrer">
-                                                            <div class="img">
-
-                                                                    <iframe src="https://docs.google.com/gview?url={{ dynamicStorage('storage/app/public/additional_documents/' . $file) }}&embedded=true"></iframe>
-
-                                                            </div>
-                                                                </a>
-                                                        <a href="{{ dynamicStorage('storage/app/public/additional_documents/' . $file) }}" download
-                                                            class="download-icon mt-3">
-                                                            <img src="{{ dynamicAsset('/public/assets/admin/new-img/download-icon.svg') }}" alt="">
-                                                        </a>
-                                                        <a href="#" class="pdf-info">
-                                                            <img src="{{ dynamicAsset('/public/assets/admin/new-img/doc.png') }}" alt="">
-                                                            <div class="w-0 flex-grow-1">
-                                                                <h6 class="title">{{ translate('Click_To_View_The_file.doc') }}
-                                                                </h6>
-
-                                                            </div>
-                                                        </a>
-                                                    </div>
-                                                @endif
-                                        @endif
-
-                                    @endforeach
-                                @endforeach
-                            </div>
-                        <br>
-                        <br>
-
-                        <h5 class="mb-3"> {{ translate('Images') }} </h5>
-                        <div class="d-flex flex-wrap gap-4 align-items-start">
+        @if($restaurant->additional_documents && count(json_decode($restaurant->additional_documents, true)) > 0 )
+        <div class="row mb-2">
+        <div class="col-lg-12 mb-2 mt-2">
+            <div class="card ">
+                <div class="card-header justify-content-between align-items-center">
+                    <label class="input-label text-capitalize d-inline-flex align-items-center m-0">
+                        <span class="line--limit-1"><i class="tio-file-text-outlined"></i>
+                            {{ translate('Documents') }} </span>
+                        <span data-toggle="tooltip" data-placement="right"
+                            data-original-title="{{ translate('Additional_Documents') }}"
+                            class="input-label-secondary">
+                            <img src="{{ dynamicAsset('/public/assets/admin/img/info-circle.svg') }}" alt="info"></span>
+                    </label>
+                </div>
+                <div class="card-body">
+                    <h5 class="mb-3"> {{ translate('Attachments') }} </h5>
+                    <div class="d-flex flex-wrap gap-4 align-items-start">
                             @foreach (json_decode($restaurant->additional_documents, true) as $key => $item)
-                                @foreach ($item as $file)
-                                    <?php
-                                        $path_info = pathinfo('storage/app/public/additional_documents/' . $file);
-                                        $f_date = $path_info['extension'];
-                                        ?>
-                                    @if (in_array($f_date, ['jpg', 'jpeg', 'png']))
-                                    <div class="attachment-card max-w-360">
-                                        <label for="">{{ translate($key) }}</label>
-                                        <a href="{{ dynamicStorage('storage/app/public/additional_documents/' . $file) }}" download
-                                            class="download-icon mt-3">
-                                            <img src="{{ dynamicAsset('/public/assets/admin/new-img/download-icon.svg') }}" alt="">
-                                        </a>
-                                        <img src="{{ dynamicStorage('storage/app/public/additional_documents/' . $file) }}"
-                                            class="aspect-615-350 cursor-pointer mw-100 object--cover" alt="">
-                                    </div>
+
+                            @php($item  = is_string($item) ? json_deocde($item,true) : $item  )
+                            @foreach ($item as $file)
+
+                            @php($file =  is_string($file) ? ['file' => $file, 'storage' => 'public'] :  $file )
+                                        <?php
+                                            $path_info = pathinfo(\App\CentralLogics\Helpers::get_full_url('additional_documents',$file['file'],$file['storage']));
+                                            $f_date = $path_info['extension'];
+                                            ?>
+
+                                    @if (in_array($f_date, ['pdf', 'doc', 'docs', 'docx' ]))
+                                            @if ($f_date == 'pdf')
+                                                <div class="attachment-card min-w-260">
+                                                    <label for="">{{ translate($key) }}</label>
+                                                    <a href="{{ \App\CentralLogics\Helpers::get_full_url('additional_documents',$file['file'],$file['storage']) }}" target="_blank" rel="noopener noreferrer">
+                                                        <div class="img ">
+
+
+                                                            <iframe src="https://docs.google.com/gview?url={{ \App\CentralLogics\Helpers::get_full_url('additional_documents',$file['file'],$file['storage']) }}&embedded=true"></iframe>
+
+                                                        </div>
+                                                    </a>
+
+                                                    <a href="{{ \App\CentralLogics\Helpers::get_full_url('additional_documents',$file['file'],$file['storage']) }}" download
+                                                        class="download-icon mt-3">
+                                                        <img src="{{ dynamicAsset('/public/assets/admin/new-img/download-icon.svg') }}" alt="">
+                                                    </a>
+                                                    <a href="#" class="pdf-info">
+                                                        <img src="{{ dynamicAsset('/public/assets/admin/new-img/pdf.png') }}" alt="">
+                                                        <div class="w-0 flex-grow-1">
+                                                            <h6 class="title">{{ translate('Click_To_View_The_file.pdf') }}
+                                                            </h6>
+
+                                                        </div>
+                                                    </a>
+                                                </div>
+                                                @else
+                                                <div class="attachment-card  min-w-260">
+                                                    <label for="">{{ translate($key) }}</label>
+                                                    <a href="{{ \App\CentralLogics\Helpers::get_full_url('additional_documents',$file['file'],$file['storage']) }}" target="_blank" rel="noopener noreferrer">
+                                                        <div class="img ">
+
+                                                            <iframe src="https://docs.google.com/gview?url={{ \App\CentralLogics\Helpers::get_full_url('additional_documents',$file['file'],$file['storage']) }}&embedded=true"></iframe>
+
+
+                                                        </div>
+                                                    </a>
+                                                    <a href="{{ \App\CentralLogics\Helpers::get_full_url('additional_documents',$file['file'],$file['storage']) }}" download
+                                                        class="download-icon mt-3">
+                                                        <img src="{{ dynamicAsset('/public/assets/admin/new-img/download-icon.svg') }}" alt="">
+                                                    </a>
+                                                    <a href="#" class="pdf-info">
+                                                        <img src="{{ dynamicAsset('/public/assets/admin/new-img/doc.png') }}" alt="">
+                                                        <div class="w-0 flex-grow-1">
+                                                            <h6 class="title">{{ translate('Click_To_View_The_file.doc') }}
+                                                            </h6>
+
+                                                        </div>
+                                                    </a>
+                                                </div>
+                                            @endif
                                     @endif
+
                                 @endforeach
                             @endforeach
                         </div>
+                    <br>
+                    <br>
+
+                    <h5 class="mb-3"> {{ translate('Images') }} </h5>
+                    <div class="d-flex flex-wrap gap-4 align-items-start">
+                        @foreach (json_decode($restaurant->additional_documents, true) as $key => $item)
+
+                        @php($item  = is_string($item) ? json_deocde($item,true) : $item  )
+
+                        @foreach ($item as $file)
+                        @php($file =  is_string($file) ? ['file' => $file, 'storage' => 'public'] :  $file )
+                                <?php
+                                    $path_info = pathinfo(\App\CentralLogics\Helpers::get_full_url('additional_documents',$file['file'],$file['storage']) );
+                                    $f_date = $path_info['extension'];
+                                    ?>
+                                @if (in_array($f_date, ['jpg', 'jpeg', 'png']))
+                                <div class="attachment-card max-w-360">
+                                    <label for="">{{ translate($key) }}</label>
+                                    <a href="{{ \App\CentralLogics\Helpers::get_full_url('additional_documents',$file['file'],$file['storage']) }}" download
+                                        class="download-icon mt-3">
+                                        <img src="{{ dynamicAsset('/public/assets/admin/new-img/download-icon.svg') }}" alt="">
+                                    </a>
+                                    <img src="{{ \App\CentralLogics\Helpers::get_full_url('additional_documents',$file['file'],$file['storage'])  }}"
+                                        class="aspect-615-350 cursor-pointer mw-100 object--cover" alt="">
+                                </div>
+                                @endif
+                            @endforeach
+                        @endforeach
                     </div>
                 </div>
             </div>
-        @endif
-
-
         </div>
+        </div>
+        @endif
+    <!-- Card -->
+
+
     </div>
 </div>
 @endsection

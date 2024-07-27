@@ -89,33 +89,13 @@
                                 </div>
                             </div>
                             <div class="col-md-4">
-                                {{-- <div class="h-100 d-flex flex-column justify-content-center">
-                                    <label class="form-label d-block text-center mt-auto mb-3">
-                                        {{ translate('Employee_Image') }} <span class="text-danger">({{ translate('Ratio_1:1')}})</span>
-                                    </label>
-                                    <div class="text-center py-3 my-auto">
-                                        <img class="initial-24 onerror-image" id="viewer"
-                                             data-onerror-image="{{dynamicAsset('/public/assets/admin/img/100x100/user.png')}}"
-                                             src="{{\App\CentralLogics\Helpers::onerror_image_helper($e['image'], dynamicStorage('storage/app/public/admin/').'/'.$e['image'], dynamicAsset('public/assets/admin/img/100x100/user.png'), 'admin/') }}" alt="Employee thumbnail"/>
-                                    </div>
-                                    <div class="form-group mt-3 mb-0">
-                                        <div class="custom-file">
-                                            <input type="file" name="image" id="customFileUpload" class="custom-file-input h--45px"
-                                                accept=".jpg, .png, .jpeg, .gif, .bmp, .tif, .tiff|image/*">
-                                            <label class="custom-file-label h--45px" for="customFileUpload">{{translate('messages.choose_file')}}</label>
-                                        </div>
-                                    </div>
-                                </div> --}}
-
-
-
 
                                 <div class="d-flex flex-column align-items-center gap-3">
                                     <p class="mb-0">{{ translate('Employee image') }}</p>
 
                                     <div class="image-box">
                                         <label for="image-input" class="d-flex flex-column align-items-center justify-content-center h-100 cursor-pointer gap-2">
-                                        <img class="upload-icon initial-26" src="{{\App\CentralLogics\Helpers::onerror_image_helper($e['image'], dynamicStorage('storage/app/public/admin/').'/'.$e['image'], dynamicAsset('public/assets/admin/img/100x100/user.png'), 'admin/') }}" alt="Upload Icon">
+                                        <img class="upload-icon initial-26" src="{{ $e['image_full_url'] }}" alt="Upload Icon">
                                         {{-- <span class="upload-text">{{ translate('Upload Image')}}</span> --}}
                                         <img src="#" alt="Preview Image" class="preview-image">
                                         </label>

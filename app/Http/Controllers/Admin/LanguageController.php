@@ -206,7 +206,6 @@ class LanguageController extends Controller
         $full_data = include(base_path('resources/lang/' . $lang . '/messages.php'));
         $full_data = array_filter($full_data, fn($value) => !is_null($value) && $value !== '');
 
-        // If a search term is provided, filter the array based on the search term
         if (!empty($searchTerm)) {
             $full_data = array_filter($full_data, function ($value, $key) use ($searchTerm) {
                 return (stripos($value, $searchTerm) !== false) || (stripos(ucfirst(str_replace('_', ' ', Helpers::remove_invalid_charcaters($key))), $searchTerm) !== false);
@@ -243,13 +242,14 @@ class LanguageController extends Controller
     public function auto_translate(Request $request, $lang): \Illuminate\Http\JsonResponse
     {
         $lang_code = Helpers::getLanguageCode($lang);
+
         $full_data = include(base_path('resources/lang/' . $lang . '/messages.php'));
         $data_filtered = [];
         foreach ($full_data as $key => $data) {
             $data_filtered[$key] = $data;
         }
         $translated=  str_replace('_', ' ', Helpers::remove_invalid_charcaters($request['key']));
-        $translated = Helpers::auto_translator($translated, 'en', $lang_code);
+        $translated = Helpers::auto_translator($translated, 'en', $lang);
         $data_filtered[$request['key']] = $translated;
         $str = "<?php return " . var_export($data_filtered, true) . ";";
         file_put_contents(base_path('resources/lang/' . $lang . '/messages.php'), $str);
@@ -257,6 +257,96 @@ class LanguageController extends Controller
         return response()->json([
             'translated_data' => $translated
         ]);
+    }
+    public function auto_translate_all(Request $request, $lang): \Illuminate\Http\JsonResponse
+    {
+        try {
+            $translating_count= $request?->translating_count <= 0 ? 1: $request->translating_count ;
+            $lang_code = Helpers::getLanguageCode($lang);
+
+            if($lang === 'en'){
+                return response()->json([
+                    'message' => translate('All_datas_are_translated') , 'data' => 'success'
+                ]);
+            }
+
+            $data_filtered = [];
+            $data_filtered_2 = [];
+            $new_messages_path = base_path('resources/lang/' . $lang . '/new-messages.php');
+            $count=0;
+            $start_time = now();
+            $items_processed = 20;
+            if(!file_exists($new_messages_path)){
+                $str = "<?php return " . var_export($data_filtered, true) . ";";
+                file_put_contents(base_path('resources/lang/' . $lang . '/new-messages.php'), $str);
+            }
+
+            $translated_data = include(base_path('resources/lang/' . $lang . '/new-messages.php'));
+            $full_data = include(base_path('resources/lang/' . $lang . '/messages.php'));
+            $translated_data_count= count($translated_data);
+
+            if($translated_data_count > 0){
+                foreach ($translated_data as $key_1 => $data_1) {
+                    if($count > $items_processed){
+                        break;
+                    }
+                    $translated=  str_replace('_', ' ', Helpers::remove_invalid_charcaters($key_1));
+                    $translated = Helpers::auto_translator($translated, 'en', $lang);
+                    $data_filtered_2[$key_1] = $translated;
+                    unset($translated_data[$key_1]);
+                    $count++;
+                }
+
+
+                $str = "<?php return " . var_export($translated_data, true) . ";";
+                file_put_contents(base_path('resources/lang/' . $lang . '/new-messages.php'), $str);
+                $merged_data = array_replace($full_data, $data_filtered_2);
+
+                $str = "<?php\n\nreturn " . var_export($merged_data, true) . ";\n";
+                file_put_contents(base_path('resources/lang/' . $lang . '/messages.php'), $str);
+                $renmaining_translated_data_count= count($translated_data);
+                $percentage =  $renmaining_translated_data_count > 0 && $translating_count > 0 ?  100 - ( ($renmaining_translated_data_count/$translating_count)* 100) : 0;
+
+
+                $percentage= $percentage > 0 ? $percentage : 1;
+
+                $end_time =now();
+                $time_taken = $start_time->diffInSeconds($end_time);
+                $rate_per_second = $time_taken > 0 ? $items_processed / $time_taken : 0.01;
+                $total_time_needed = $renmaining_translated_data_count > 0 ? $renmaining_translated_data_count / $rate_per_second : 1;
+
+                $hours = floor($total_time_needed / 3600);
+                $minutes = floor( 2 + (($total_time_needed % 3600) / 60));
+                $seconds = $total_time_needed % 60;
+
+
+                return response()->json([
+                    'message' =>  translate('translating') , 'data' => 'translating', 'total' => $translated_data_count, 'percentage'=> round($percentage,1), 'hours' => $hours, 'minutes' => $minutes, 'seconds' => $seconds,
+                    'status' =>  $renmaining_translated_data_count > 0 ? 'pending' : 'done'
+                ]);
+
+            } else{
+
+                    foreach ($full_data as $key => $data) {
+                        if (preg_match('/^[\x20-\x7E\x{2019}]+$/u', $data)) {
+                            $data_filtered[$key] = $data;
+                            $str = "<?php return " . var_export($data_filtered, true) . ";";
+                            file_put_contents(base_path('resources/lang/' . $lang . '/new-messages.php'), $str);
+                            }
+                    }
+                    return response()->json([
+                        'message' =>  translate('data_prepared') , 'data' => 'data_prepared' , 'total' => count($data_filtered)
+                    ]);
+
+            }
+            return response()->json([
+                'message' => translate('All_datas_are_translated') , 'data' => 'success'
+            ]);
+        } catch (\Exception $exception) {
+            return response()->json([
+                'message' => $exception->getMessage() , 'data' => 'error'
+            ]);
+        }
     }
 
     public function delete($lang)

@@ -62,6 +62,36 @@
                     {{translate('Campaign_Join_Rejection')}}
                 </a>
             </li>
+            <li class="nav-item">
+                <a class="nav-link {{ Request::is('admin/business-settings/email-setup/restaurant/advertisement-create') ? 'active' : '' }}"
+                href="{{ route('admin.business-settings.email-setup', ['restaurant','advertisement-create']) }}">
+                    {{translate('Advertisement_Create_By_Admin')}}
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {{ Request::is('admin/business-settings/email-setup/restaurant/advertisement-approved') ? 'active' : '' }}"
+                href="{{ route('admin.business-settings.email-setup', ['restaurant','advertisement-approved']) }}">
+                    {{translate('Advertisement_Approval')}}
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {{ Request::is('admin/business-settings/email-setup/restaurant/advertisement-deny') ? 'active' : '' }}"
+                href="{{ route('admin.business-settings.email-setup', ['restaurant','advertisement-deny']) }}">
+                    {{translate('Advertisement_Deny')}}
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {{ Request::is('admin/business-settings/email-setup/restaurant/advertisement-resume') ? 'active' : '' }}"
+                href="{{ route('admin.business-settings.email-setup', ['restaurant','advertisement-resume']) }}">
+                    {{translate('Advertisement_Resume')}}
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {{ Request::is('admin/business-settings/email-setup/restaurant/advertisement-pause') ? 'active' : '' }}"
+                href="{{ route('admin.business-settings.email-setup', ['restaurant','advertisement-pause']) }}">
+                    {{translate('Advertisement_Pause')}}
+                </a>
+            </li>
         </ul>
         <!-- End Nav -->
     </div>

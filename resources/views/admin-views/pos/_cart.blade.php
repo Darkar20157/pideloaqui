@@ -34,6 +34,7 @@
                 ?>
             @foreach (session()->get('cart') as $key => $cartItem)
                 @if (is_array($cartItem))
+
                         <?php
                         $variation_price += $cartItem['variation_price'];
                         $product_subtotal = ($cartItem['price'] * $cartItem['quantity']);
@@ -46,12 +47,7 @@
                         <td class="media cart--media align-items-center cursor-pointer quick-View-Cart-Item"
                             data-product-id="{{$cartItem['id']}}" data-item-key="{{$key}}">
                             <img class="avatar avatar-sm mr-2 onerror-image"
-                                 src="{{ Helpers::onerror_image_helper(
-                            data_get($cartItem,'image'),
-                            dynamicStorage('storage/app/public/product').'/'.data_get($cartItem,'image'),
-                            dynamicAsset('public/assets/admin/img/100x100/food-default-image.png'),
-                            'product/'
-                        ) }}"
+                                 src="{{ $cartItem['image_full_url'] }}"
                                  data-onerror-image="{{dynamicAsset('public/assets/admin/img/100x100/food-default-image.png')}}"
                                  alt="{{data_get($cartItem,'image')}} image">
                             <div class="media-body">
@@ -63,6 +59,9 @@
                             <label>
                                 <input type="number" data-key="{{ $key }}"  data-value="{{$cartItem['quantity']}}"
                                        value="{{ $cartItem['quantity'] }}"
+                                       data-option_ids="{{  $cartItem['variation_option_ids']  }}"
+                                       data-food_id="{{  $food_id  }}"
+
                                        min="1" max="{{$cartItem['maximum_cart_quantity'] ?? '9999999999'}}"
                                        class="rounded border border-secondary initial-48  update-Quantity">
                             </label>
@@ -286,4 +285,7 @@ $total = $total + $delivery_fee;
         </div>
     </div>
 </div>
+
+
+
 

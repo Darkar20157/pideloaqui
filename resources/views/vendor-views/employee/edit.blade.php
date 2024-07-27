@@ -71,7 +71,7 @@
                                     </h5>
                                     <div class="my-auto text-center">
                                         <img class="initial-78" id="viewer"
-                                        src="{{\App\CentralLogics\Helpers::onerror_image_helper($e?->image, dynamicStorage('storage/app/public/vendor/'.$e?->image), dynamicAsset('public/assets/admin/img/160x160/img1.jpg'), 'vendor/') }}"
+                                        src="{{ $e?->image_full_url ?? dynamicAsset('public/assets/admin/img/160x160/img1.jpg') }}"
                                         alt="image">
                                     </div>
                                     <label class="form-label mt-3">{{ translate('Employee image size max 2 MB') }} <span class="text-danger">*</span></label>
@@ -105,22 +105,63 @@
                                 <input type="email" value="{{$e['email']}}" name="email" class="form-control h--45px" id="email" placeholder="{{ translate('messages.Ex :') }} ex@gmail.com">
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label" for="password">{{translate('messages.password')}}<small> ( {{translate('messages.enter_if_you_want_to_change')}} )</small>
-                                    <span class="input-label-secondary ps-1" title="{{ translate('messages.Must_contain_at_least_one_number_and_one_uppercase_and_lowercase_letter_and_symbol,_and_at_least_8_or_more_characters') }}"><img src="{{ dynamicAsset('/public/assets/admin/img/info-circle.svg') }}" alt="{{ translate('messages.Must_contain_at_least_one_number_and_one_uppercase_and_lowercase_letter_and_symbol,_and_at_least_8_or_more_characters') }}"></span>
-                                </label>
-                                <input type="text" name="password"
-                                pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}" title="{{ translate('messages.Must_contain_at_least_one_number_and_one_uppercase_and_lowercase_letter_and_symbol,_and_at_least_8_or_more_characters') }}"
+                                <div class="form-group m-0">
+                                    <div class="js-form-message form-group">
+                                        <label class="input-label"
+                                            for="signupSrPassword">{{ translate('messages.password') }}
+                                            <span class="input-label-secondary ps-1" data-toggle="tooltip" title="{{ translate('messages.Must_contain_at_least_one_number_and_one_uppercase_and_lowercase_letter_and_symbol,_and_at_least_8_or_more_characters') }}"><img src="{{dynamicAsset('public/assets/admin/img/info-circle.svg')}}" alt="{{ translate('messages.Must_contain_at_least_one_number_and_one_uppercase_and_lowercase_letter_and_symbol,_and_at_least_8_or_more_characters') }}"></span>
 
-                                class="form-control h--45px" id="password" placeholder="{{translate('messages.password_length_8+')}}">
+                                        </label>
+
+                                        <div class="input-group input-group-merge">
+                                            <input type="password" class="js-toggle-password form-control h--45px" name="password"
+                                                id="signupSrPassword"
+                                                pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}" title="{{ translate('messages.Must_contain_at_least_one_number_and_one_uppercase_and_lowercase_letter_and_symbol,_and_at_least_8_or_more_characters') }}"
+
+                                                placeholder="{{ translate('messages.Ex:_8+_Character') }}"
+                                                aria-label="{{translate('messages.password_length_8+')}}"
+                                                required data-msg="Your password is invalid. Please try again."
+                                                data-hs-toggle-password-options='{
+                                                                                    "target": [".js-toggle-password-target-1"],
+                                                                                    "defaultClass": "tio-hidden-outlined",
+                                                                                    "showClass": "tio-visible-outlined",
+                                                                                    "classChangeTarget": ".js-toggle-passowrd-show-icon-1"
+                                                                                    }'>
+                                            <div class="js-toggle-password-target-1 input-group-append">
+                                                <a class="input-group-text" href="javascript:;">
+                                                    <i class="js-toggle-passowrd-show-icon-1 tio-visible-outlined"></i>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label" for="confirm-password">
-                                    {{translate('messages.confirm_password')}}
-                                </label>
-                                <input type="text" name="confirm-password"
-                                pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}" title="{{ translate('messages.Must_contain_at_least_one_number_and_one_uppercase_and_lowercase_letter_and_symbol,_and_at_least_8_or_more_characters') }}"
+                                <div class="js-form-message form-group">
+                                    <label class="input-label"
+                                        for="signupSrConfirmPassword">{{ translate('messages.confirm_password') }}</label>
 
-                                class="form-control h--45px" id="confirm-password" placeholder="{{ translate('Ex : Confirm Password') }}">
+                                    <div class="input-group input-group-merge">
+                                        <input type="password" class="js-toggle-password form-control h--45px" name="confirmPassword"
+                                            id="signupSrConfirmPassword"
+                                            pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}" title="{{ translate('messages.Must_contain_at_least_one_number_and_one_uppercase_and_lowercase_letter_and_symbol,_and_at_least_8_or_more_characters') }}"
+
+                                            placeholder="{{ translate('messages.Ex:_8+_Character') }}"
+                                            aria-label="{{translate('messages.password_length_8+')}}"
+                                            required data-msg="Password does not match the confirm password."
+                                            data-hs-toggle-password-options='{
+                                                                                    "target": [".js-toggle-password-target-2"],
+                                                                                    "defaultClass": "tio-hidden-outlined",
+                                                                                    "showClass": "tio-visible-outlined",
+                                                                                    "classChangeTarget": ".js-toggle-passowrd-show-icon-2"
+                                                                                    }'>
+                                        <div class="js-toggle-password-target-2 input-group-append">
+                                            <a class="input-group-text" href="javascript:;">
+                                                <i class="js-toggle-passowrd-show-icon-2 tio-visible-outlined"></i>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>

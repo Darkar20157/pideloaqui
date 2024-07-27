@@ -96,7 +96,7 @@
                                     <label for="image-input" class="d-flex flex-column align-items-center justify-content-center h-100 cursor-pointer gap-2">
                                     <img class="upload-icon initial-26"
 
-                                    src="{{\App\CentralLogics\Helpers::onerror_image_helper($delivery_man['image'], dynamicStorage('storage/app/public/delivery-man/').'/'.$delivery_man['image'], dynamicAsset('public/assets/admin/img/100x100/user.png'), 'delivery-man/') }}"
+                                    src="{{ $delivery_man['image_full_url'] }}"
 
                                     alt="Upload Icon">
                                     {{-- <span class="upload-text">{{ translate('Upload Image')}}</span> --}}
@@ -179,9 +179,9 @@
                                 <label class="input-label" for="exampleFormControlInput1">{{translate('messages.identity_image')}}</label>
 
                             </div>
-                            @foreach(json_decode($delivery_man['identity_image'],true) as $img)
+                            @foreach($delivery_man['identity_image_full_url'] as $img)
                                 <img class="ml-2" width='230' height="150"
-                                src="{{\App\CentralLogics\Helpers::onerror_image_helper($img, dynamicStorage('storage/app/public/delivery-man/').'/'.$img, dynamicAsset('public/assets/admin/img/100x100/user.png'), 'delivery-man/') }}"
+                                src="{{ $img }}"
                                >
                             @endforeach
                         </div>
@@ -207,14 +207,14 @@
 
                                             <div class="img_area_with_preview z-index-2">
                                                 <img id="additional_Image_1" class="bg-white d-none"
-                                                     src="{{ asset('public/assets/admin/img/upload-icon.png-dummy') }}" alt="">
+                                                     src="{{ dynamicAsset('public/assets/admin/img/upload-icon.png-dummy') }}" alt="">
                                             </div>
                                             <div
                                                 class="position-absolute h-100 top-0 w-100 d-flex align-content-center justify-content-center">
                                                 <div
                                                     class="d-flex flex-column justify-content-center align-items-center">
                                                     <img alt="" width="30"
-                                                         src="{{ asset('public/assets/admin/img/upload-icon.png') }}">
+                                                         src="{{ dynamicAsset('public/assets/admin/img/upload-icon.png') }}">
                                                     <div class="text-muted mt-3">{{ translate('Upload_Picture') }}</div>
                                                     <div class="fs-10 text-muted mt-1">{{translate('Upload jpg, png, jpeg, gif maximum 2 MB')}}</div>
                                                 </div>
@@ -370,7 +370,7 @@
                                     <div class="position-absolute h-100 top-0 w-100 d-flex align-content-center justify-content-center">
                                         <div class="d-flex flex-column justify-content-center align-items-center">
                                             <img alt="" width="30"
-                                                         src="{{ asset('public/assets/admin/img/upload-icon.png') }}">
+                                                         src="{{ dynamicAsset('public/assets/admin/img/upload-icon.png') }}">
                                             <div class="text-muted mt-3">{{ translate('Upload_Picture') }}</div>
                                             <div class="fs-10 text-muted mt-1">{{translate('Upload jpg, png, jpeg, gif maximum 2 MB')}}</div>
                                         </div>

@@ -59,7 +59,7 @@
                                 <div class="mb-1 lang_form" id="default-form">
                                     <div class="form-group">
                                         <label class="input-label" for="default_title">{{translate('messages.title')}} ({{ translate('Default') }})</label>
-                                        <input type="text"  name="title[]" id="default_title" class="form-control" placeholder="{{translate('messages.new_campaign')}}" oninvalid="document.getElementById('en-link').click()">
+                                        <input type="text"  name="title[]" id="default_title" class="form-control" placeholder="{{translate('messages.new_campaign')}}"  >
                                     </div>
                                     <input type="hidden" name="lang[]" value="default">
                                     <div class="form-group mb-0">
@@ -72,7 +72,7 @@
                                     <div class="mb-1 d-none lang_form" id="{{$lang}}-form">
                                         <div class="form-group">
                                             <label class="input-label" for="{{$lang}}_title">{{translate('messages.title')}} ({{strtoupper($lang)}})</label>
-                                            <input type="text"  name="title[]" id="{{$lang}}_title" class="form-control" placeholder="{{translate('messages.new_campaign')}}" oninvalid="document.getElementById('en-link').click()">
+                                            <input type="text"  name="title[]" id="{{$lang}}_title" class="form-control" placeholder="{{translate('messages.new_campaign')}}"  >
                                         </div>
                                         <input type="hidden" name="lang[]" value="{{$lang}}">
                                         <div class="form-group mb-0">
@@ -97,7 +97,7 @@
                             <div class="mb-1 lang_form" id="default-form">
                                 <div class="form-group">
                                     <label class="input-label" for="default_title">{{translate('messages.title')}} ({{ translate('Default') }})</label>
-                                    <input type="text"  name="title[]" id="default_title" class="form-control" placeholder="{{translate('messages.new_campaign')}}" oninvalid="document.getElementById('en-link').click()">
+                                    <input type="text"  name="title[]" id="default_title" class="form-control" placeholder="{{translate('messages.new_campaign')}}"  >
                                 </div>
                                 <input type="hidden" name="lang[]" value="default">
                                 <div class="form-group mb-0">
@@ -116,7 +116,7 @@
                                 <p class="mb-0">{{ translate('Food_Image') }}</p>
                                 <div class="image-box">
                                     <label for="image-input" class="d-flex flex-column align-items-center justify-content-center h-100 cursor-pointer gap-2">
-                                    <img width="30" class="upload-icon" src="{{asset('public/assets/admin/img/upload-icon.png')}}" alt="Upload Icon">
+                                    <img width="30" class="upload-icon" src="{{dynamicAsset('public/assets/admin/img/upload-icon.png')}}" alt="Upload Icon">
                                     <span class="upload-text">{{ translate('Upload Image')}}</span>
                                     <img src="#" alt="Preview Image" class="preview-image">
                                     </label>
@@ -173,26 +173,38 @@
                                 </div>
                                 <div class="col-sm-6 col-lg-4">
                                     <div class="form-group mb-0">
-                                        <label class="input-label" for="exampleFormControlSelect1">{{translate('messages.category')}}<span
-                                                class="input-label-secondary">*</span></label>
-                                        <select name="category_id" id="category_id" class="form-control js-select2-custom get-request"
-                                                data-url="{{url('/')}}/admin/food/get-categories?parent_id=" data-id="sub-categories">
-                                            <option value="">---{{translate('messages.select')}}---</option>
-                                            @php($categories=\App\Models\Category::where(['position' => 0])->get(['id','name']))
-                                            @foreach($categories as $category)
-                                                <option value="{{$category['id']}}">{{$category['name']}}</option>
+                                        @php($categories=\App\Models\Category::where(['position' => 0])->get(['id','name']))
+
+                                        <label class="input-label"
+                                            for="exampleFormControlSelect1">{{ translate('messages.category') }}<span class="form-label-secondary text-danger"
+                                            data-toggle="tooltip" data-placement="right"
+                                            data-original-title="{{ translate('messages.Required.')}}"> *
+                                            </span></label>
+                                        <select name="category_id" id="category_id"
+                                            class="form-control js-select2-custom get-request"
+                                            oninvalid="this.setCustomValidity('Select Category')">
+                                            <option value="" selected disabled>
+                                                {{ translate('Select_Category') }}</option>
+                                            @foreach ($categories as $category)
+                                                <option value="{{ $category['id'] }}">{{ $category['name'] }}
+                                                </option>
                                             @endforeach
                                         </select>
                                     </div>
                                 </div>
                                 <div class="col-sm-6 col-lg-4">
                                     <div class="form-group mb-0">
-                                        <label class="input-label" for="exampleFormControlSelect1">{{translate('messages.sub_category')}}<span
-                                                class="input-label-secondary" title="{{translate('messages.Make_sure_you_have_selected_a_category_first_!')}}"><img src="{{dynamicAsset('/public/assets/admin/img/info-circle.svg')}}" alt="{{translate('messages.Make_sure_you_have_selected_a_category_first_!')}}"></span></label>
+                                        <label class="input-label"
+                                            for="exampleFormControlSelect1">{{ translate('messages.sub_category') }}<span
+                                                class="input-label-secondary" data-toggle="tooltip"
+                                                data-placement="right"
+                                                data-original-title="{{ translate('messages.category_required_warning') }}"><img
+                                                    src="{{ dynamicAsset('/public/assets/admin/img/info-circle.svg') }}"
+                                                    alt="{{ translate('messages.category_required_warning') }}"></span></label>
                                         <select name="sub_category_id" id="sub-categories"
-                                                class="form-control js-select2-custom get-request"
-                                                data-url="{{url('/')}}/admin/food/get-categories?parent_id=" data-id="sub-sub-categories">
-
+                                            class="form-control js-select2-custom">
+                                            <option value="" selected disabled>
+                                                {{ translate('Select_Sub_Category') }}</option>
                                         </select>
                                     </div>
                                 </div>
@@ -748,6 +760,22 @@
                 }
             });
         });
+
+        $('.get-request').on('change', function () {
+            let route = '{{ url('/') }}/admin/food/get-categories?parent_id='+$(this).val();
+            let id = 'sub-categories';
+            getRequest(route, id);
+        });
+
+        function getRequest(route, id) {
+            $.get({
+                url: route,
+                dataType: 'json',
+                success: function(data) {
+                    $('#' + id).empty().append(data.options);
+                },
+            });
+        }
 
         $('#reset_btn').click(function(){
             location.reload(true);

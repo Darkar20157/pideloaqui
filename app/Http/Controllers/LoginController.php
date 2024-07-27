@@ -231,7 +231,10 @@ class LoginController extends Controller
             ]);
             $url = url('/').'/password-reset?token='.$token;
             try {
-                if(config('mail.status') && $admin['email'] && Helpers::get_mail_status('forget_password_mail_status_admin')== '1'){
+
+                $notification_status= Helpers::getNotificationStatusData('admin','forget_password');
+
+                if($notification_status?->mail_status == 'active' && config('mail.status') && $admin['email'] && Helpers::get_mail_status('forget_password_mail_status_admin')== '1'){
                     Mail::to($admin['email'])->send(new AdminPasswordResetMail($url,$admin['f_name']));
                     session()->put('log_email_succ',1);
                 } else {
@@ -309,6 +312,17 @@ class LoginController extends Controller
                 'updated_at' => now(),
                 ]);
                 //for payment and sms gateway addon
+                $site_direction = session()?->get('site_direction') ?? $direction ??  'ltr';
+                $locale = session()?->get('local') ??  $lang ?? 'en';
+                App::setLocale($locale);
+
+
+            $notification_status= Helpers::getNotificationStatusData('admin','forget_password');
+
+            if($notification_status?->sms_status == "inactive"){
+                return view('auth.reset-password', compact('token','admin','site_direction','locale'));
+            }
+
             $published_status = addon_published_status('Gateways');
             if($published_status == 1){
                 $response = SmsGateway::send($admin['phone'],$otp);
@@ -316,10 +330,7 @@ class LoginController extends Controller
                 $response = SMS_module::send($admin['phone'],$otp);
             }
 
-                $site_direction = session()?->get('site_direction') ?? $direction ??  'ltr';
-                $locale = session()?->get('local') ??  $lang ?? 'en';
 
-                App::setLocale($locale);
                 if($response != 'success')
                 {
                     return view('auth.reset-password', compact('token','admin','site_direction','locale'));
@@ -377,6 +388,14 @@ class LoginController extends Controller
             'reset_token'=> 'required',
             'password' => ['required', Password::min(8)->mixedCase()->letters()->numbers()->symbols()->uncompromised()],
             'confirm_password'=> 'required|same:password',
+        ],[
+            'password.min_length' => translate('The password must be at least :min characters long'),
+            'password.mixed' => translate('The password must contain both uppercase and lowercase letters'),
+            'password.letters' => translate('The password must contain letters'),
+            'password.numbers' => translate('The password must contain numbers'),
+            'password.symbols' => translate('The password must contain symbols'),
+            'password.uncompromised' => translate('The password is compromised. Please choose a different one'),
+            'password.custom' => translate('The password cannot contain white spaces.'),
         ]);
         $data = DB::table('password_resets')->where(['token' => $request['reset_token']])->first();
         if (isset($data)) {
@@ -407,10 +426,12 @@ class LoginController extends Controller
         try {
             if(auth('vendor')?->check()){
                 $user_link = Helpers::get_login_url('restaurant_login_url');
+                session()->forget('stock_out_reminder_close_btn');
                 auth()->guard('vendor')->logout();
             }
             elseif(auth('vendor_employee')?->check()){
                 $user_link = Helpers::get_login_url('restaurant_employee_login_url');
+                session()->forget('stock_out_reminder_close_btn');
                 auth()->guard('vendor_employee')->logout();
             }
             else{
@@ -433,7 +454,14 @@ class LoginController extends Controller
         if(!$data || Carbon::parse($data->created_at)->diffInMinutes(Carbon::now()) >= 60){
                 return response()->json(['errors' => 'link_expired']);
         }
+        $notification_status= Helpers::getNotificationStatusData('admin','forget_password');
+
+        if($notification_status?->sms_status == 'inactive'){
+            return response()->json(['otp_fail' => 'otp_fail' ]);
+        }
+
         if($data->created_by == 'admin'){
+
             $admin = Admin::where('email',$data->email)->where('role_id',1)->first();
             $otp = rand(10000, 99999);
             DB::table('phone_verifications')->updateOrInsert(['phone' => $admin['phone']],

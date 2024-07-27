@@ -11,6 +11,9 @@
             <li class="nav-item">
                 <a class="nav-link {{ Request::is('admin/business-settings/mail-config*') ? 'active' : '' }}" id="modal_active" href="{{ route('admin.business-settings.mail-config') }}"  aria-disabled="true">{{translate('Mail_Config')}}</a>
             </li>
+            {{-- <li class="nav-item">
+                <a class="nav-link {{ Request::is('admin/business-settings/notification-setup*') ? 'active' : '' }}" id="modal_active" href="{{ route('admin.business-settings.notification_setup') }}"  aria-disabled="true">{{translate('Notification_Setup')}}</a>
+            </li> --}}
             <li class="nav-item">
                 <a class="nav-link {{ Request::is('admin/business-settings/config-setup') ?'active':'' }}" href="{{ route('admin.business-settings.config-setup') }}"  aria-disabled="true">{{translate('Map_APIs')}}</a>
             </li>
@@ -19,6 +22,9 @@
             </li>
             <li class="nav-item">
                 <a class="nav-link {{ Request::is('admin/business-settings/recaptcha*') ? 'active' : '' }}" href="{{route('admin.business-settings.recaptcha_index')}}"  aria-disabled="true">{{translate('Recaptcha')}}</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {{ Request::is('admin/business-settings/storage-connection*') ? 'active' : '' }}" href="{{route('admin.business-settings.storage_connection_index')}}"  aria-disabled="true">{{translate('Storage_Connection')}}</a>
             </li>
         </ul>
         <!-- End Nav -->

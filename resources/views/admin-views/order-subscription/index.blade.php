@@ -8,7 +8,7 @@
         <div class="page-header">
             <div class="d-flex flex-wrap justify-content-between align-items-center __gap-15px">
                 <h1 class="page-header-title">
-                    <img src="{{asset('/public/assets/admin/img/orders.png')}}" class="mr-1" alt=""> {{translate('messages.subscription_order_list')}}<span class="badge badge-soft-dark ml-2" id="itemCount">{{$subscriptions->total()}}</span>
+                    <img src="{{dynamicAsset('public/assets/admin/img/orders.png')}}" class="mr-1" alt=""> {{translate('messages.subscription_order_list')}}<span class="badge badge-soft-dark ml-2" id="itemCount">{{$subscriptions->total()}}</span>
                 </h1>
                 <div class="text--primary-2 py-1 d-flex flex-wrap align-items-center" type="button" data-toggle="modal" data-target="#how-it-works">
                     <strong class="mr-2">{{translate('See_how_it_works')}}</strong>

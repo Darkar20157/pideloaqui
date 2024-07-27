@@ -101,7 +101,7 @@
                     @endif
                     <div class="btn--container justify-content-end mt-3">
                         <button type="reset" class="btn btn--reset">{{translate('Reset')}}</button>
-                        <button type="submit" class="btn btn--primary mb-2">{{translate('Save')}}</button>
+                        <button type="submit" class="btn btn--primary">{{translate('Save')}}</button>
                     </div>
                 </div>
             </div>
@@ -164,7 +164,7 @@
                     </div>
                     <div class="btn--container justify-content-end mt-3">
                         <button type="reset" class="btn btn--reset">{{translate('Reset')}}</button>
-                        <button type="submit" class="btn btn--primary mb-2">{{translate('Add')}}</button>
+                        <button type="submit" class="btn btn--primary">{{translate('Add')}}</button>
                     </div>
                 </div>
             </div>
@@ -204,12 +204,7 @@
                                 </div>
                             </td>
                             <td>
-                                <img src="{{ Helpers::onerror_image_helper(
-                                            $review?->reviewer_image,
-                                            dynamicStorage('storage/app/public/reviewer_image').'/'.$review?->reviewer_image,
-                                            dynamicAsset('/public/assets/admin/img/upload.png'),
-                                            'reviewer_image/'
-                                        ) }}"
+                                <img src="{{ $review?->reviewer_image_full_url ?? dynamicAsset('/public/assets/admin/img/upload.png') }}"
                                      data-onerror-image="{{dynamicAsset('/public/assets/admin/img/upload.png')}}"
                                      class="__size-105 onerror-image" alt="">
                             </td>

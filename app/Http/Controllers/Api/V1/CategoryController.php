@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Models\Food;
 use App\Models\Category;
+use App\Models\PriorityList;
 use Illuminate\Http\Request;
 use App\CentralLogics\Helpers;
+use App\Models\BusinessSetting;
 use App\CentralLogics\CategoryLogic;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Validator;
@@ -15,6 +17,9 @@ class CategoryController extends Controller
     public function get_categories(Request $request)
     {
         try {
+            $category_list_default_status = BusinessSetting::where('key', 'category_list_default_status')->first()?->value ?? 1;
+            $category_list_sort_by_general = PriorityList::where('name', 'category_list_sort_by_general')->where('type','general')->first()?->value ?? '';
+
             $zone_id=  $request->header('zoneId') ? json_decode($request->header('zoneId'), true) : [];
             $name= $request->query('name');
             $categories = Category::withCount(['products','childes'])->with(['childes' => function($query)  {
@@ -31,23 +36,54 @@ class CategoryController extends Controller
                     return $q;
                 });
             })
-            ->orderBy('priority','desc')->get();
+
+            ->when($category_list_default_status  == 1 , function ($query) {
+                $query->orderBy('priority','desc');
+            })
+
+
+            ->when($category_list_default_status  != 1 &&  $category_list_sort_by_general == 'latest', function ($query) {
+                $query->latest();
+            })
+            ->when($category_list_default_status  != 1 &&  $category_list_sort_by_general == 'oldest', function ($query) {
+                $query->oldest();
+            })
+            ->when($category_list_default_status  != 1 &&  $category_list_sort_by_general == 'a_to_z', function ($query) {
+                $query->orderby('name');
+            })
+            ->when($category_list_default_status  != 1 &&  $category_list_sort_by_general == 'z_to_a', function ($query) {
+                $query->orderby('name','desc');
+            })
+
+
+            ->get();
 
 
 
             if(count($zone_id) > 0){
                 foreach ($categories as $category) {
-                        $productCount = Food::active()
+                        $productCountQuery = Food::active()
                         ->whereHas('restaurant', function ($query) use ($zone_id) {
                             $query->whereIn('zone_id', $zone_id);
                         })
                         ->whereHas('category',function($q)use($category){
                             return $q->whereId($category->id)->orWhere('parent_id', $category->id);
                         })
-                        ->count();
+                        ->withCount('orders');
+
+                        $productCount = $productCountQuery->count();
+                        $orderCount = $productCountQuery->sum('order_count');
+
                         $category['products_count'] = $productCount;
-                    unset($category['childes']);
+                        $category['order_count'] = $orderCount;
+                    // unset($category['childes']);
                 }
+                if($category_list_default_status  != 1 &&  $category_list_sort_by_general == 'order_count'){
+
+                    $categories = $categories->sortByDesc('order_count')->values()->all();
+                }
+
+
                 return response()->json($categories, 200);
             }
 
@@ -104,6 +140,8 @@ class CategoryController extends Controller
             'top_rated' =>  $request->top_rated ?? 0,
             'start_price' => json_decode($request->price)[0] ?? 0,
             'end_price' => json_decode($request->price)[1] ?? 0,
+            'longitude' =>$request->header('longitude') ?? 0,
+            'latitude' => $request->header('latitude') ?? 0,
         ];
 
 

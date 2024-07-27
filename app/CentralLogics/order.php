@@ -38,6 +38,7 @@ class OrderLogic
         $restaurant_discount_amount=0;
         $restaurant= $order->restaurant;
         $rest_sub = $restaurant?->restaurant_sub;
+        $ref_bonus_amount=0;
 
         // free delivery by admin
         if($order->free_delivery_by == 'admin')
@@ -56,6 +57,12 @@ class OrderLogic
         {
             $admin_coupon_discount_subsidy = $order->coupon_discount_amount;
             Helpers::expenseCreate( amount:$admin_coupon_discount_subsidy,type:'coupon_discount',datetime:now(),order_id:  $order->id,created_by:  $order->coupon_created_by);
+        }
+        // 1st order discount by Admin
+        if($order->ref_bonus_amount > 0)
+        {
+            $ref_bonus_amount = $order->ref_bonus_amount;
+            Helpers::expenseCreate(amount:$ref_bonus_amount,type:'referral_discount',datetime:now(),created_by:'admin',order_id:$order->id);
         }
         // coupon discount by restaurant
         if($order->coupon_created_by == 'vendor')
@@ -84,7 +91,12 @@ class OrderLogic
         }
 
 
-        $order_amount = $order->order_amount - $order->additional_charge - $order->delivery_charge - $order->total_tax_amount - $order->dm_tips + $order->coupon_discount_amount + $restaurant_discount_amount;
+        if($order?->cashback_history){
+            self::cashbackToWallet($order);
+        }
+
+
+        $order_amount = $order->order_amount - $order->additional_charge - $order->extra_packaging_amount - $order->delivery_charge - $order->total_tax_amount - $order->dm_tips + $order->coupon_discount_amount + $restaurant_discount_amount + $ref_bonus_amount;
 
         if($restaurant->restaurant_model == 'subscription' && isset($rest_sub)){
             $comission_amount =0;
@@ -107,7 +119,7 @@ class OrderLogic
             $comission_on_delivery = $delivery_charge_comission_percentage * ( $order->original_delivery_charge / 100 );
             $comission_on_actual_delivery_fee = ($order->delivery_charge > 0) ? $comission_on_delivery : 0;
         }
-        $restaurant_amount =$order_amount + $order->total_tax_amount - $comission_amount - $restaurant_coupon_discount_subsidy ;
+        $restaurant_amount =$order_amount + $order->total_tax_amount + $order->extra_packaging_amount - $comission_amount - $restaurant_coupon_discount_subsidy ;
         try{
             OrderTransaction::insert([
                 'vendor_id' =>$order->restaurant->vendor->id,
@@ -115,7 +127,7 @@ class OrderLogic
                 'order_id' =>$order->id,
                 'order_amount'=>$order->order_amount,
                 'restaurant_amount'=>$restaurant_amount,
-                'admin_commission'=>$comission_amount + $order->additional_charge -  $admin_subsidy - $admin_coupon_discount_subsidy,
+                'admin_commission'=>$comission_amount + $order->additional_charge -  $admin_subsidy - $admin_coupon_discount_subsidy - $ref_bonus_amount,
                 //add a new column. add the comission here
                 'delivery_charge'=>$order->delivery_charge - $comission_on_actual_delivery_fee,//minus here
                 'original_delivery_charge'=>$order->original_delivery_charge - $comission_on_delivery,//calculate the comission with this. minus here
@@ -127,7 +139,7 @@ class OrderLogic
                 'created_at' => now(),
                 'updated_at' => now(),
                 'delivery_fee_comission'=>$comission_on_actual_delivery_fee,
-                'admin_expense'=>$admin_subsidy + $admin_coupon_discount_subsidy + $restaurant_discount_amount + $amount_admin,
+                'admin_expense'=>$admin_subsidy + $admin_coupon_discount_subsidy + $restaurant_discount_amount + $amount_admin + $ref_bonus_amount,
                 'restaurant_expense'=>$restaurant_subsidy + $restaurant_coupon_discount_subsidy ,
                 // for restaurant business model
                 'is_subscribed'=> $subscription_mode,
@@ -136,6 +148,8 @@ class OrderLogic
                 // for subscription order
                 'is_subscription' => isset($order->subscription_id) ?  1 : 0 ,
                 'additional_charge' => $order->additional_charge,
+                'extra_packaging_amount' => $order->extra_packaging_amount,
+                'ref_bonus_amount' => $order->ref_bonus_amount,
             ]);
             $adminWallet = AdminWallet::firstOrNew(
                 ['admin_id' => Admin::where('role_id', 1)->first()->id]
@@ -158,7 +172,7 @@ class OrderLogic
                 }
             }
 
-            $adminWallet->total_commission_earning = $adminWallet->total_commission_earning + $comission_amount + $comission_on_actual_delivery_fee - $admin_subsidy - $admin_coupon_discount_subsidy -$restaurant_discount_amount + $order->additional_charge;
+            $adminWallet->total_commission_earning = $adminWallet->total_commission_earning + $comission_amount + $comission_on_actual_delivery_fee - $admin_subsidy - $admin_coupon_discount_subsidy -$restaurant_discount_amount + $order->additional_charge  - $ref_bonus_amount;
 
             if(($restaurant->restaurant_model == 'subscription' &&  $rest_sub?->self_delivery == 1) || ($restaurant->restaurant_model != 'subscription' && $restaurant->self_delivery_system == 1))
             {
@@ -230,15 +244,16 @@ class OrderLogic
                         $ref_code_exchange_amt = BusinessSetting::where('key','ref_earning_exchange_rate')->first()?->value;
                         $referar_user=User::where('id',$order?->customer?->ref_by)->first();
                         $refer_wallet_transaction = CustomerLogic::create_wallet_transaction(user_id:$referar_user?->id, amount:$ref_code_exchange_amt, transaction_type:'referrer',referance:$order?->customer?->phone);
+                        $customer_push_notification_status=Helpers::getNotificationStatusData('customer','customer_referral_bonus_earning');
                         $notification_data = [
                             'title' => translate('messages.Congratulation'),
                             'description' => translate('You_have_received').' '.Helpers::format_currency($ref_code_exchange_amt).' '.translate('in_your_wallet_as').' '.$order?->customer?->f_name.' '.$order?->customer?->l_name.' '.translate('you_referred_completed_thier_first_order') ,
                             'order_id' => '',
                             'image' => '',
-                            'type' => 'referral_code',
+                            'type' => 'referral_earn',
                         ];
 
-                        if($referar_user?->cm_firebase_token){
+                        if($customer_push_notification_status?->push_notification_status  == 'active' && $referar_user?->cm_firebase_token){
                             Helpers::send_push_notif_to_device($referar_user?->cm_firebase_token, $notification_data);
                             DB::table('user_notifications')->insert([
                                 'data' => json_encode($notification_data),
@@ -248,7 +263,9 @@ class OrderLogic
                             ]);
                         }
                         try{
-                            if(config('mail.status') && $referar_user?->email && Helpers::get_mail_status('add_fund_mail_status_user') == '1') {
+                            $notification_status= Helpers::getNotificationStatusData('customer','customer_add_fund_to_wallet');
+                            Helpers::add_fund_push_notification($referar_user->id);
+                            if($notification_status?->mail_status == 'active' && config('mail.status') && $referar_user?->email && Helpers::get_mail_status('add_fund_mail_status_user') == '1') {
                                 Mail::to($referar_user->email)->send(new \App\Mail\AddFundToWallet($refer_wallet_transaction));
                                 }
                             } catch(\Exception $exception){
@@ -317,12 +334,12 @@ class OrderLogic
 
         $vendorWallet->total_earning = $vendorWallet->total_earning - $order_transaction->restaurant_amount;
 
-        $refund_amount = $order->order_amount - $order->additional_charge;
+        $refund_amount = $order->order_amount - $order->additional_charge - $order->extra_packaging_amount;
 
         $status = 'refunded_with_delivery_charge';
         if($order->order_status == 'delivered' || $order->order_status == 'refund_requested'|| $order->order_status == 'refund_request_canceled')
         {
-            $refund_amount = $order->order_amount - $order->delivery_charge - $order->dm_tips - $order->additional_charge;
+            $refund_amount = $order->order_amount - $order->delivery_charge - $order->dm_tips - $order->additional_charge - $order->extra_packaging_amount;
             $status = 'refunded_without_delivery_charge';
         }
         else
@@ -555,6 +572,37 @@ class OrderLogic
             }
 
             return true;
+    }
+
+
+    public static function cashbackToWallet($order){
+
+        $refer_wallet_transaction = CustomerLogic::create_wallet_transaction($order?->cashback_history?->user_id, $order?->cashback_history?->calculated_amount, 'CashBack',$order->id);
+        if($refer_wallet_transaction != false){
+            Helpers::expenseCreate(amount:$order?->cashback_history?->calculated_amount,type:'CashBack',datetime:now(),created_by:'admin', order_id:$order->id);
+            $order?->cashback_history?->cashBack?->increment('total_used');
+
+            $notification_data = [
+                'title' => translate('messages.You’ve_Earned_Cahback!'),
+                'description' => translate('You_have_received').' '.Helpers::format_currency($order?->cashback_history?->calculated_amount).' '.translate('in_your_wallet_as_CashBack'),
+                'order_id' => $order->id,
+                'image' => '',
+                'type' => 'CashBack',
+            ];
+            $customer_push_notification_status=Helpers::getNotificationStatusData('customer','customer_cashback');
+            if($customer_push_notification_status?->push_notification_status  == 'active' && $order->customer?->cm_firebase_token){
+                Helpers::send_push_notif_to_device($order->customer?->cm_firebase_token, $notification_data);
+                DB::table('user_notifications')->insert([
+                    'data' => json_encode($notification_data),
+                    'user_id' => $order->customer?->id,
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]);
+            }
+
+        }
+
+        return true;
     }
 
 }

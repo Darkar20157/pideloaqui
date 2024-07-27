@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Models\Cart;
+use App\Models\Food;
 use App\Models\Item;
+use App\Models\AddOn;
+use App\Models\ItemCampaign;
 use Illuminate\Http\Request;
 use App\CentralLogics\Helpers;
+use App\Models\VariationOption;
 use App\Http\Controllers\Controller;
-use App\Models\Food;
-use App\Models\ItemCampaign;
 use Illuminate\Support\Facades\Validator;
 
 class CartController extends Controller
@@ -43,6 +45,7 @@ class CartController extends Controller
             'item_id' => 'required|integer',
             'model' => 'required|string|in:Food,ItemCampaign',
             'price' => 'required|numeric',
+            'variation_options' => 'nullable|array',
             'quantity' => 'required|integer|min:1',
         ]);
 
@@ -65,13 +68,25 @@ class CartController extends Controller
             ], 403);
         }
 
-        if($item->maximum_cart_quantity && ($request->quantity>$item->maximum_cart_quantity)){
+        if($item?->maximum_cart_quantity && ($request->quantity>$item->maximum_cart_quantity)){
             return response()->json([
                 'errors' => [
                     ['code' => 'cart_item_limit', 'message' => translate('messages.maximum_cart_quantity_exceeded')]
                 ]
             ], 403);
         }
+        if($request->model === 'Food'){
+            $addonAndVariationStock= Helpers::addonAndVariationStockCheck(product:$item,quantity: $request->quantity,add_on_qtys:$request->add_on_qtys, variation_options: $request?->variation_options,add_on_ids:$request->add_on_ids );
+
+            if(data_get($addonAndVariationStock, 'out_of_stock') != null) {
+                return response()->json([
+                    'errors' => [
+                        ['code' => 'stock_out', 'message' => data_get($addonAndVariationStock, 'out_of_stock') ],
+                    ]
+                ], 403);
+            }
+        }
+
 
         $cart = new Cart();
         $cart->user_id = $user_id;
@@ -83,6 +98,7 @@ class CartController extends Controller
         $cart->price = $request->price;
         $cart->quantity = $request->quantity;
         $cart->variations = json_encode($request->variations);
+        $cart->variation_options = json_encode($request?->variation_options ?? []);
         $cart->save();
 
         $item->carts()->save($cart);
@@ -124,6 +140,19 @@ class CartController extends Controller
             ], 403);
         }
 
+        if( $cart->item_type === 'App\Models\Food'){
+            $addonAndVariationStock= Helpers::addonAndVariationStockCheck( product:$item, quantity: $request->quantity,add_on_qtys:$request->add_on_qtys, variation_options: $request?->variation_options,add_on_ids:$request->add_on_ids );
+
+            if(data_get($addonAndVariationStock, 'out_of_stock') != null) {
+                return response()->json([
+                    'errors' => [
+                        ['code' => 'stock_out', 'message' => data_get($addonAndVariationStock, 'out_of_stock') ],
+                    ]
+                ], 403);
+            }
+        }
+
+
         $cart->user_id = $user_id;
         $cart->is_guest = $is_guest;
         $cart->add_on_ids = $request->add_on_ids?json_encode($request->add_on_ids):$cart->add_on_ids;
@@ -131,6 +160,7 @@ class CartController extends Controller
         $cart->price = $request->price;
         $cart->quantity = $request->quantity;
         $cart->variations = $request->variations?json_encode($request->variations):$cart->variations;
+        $cart->variation_options = json_encode($request?->variation_options ?? []);
         $cart->save();
 
         $carts = Cart::where('user_id', $user_id)->where('is_guest',$is_guest)->get()
@@ -241,6 +271,19 @@ class CartController extends Controller
                     ], 403);
                 }
 
+
+                if($single_item['model'] === 'Food'){
+                    $addonAndVariationStock= Helpers::addonAndVariationStockCheck(product:$item,quantity: $single_item['quantity'],add_on_qtys:$single_item['add_on_qtys'], variation_options: $single_item['variation_options'],add_on_ids:$single_item['add_on_ids'] );
+
+                        if(data_get($addonAndVariationStock, 'out_of_stock') != null) {
+                            return response()->json([
+                                'errors' => [
+                                    ['code' => 'stock_out', 'message' => data_get($addonAndVariationStock, 'out_of_stock') ],
+                                ]
+                            ], 403);
+                        }
+                }
+
                 $cart = new Cart();
                 $cart->user_id =$request->user->id;
                 $cart->item_id = $single_item['item_id'];
@@ -251,13 +294,12 @@ class CartController extends Controller
                 $cart->price = $single_item['price'];
                 $cart->quantity = $single_item['quantity'];
                 $cart->variations = json_encode($single_item['variations']);
+                $cart->variation_options =  data_get($single_item,'variation_options',[] ) != null ? json_encode(data_get($single_item,'variation_options',[] )) : json_encode([]);
+
                 $cart->save();
 
                 $item->carts()->save($cart);
             }
-
-
-
 
         $carts = Cart::where('user_id', $user_id)->where('is_guest',0)->get()
         ->map(function ($data) {
@@ -270,6 +312,9 @@ class CartController extends Controller
 		});
         return response()->json($carts, 200);
     }
+
+
+
 
 
 }

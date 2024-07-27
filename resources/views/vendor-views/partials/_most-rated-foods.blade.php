@@ -14,7 +14,7 @@
         <div class="col-md-4 col-6">
             <a href="{{route('vendor.food.view',[$item['id']])}}" class="grid-card top--rated-food pb-4">
                 <center>
-                    <img class="initial-42 onerror-image" src="{{\App\CentralLogics\Helpers::onerror_image_helper($item['image'], dynamicStorage('storage/app/public/product').'/'.$item['image'], dynamicAsset('public/assets/admin/img/100x100/2.png'), 'product/') }}"
+                    <img class="initial-42 onerror-image" src="{{ $item['image_full_url'] }}"
                          data-onerror-image="{{dynamicAsset('public/assets/admin/img/100x100/2.png')}}" alt="{{$item->name}} image">
                 </center>
                 <div class="text-center mt-3">

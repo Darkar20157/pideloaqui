@@ -1,6 +1,7 @@
 <?php
 namespace App\CentralLogics;
 
+use App\Models\RestaurantNotificationSetting;
 use DateTime;
 use Exception;
 use DatePeriod;
@@ -16,6 +17,7 @@ use App\Models\Expense;
 use App\Models\TimeLog;
 use App\Models\Vehicle;
 use App\Mail\PlaceOrder;
+use App\Models\CashBack;
 use App\Models\Category;
 use App\Models\Currency;
 use App\Models\DMReview;
@@ -27,11 +29,14 @@ use App\Models\Translation;
 use Illuminate\Support\Str;
 use Illuminate\Support\Carbon;
 use App\Models\BusinessSetting;
+use App\Models\VariationOption;
+use App\CentralLogics\OrderLogic;
 use App\Models\DeliveryManWallet;
 use App\Models\WalletTransaction;
 use Illuminate\Support\Facades\DB;
 use App\Mail\OrderVerificationMail;
 use App\Models\NotificationMessage;
+use App\Models\NotificationSetting;
 use App\Models\SubscriptionPackage;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Http;
@@ -39,14 +44,16 @@ use Illuminate\Support\Facades\Mail;
 use App\CentralLogics\RestaurantLogic;
 use App\Models\RestaurantSubscription;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Schema;
 use App\Models\SubscriptionTransaction;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Storage;
 use MatanYadaev\EloquentSpatial\Objects\Point;
 use Laravelpkg\Laravelchk\Http\Controllers\LaravelchkController;
-use App\CentralLogics\OrderLogic;
+use App\Traits\PaymentGatewayTrait;
 class Helpers
 {
+    use PaymentGatewayTrait;
     public static function error_processor($validator)
     {
         $err_keeper = [];
@@ -610,7 +617,7 @@ class Helpers
 
                 if($item->relationLoaded('childes') && $item['childes']){
                     $item['products_count'] += $item['childes']->sum('products_count');
-                    unset($item['childes']);
+                    // unset($item['childes']);
                 }
                 $storage[] = $item;
             }
@@ -625,7 +632,7 @@ class Helpers
             // }
             if($data->relationLoaded('childes') && $data['childes']){
                 $data['products_count'] += $data['childes']->sum('products_count');
-                unset($data['childes']);
+                // unset($data['childes']);
             }
         }
         return $data;
@@ -685,6 +692,7 @@ class Helpers
     {
         $storage = [];
         $cuisines=[];
+        $extra_packaging_data = \App\Models\BusinessSetting::where('key', 'extra_packaging_charge')->first()?->value ?? 0;
 
         if ($multi_data == true) {
             foreach ($data as $item) {
@@ -727,6 +735,7 @@ class Helpers
                 ->groupBy('food.restaurant_id')
                 ->first();
 
+                $item['ratings'] = $item?->ratings ?? [];
                 $item['avg_rating'] = (float)  $reviewsInfo?->average_rating ?? 0;
                 $item['rating_count'] = (int)   $reviewsInfo?->total_reviews ?? 0;
 
@@ -740,6 +749,11 @@ class Helpers
                 $item['instant_order'] =   (bool) $item?->restaurant_config?->instant_order;
                 $item['halal_tag_status'] =   (bool) $item?->restaurant_config?->halal_tag_status;
                 $item['current_opening_time'] = self::getNextOpeningTime($item['schedules']) ?? 'closed';
+
+                $item['is_extra_packaging_active'] =   (bool) ($extra_packaging_data == 1 ? $item?->restaurant_config?->is_extra_packaging_active:false);
+                $item['extra_packaging_status'] =   (bool) ($item['is_extra_packaging_active']  == 1   ? $item?->restaurant_config?->extra_packaging_status:false);
+                $item['extra_packaging_amount'] =   (float)( $item['is_extra_packaging_active']  == 1 ? $item?->restaurant_config?->extra_packaging_amount:0);
+                $item['characteristics'] = $item->characteristics()->pluck('characteristic')->toArray();
 
                 // unset($item['coupon_valid']);
                 unset($item['campaigns']);
@@ -783,7 +797,7 @@ class Helpers
             ->selectRaw('avg(reviews.rating) as average_rating, count(reviews.id) as total_reviews, food.restaurant_id')
             ->groupBy('food.restaurant_id')
             ->first();
-
+            $data['ratings'] = $data?->rating ?? [];
             $data['avg_rating'] = (float)  $reviewsInfo?->average_rating ?? 0;
             $data['rating_count'] = (int)   $reviewsInfo?->total_reviews ?? 0;
 
@@ -794,8 +808,12 @@ class Helpers
             $data['customer_date_order_sratus'] =   (bool) $data?->restaurant_config?->customer_date_order_sratus;
             $data['instant_order'] =   (bool) $data?->restaurant_config?->instant_order;
             $data['halal_tag_status'] =   (bool) $data?->restaurant_config?->halal_tag_status;
+            $data['is_extra_packaging_active'] =   (bool) ($extra_packaging_data == 1 ? $data?->restaurant_config?->is_extra_packaging_active:false);
+            $data['extra_packaging_status'] =   (bool)  ($data['is_extra_packaging_active'] == 1  ? $data?->restaurant_config?->extra_packaging_status:false);
+            $data['extra_packaging_amount'] =   (float)  ($data['is_extra_packaging_active'] == 1 ? $data?->restaurant_config?->extra_packaging_amount:0);
             $data['delivery_fee'] = self::getDeliveryFee($data);
             $data['current_opening_time'] = self::getNextOpeningTime($data['schedules']) ?? 'closed';
+            $data['characteristics'] = $data->characteristics()->pluck('characteristic')->toArray();
             unset($data['rating']);
             unset($data['campaigns']);
             unset($data['pivot']);
@@ -843,6 +861,7 @@ class Helpers
                     $item['restaurant_lat'] = $item['restaurant']['latitude'];
                     $item['restaurant_lng'] = $item['restaurant']['longitude'];
                     $item['restaurant_logo'] = $item['restaurant']['logo'];
+                    $item['restaurant_logo_full_url'] = $item['restaurant']['logo_full_url'];
                     $item['restaurant_delivery_time'] = $item['restaurant']['delivery_time'];
                     $item['vendor_id'] = $item['restaurant']['vendor_id'];
                     $item['chat_permission'] = $item['restaurant']['restaurant_sub']['chat'] ?? 0;
@@ -855,6 +874,7 @@ class Helpers
                     $item['restaurant_lat'] = null;
                     $item['restaurant_lng'] = null;
                     $item['restaurant_logo'] = null;
+                    $item['restaurant_logo_full_url'] = null;
                     $item['restaurant_delivery_time'] = null;
                     $item['restaurant_model'] = null;
                     $item['chat_permission'] = null;
@@ -880,6 +900,7 @@ class Helpers
                 $data['restaurant_lat'] = $data['restaurant']['latitude'];
                 $data['restaurant_lng'] = $data['restaurant']['longitude'];
                 $data['restaurant_logo'] = $data['restaurant']['logo'];
+                $data['restaurant_logo_full_url'] = $data['restaurant']['logo_full_url'];
                 $data['restaurant_delivery_time'] = $data['restaurant']['delivery_time'];
                 $data['vendor_id'] = $data['restaurant']['vendor_id'];
                 $data['chat_permission'] = $data['restaurant']['restaurant_sub']['chat'] ?? 0;
@@ -892,6 +913,7 @@ class Helpers
                 $data['restaurant_lat'] = null;
                 $data['restaurant_lng'] = null;
                 $data['restaurant_logo'] = null;
+                $data['restaurant_logo_full_url'] = null;
                 $data['restaurant_delivery_time'] = null;
                 $data['chat_permission'] = null;
                 $data['restaurant_model'] = null;
@@ -917,6 +939,15 @@ class Helpers
             $item['add_ons'] = json_decode($item['add_ons']);
             $item['variation'] = json_decode($item['variation']);
             $item['food_details'] = json_decode($item['food_details'], true);
+            if ($item['item_id']){
+                $product = \App\Models\Food::where(['id' => $item['food_details']['id']])->first();
+                $item['image_full_url'] = $product?->image_full_url;
+//                $item['images_full_url'] = $product->images_full_url;
+            }else{
+               $product = \App\Models\ItemCampaign::where(['id' => $item['food_details']['id']])->first();
+                $item['image_full_url'] = $product?->image_full_url;
+//                $item['images_full_url'] = [];
+            }
             array_push($storage, $item);
         }
         $data = $storage;
@@ -957,6 +988,7 @@ class Helpers
                     'id' => $item['id'],
                     'name' => $item['f_name'] . ' ' . $item['l_name'],
                     'image' => $item['image'],
+                    'image_full_url' => $item['image_full_url'],
                     'current_orders' => $item['current_orders'],
                     'lat' => $item->last_location ? $item->last_location->latitude : '0',
                     'lng' => $item->last_location ? $item->last_location->longitude : '0',
@@ -991,6 +1023,7 @@ class Helpers
                 'id' => $item['id'],
                 'name' => $item['f_name'] . ' ' . $item['l_name'],
                 'image' => $item['image'],
+                'image_full_url' => $item['image_full_url'],
                 'current_orders' => $item['current_orders'],
                 'lat' => $item->last_location ? $item->last_location->latitude : '0',
                 'lng' => $item->last_location ? $item->last_location->longitude : '0',
@@ -1089,15 +1122,51 @@ class Helpers
 
         return $currency_symbol_position == 'right' ? number_format($value, config('round_up_to_digit')) . ' ' . self::currency_symbol() : self::currency_symbol() . ' ' . number_format($value, config('round_up_to_digit'));
     }
+
+    public static function sendNotificationToHttp(array|null $data)
+    {
+        $config = self::get_business_settings('push_notification_service_file_content');
+        $key = (array)$config;
+        if($key['project_id']){
+            $url = 'https://fcm.googleapis.com/v1/projects/'.$key['project_id'].'/messages:send';
+            $headers = [
+                'Authorization' => 'Bearer ' . self::getAccessToken($key),
+                'Content-Type' => 'application/json',
+            ];
+            try {
+                Http::withHeaders($headers)->post($url, $data);
+            }catch (\Exception $exception){
+                dd($exception->getMessage());
+                return false;
+            }
+        }
+        return false;
+    }
+
+    public static function getAccessToken($key)
+    {
+        $jwtToken = [
+            'iss' => $key['client_email'],
+            'scope' => 'https://www.googleapis.com/auth/firebase.messaging',
+            'aud' => 'https://oauth2.googleapis.com/token',
+            'exp' => time() + 3600,
+            'iat' => time(),
+        ];
+        $jwtHeader = base64_encode(json_encode(['alg' => 'RS256', 'typ' => 'JWT']));
+        $jwtPayload = base64_encode(json_encode($jwtToken));
+        $unsignedJwt = $jwtHeader . '.' . $jwtPayload;
+        openssl_sign($unsignedJwt, $signature, $key['private_key'], OPENSSL_ALGO_SHA256);
+        $jwt = $unsignedJwt . '.' . base64_encode($signature);
+
+        $response = Http::asForm()->post('https://oauth2.googleapis.com/token', [
+            'grant_type' => 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+            'assertion' => $jwt,
+        ]);
+        return $response->json('access_token');
+    }
+
     public static function send_push_notif_to_device($fcm_token, $data, $web_push_link = null)
     {
-        $key = BusinessSetting::where(['key' => 'push_notification_key'])->first()->value;
-        $url = "https://fcm.googleapis.com/fcm/send";
-        $header = array(
-            "authorization: key=" . $key . "",
-            "content-type: application/json"
-        );
-
         if(isset($data['conversation_id'])){
             $conversation_id = $data['conversation_id'];
         }else{
@@ -1120,64 +1189,33 @@ class Helpers
             "click_action": "'.$web_push_link.'"';
         }
 
-        $postdata = '{
-            "to" : "' . $fcm_token . '",
-            "mutable_content": true,
-            "data" : {
-                "title":"' . $data['title'] . '",
-                "body" : "' . $data['description'] . '",
-                "image" : "' . $data['image'] . '",
-                "order_id":"' . $data['order_id'] . '",
-                "type":"' . $data['type'] . '",
-                "conversation_id":"' . $conversation_id . '",
-                "sender_type":"' . $sender_type . '",
-                "order_type":"' . $order_type . '",
-                "is_read": 0
-            },
-            "notification" : {
-                "title" :"' . $data['title'] . '",
-                "body" : "' . $data['description'] . '",
-                "image" : "' . $data['image'] . '",
-                "order_id":"' . $data['order_id'] . '",
-                "title_loc_key":"' . $data['order_id'] . '",
-                "body_loc_key":"' . $data['type'] . '",
-                "type":"' . $data['type'] . '",
-                "is_read": 0,
-                "icon" : "new",
-                "sound": "notification.wav",
-                "android_channel_id": "stackfood"
-                '.$click_action.'
-            }
-        }';
+        $postData = [
+            'message' => [
+                "token" => $fcm_token,
+                "data" => [
+                    "title" => (string)$data['title'],
+                    "body" => (string)$data['description'],
+                    "image" => (string)$data['image'],
+                    "order_id" => (string)$data['order_id'],
+                    "type" => (string)$data['type'],
+                    "conversation_id" => (string)$conversation_id,
+                    "sender_type" => (string)$sender_type,
+                    "order_type" => (string)$order_type,
+                    "click_action" => $web_push_link?(string)$web_push_link:'',
+                    "sound" => "notification.wav",
+                ],
+                "notification" => [
+                    'title' => (string)$data['title'],
+                    'body' => (string)$data['description'],
+                ],
+            ]
+        ];
 
-        $ch = curl_init();
-        $timeout = 120;
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, $timeout);
-        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $postdata);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $header);
-
-        // Get URL content
-        $result = curl_exec($ch);
-        // close handle to release resources
-        curl_close($ch);
-
-        return $result;
+        return self::sendNotificationToHttp($postData);
     }
 
     public static function send_push_notif_to_topic($data, $topic, $type, $web_push_link = null)
     {
-        // info([$data, $topic, $type, $web_push_link]);
-        $key = BusinessSetting::where(['key' => 'push_notification_key'])->first()->value;
-
-        $url = "https://fcm.googleapis.com/fcm/send";
-        $header = array(
-            "authorization: key=" . $key . "",
-            "content-type: application/json"
-        );
-
         if(isset($data['order_type'])){
             $order_type = $data['order_type'];
         }else{
@@ -1190,113 +1228,67 @@ class Helpers
         }
 
         if (isset($data['order_id'])) {
-            $postdata = '{
-                "to" : "/topics/' . $topic . '",
-                "mutable_content": true,
-                "data" : {
-                    "title":"' . $data['title'] . '",
-                    "body" : "' . $data['description'] . '",
-                    "image" : "' . $data['image'] . '",
-                    "order_id":"' . $data['order_id'] . '",
-                    "order_type":"' . $order_type . '",
-                    "is_read": 0,
-                    "type":"' . $type . '"
-                },
-                "notification" : {
-                    "title":"' . $data['title'] . '",
-                    "body" : "' . $data['description'] . '",
-                    "image" : "' . $data['image'] . '",
-                    "order_id":"' . $data['order_id'] . '",
-                    "title_loc_key":"' . $data['order_id'] . '",
-                    "body_loc_key":"' . $type . '",
-                    "type":"' . $type . '",
-                    "is_read": 0,
-                    "icon" : "new",
-                    "sound": "notification.wav",
-                    "android_channel_id": "stackfood"
-                    '.$click_action.'
-                  }
-            }';
+            $postData = [
+                'message' => [
+                    "topic" => $topic,
+                    "data" => [
+                        "title" => (string)$data['title'],
+                        "body" => (string)$data['description'],
+                        "order_id" => (string)$data['order_id'],
+                        "order_type" => (string)$order_type,
+                        "type" => (string)$type,
+                        "image" => (string)$data['image'],
+                        "title_loc_key" => (string)$data['order_id'],
+                        "body_loc_key" => (string)$type,
+                        "click_action" => $web_push_link?(string)$web_push_link:'',
+                        "sound" => "notification.wav",
+                    ],
+                    "notification" => [
+                        "title" => (string)$data['title'],
+                        "body" => (string)$data['description'],
+                    ],
+                ]
+            ];
         } else {
-            $postdata = '{
-                "to" : "/topics/' . $topic . '",
-                "mutable_content": true,
-                "data" : {
-                    "title":"' . $data['title'] . '",
-                    "body" : "' . $data['description'] . '",
-                    "image" : "' . $data['image'] . '",
-                    "is_read": 0,
-                    "type":"' . $type . '",
-                },
-                "notification" : {
-                    "title":"' . $data['title'] . '",
-                    "body" : "' . $data['description'] . '",
-                    "image" : "' . $data['image'] . '",
-                    "body_loc_key":"' . $type . '",
-                    "type":"' . $type . '",
-                    "is_read": 0,
-                    "icon" : "new",
-                    "sound": "notification.wav",
-                    "android_channel_id": "stackfood"
-                    '.$click_action.'
-                  }
-            }';
+            $postData = [
+                'message' => [
+                    "topic" => $topic,
+                    "data" => [
+                        "title" => (string)$data['title'],
+                        "body" => (string)$data['description'],
+                        "order_id" => (string)$data['order_id'],
+                        "type" => (string)$type,
+                        "image" => (string)$data['image'],
+                        "body_loc_key" => (string)$type,
+                        "click_action" => $web_push_link?(string)$web_push_link:'',
+                        "sound" => "notification.wav",
+                    ],
+                    "notification" => [
+                        "title" => (string)$data['title'],
+                        "body" => (string)$data['description'],
+                    ],
+                ]
+            ];
         }
 
-        $ch = curl_init();
-        $timeout = 120;
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, $timeout);
-        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $postdata);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $header);
-
-        // Get URL content
-        $result = curl_exec($ch);
-        // close handle to release resources
-        curl_close($ch);
-
-        return $result;
+        return self::sendNotificationToHttp($postData);
     }
-    public static function send_push_notif_for_demo_reset($data, $topic, $type,)
+    public static function send_push_notif_for_demo_reset($data, $topic, $type)
     {
-        $key = BusinessSetting::where(['key' => 'push_notification_key'])->first()->value;
+        $postData = [
+            'message' => [
+                "topic" => $topic,
+                "data" => [
+                    "title" => (string)$data['title'],
+                    "body" => (string)$data['description'],
+                    "type" => (string)$type,
+                    "image" => (string)$data['image'],
+                    "body_loc_key" => (string)$type,
+                ]
+            ]
+        ];
 
-        $url = "https://fcm.googleapis.com/fcm/send";
-        $header = array(
-            "authorization: key=" . $key . "",
-            "content-type: application/json"
-        );
-        $postdata = '{
-            "to" : "/topics/' . $topic . '",
-            "mutable_content": true,
-            "notification" : {
-                "title":"' . $data['title'] . '",
-                "body" : "' . $data['description'] . '",
-                "image" : "' . $data['image'] . '",
-                "body_loc_key":"' . $type . '",
-                "type":"' . $type . '",
-                "is_read": 0,
-                "icon" : "new",
-                "sound": "notification.wav",
-                "android_channel_id": "stackfood"
-            }
-        }';
-
-        $ch = curl_init();
-        $timeout = 120;
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, $timeout);
-        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $postdata);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $header);
-
-        $result = curl_exec($ch);
-        curl_close($ch);
-
-        return $result;
+        return self::sendNotificationToHttp($postData);
     }
 
     public static function rating_count($food_id, $rating)
@@ -1519,7 +1511,7 @@ class Helpers
             if ($data['status'] == 0) {
                 return 0;
             }
-            return count($data->translations) > 0 ? $data->translations[0]->value : $data['message'];
+            return $data['message'];
         }else{
             return false;
         }
@@ -1530,7 +1522,9 @@ class Helpers
 
     public static function send_order_notification($order)
     {
-        $order= Order::where('id',$order->id)->with('zone:id,deliveryman_wise_topic','restaurant:id,name,restaurant_model,self_delivery_system,vendor_id','restaurant.restaurant_sub','customer:id,cm_firebase_token,email,f_name,l_name','restaurant.vendor:id,firebase_token','delivery_man:id,fcm_token','guest')->first();
+        $order= Order::where('id',$order->id)->with('zone:id,deliveryman_wise_topic','restaurant:id,name,restaurant_model,self_delivery_system,vendor_id','restaurant.restaurant_sub','customer:id,cm_firebase_token,email,f_name,l_name,current_language_key','restaurant.vendor:id,firebase_token','delivery_man:id,fcm_token','guest')->first();
+        $push_notification_status=self::getNotificationStatusData('restaurant','restaurant_order_notification');
+        $restaurant_push_notification_status=self::getRestaurantNotificationStatusData($order?->restaurant?->id,'restaurant_order_notification');
 
         try {
             $status = ($order->order_status == 'delivered' && $order->delivery_man) ? 'delivery_boy_delivered' : $order->order_status;
@@ -1560,7 +1554,11 @@ class Helpers
                 $user_fcm = $order?->customer?->cm_firebase_token;
             }
 
-            if ($value && $user_fcm) {
+
+
+
+            $customer_push_notification_status=Helpers::getNotificationStatusData('customer','customer_order_notification');
+            if ($customer_push_notification_status?->push_notification_status  == 'active' && $value && $user_fcm) {
                 $data = [
                     'title' => translate('messages.order_push_title'),
                     'description' => $value,
@@ -1577,10 +1575,12 @@ class Helpers
                     'updated_at' => now()
                 ]);
             }
+            $customer_push_notification_status=null;
+            $customer_push_notification_status=Helpers::getNotificationStatusData('customer','customer_refund_request_rejaction');
 
-            if($order?->customer && $order->order_status == 'refund_request_canceled'){
+            if($customer_push_notification_status?->push_notification_status  == 'active' && $order?->customer?->cm_firebase_token && $order->order_status == 'refund_request_canceled'){
                 $data = [
-                    'title' => translate('messages.order_push_title'),
+                    'title' => translate('messages.Refund_Rejected'),
                     'description' => translate('messages.Your_refund_request_has_been_canceled'),
                     'order_id' => $order->id,
                     'image' => '',
@@ -1596,7 +1596,7 @@ class Helpers
                 ]);
             }
 
-            if ($status == 'picked_up') {
+            if ( $push_notification_status?->push_notification_status  == 'active' && $restaurant_push_notification_status?->push_notification_status  == 'active' && $status == 'picked_up' && $order?->restaurant?->vendor?->firebase_token ) {
                 $data = [
                     'title' => translate('messages.order_push_title'),
                     'description' => $value,
@@ -1615,27 +1615,33 @@ class Helpers
             }
 
             if ($order->order_type == 'delivery' && !$order->scheduled && $order->order_status == 'pending' && $order->payment_method == 'cash_on_delivery' && config('order_confirmation_model') == 'deliveryman' && $order->order_type != 'take_away') {
-                // if ($order->restaurant->self_delivery_system)
+
                 if (($order->restaurant->restaurant_model == 'commission' && $order->restaurant->self_delivery_system)
                 || ($order->restaurant->restaurant_model == 'subscription' &&  isset($order->restaurant->restaurant_sub) && $order->restaurant->restaurant_sub->self_delivery)
                 )
                 {
-                    $data = [
-                        'title' => translate('messages.order_push_title'),
-                        'description' => translate('messages.new_order_push_description'),
-                        'order_id' => $order->id,
-                        'image' => '',
-                        'type' => 'new_order',
-                    ];
-                    self::send_push_notif_to_device($order->restaurant->vendor->firebase_token, $data);
-                    DB::table('user_notifications')->insert([
-                        'data' => json_encode($data),
-                        'vendor_id' => $order->restaurant->vendor_id,
-                        'created_at' => now(),
-                        'updated_at' => now()
-                    ]);
-                    $web_push_link = url('/').'/restaurant-panel/order/list/all';
-                    self::send_push_notif_to_topic($data, "restaurant_panel_{$order->restaurant_id}_message", 'new_order', $web_push_link);
+
+                    if($push_notification_status?->push_notification_status  == 'active' && $restaurant_push_notification_status?->push_notification_status  == 'active' && $order?->restaurant?->vendor?->firebase_token){
+
+                        $data = [
+                            'title' => translate('messages.order_push_title'),
+                            'description' => translate('messages.new_order_push_description'),
+                            'order_id' => $order->id,
+                            'image' => '',
+                            'type' => 'new_order',
+                        ];
+                        self::send_push_notif_to_device($order->restaurant->vendor->firebase_token, $data);
+                        DB::table('user_notifications')->insert([
+                            'data' => json_encode($data),
+                            'vendor_id' => $order->restaurant->vendor_id,
+                            'created_at' => now(),
+                            'updated_at' => now()
+                        ]);
+                        $web_push_link = url('/').'/restaurant-panel/order/list/all';
+                        self::send_push_notif_to_topic($data, "restaurant_panel_{$order->restaurant_id}_message", 'new_order', $web_push_link);
+                    }
+
+
                 } else {
                     $data = [
                         'title' => translate('messages.order_push_title'),
@@ -1654,7 +1660,7 @@ class Helpers
                 }
             }
 
-            if ($order->order_type == 'delivery' && !$order->scheduled && $order->order_status == 'pending' && $order->payment_method == 'cash_on_delivery' && config('order_confirmation_model') == 'restaurant') {
+            if (  $push_notification_status?->push_notification_status  == 'active' && $restaurant_push_notification_status?->push_notification_status  == 'active' && $order->order_type == 'delivery' && !$order->scheduled && $order->order_status == 'pending' && $order->payment_method == 'cash_on_delivery' && config('order_confirmation_model') == 'restaurant') {
                 $data = [
                     'title' => translate('messages.order_push_title'),
                     'description' => translate('messages.new_order_push_description'),
@@ -1662,7 +1668,9 @@ class Helpers
                     'image' => '',
                     'type' => 'new_order',
                 ];
-                self::send_push_notif_to_device($order->restaurant->vendor->firebase_token, $data);
+                if($order?->restaurant?->vendor?->firebase_token){
+                    self::send_push_notif_to_device($order->restaurant->vendor->firebase_token, $data);
+                }
                 DB::table('user_notifications')->insert([
                     'data' => json_encode($data),
                     'vendor_id' => $order->restaurant->vendor_id,
@@ -1673,7 +1681,7 @@ class Helpers
                 self::send_push_notif_to_topic($data, "restaurant_panel_{$order->restaurant_id}_message", 'new_order', $web_push_link);
             }
 
-            if (!$order->scheduled && (($order->order_type == 'take_away' && $order->order_status == 'pending') || ($order->payment_method != 'cash_on_delivery' && $order->order_status == 'confirmed'))) {
+            if (  $push_notification_status?->push_notification_status  == 'active' && $restaurant_push_notification_status?->push_notification_status  == 'active' && !$order->scheduled && (($order->order_type == 'take_away' && $order->order_status == 'pending') || ($order->payment_method != 'cash_on_delivery' && $order->order_status == 'confirmed'))) {
                 $data = [
                     'title' => translate('messages.order_push_title'),
                     'description' => translate('messages.new_order_push_description'),
@@ -1681,7 +1689,9 @@ class Helpers
                     'image' => '',
                     'type' => 'new_order',
                 ];
-                self::send_push_notif_to_device($order->restaurant->vendor->firebase_token, $data);
+                if($order?->restaurant?->vendor?->firebase_token){
+                    self::send_push_notif_to_device($order->restaurant->vendor->firebase_token, $data);
+                }
 
                 DB::table('user_notifications')->insert([
                     'data' => json_encode($data),
@@ -1714,16 +1724,21 @@ class Helpers
                         'type' => 'new_order',
                     ];
 
-                    self::send_push_notif_to_device($order->restaurant->vendor->firebase_token, $data);
+                    if(  $push_notification_status?->push_notification_status  == 'active' && $restaurant_push_notification_status?->push_notification_status  == 'active' ){
 
-                    DB::table('user_notifications')->insert([
-                        'data' => json_encode($data),
-                        'vendor_id' => $order->restaurant->vendor_id,
-                        'created_at' => now(),
-                        'updated_at' => now()
-                    ]);
-                    $web_push_link = url('/').'/restaurant-panel/order/list/all';
-                    self::send_push_notif_to_topic($data, "restaurant_panel_{$order->restaurant_id}_message", 'new_order', $web_push_link);
+                        if($order?->restaurant?->vendor?->firebase_token){
+                            self::send_push_notif_to_device($order->restaurant->vendor->firebase_token, $data);
+                        }
+
+                        DB::table('user_notifications')->insert([
+                            'data' => json_encode($data),
+                            'vendor_id' => $order->restaurant->vendor_id,
+                            'created_at' => now(),
+                            'updated_at' => now()
+                        ]);
+                        $web_push_link = url('/').'/restaurant-panel/order/list/all';
+                        self::send_push_notif_to_topic($data, "restaurant_panel_{$order->restaurant_id}_message", 'new_order', $web_push_link);
+                    }
                 }
             }
 
@@ -1750,7 +1765,9 @@ class Helpers
                 }
             }
 
-            if (in_array($order->order_status, ['processing', 'handover']) && $order->delivery_man) {
+            $deliveryman_push_notification_status=self::getNotificationStatusData('deliveryman','deliveryman_order_notification');
+
+            if ($deliveryman_push_notification_status?->push_notification_status  == 'active' && in_array($order->order_status, ['processing', 'handover']) && $order->delivery_man) {
                 $data = [
                     'title' => translate('messages.order_push_title'),
                     'description' => $order->order_status == 'processing' ? translate('messages.Proceed_for_cooking') : translate('messages.ready_for_delivery'),
@@ -1768,11 +1785,14 @@ class Helpers
                 ]);
             }
             try {
-                if ($order->order_status == 'confirmed' && $order->payment_method != 'cash_on_delivery' && config('mail.status') && Helpers::get_mail_status('place_order_mail_status_user') == '1' && $order->is_guest == 0) {
+
+                $notification_status= Helpers::getNotificationStatusData('customer','customer_order_notification');
+                if ( $notification_status?->mail_status == 'active' &&  $order->order_status == 'confirmed' && $order->payment_method != 'cash_on_delivery' && config('mail.status') && Helpers::get_mail_status('place_order_mail_status_user') == '1' && $order->is_guest == 0) {
                         Mail::to($order->customer->email)->send(new PlaceOrder($order->id));
                 }
-
-                if ($order->order_status == 'pending' && config('mail.status')  && config('order_delivery_verification') == 1 && Helpers::get_mail_status('order_verification_mail_status_user')== '1' && $order->is_guest == 0) {
+                $notification_status= null;
+                $notification_status= Helpers::getNotificationStatusData('customer','customer_delivery_verification');
+                if ($notification_status?->mail_status == 'active' &&  $order->order_status == 'pending' && config('mail.status')  && config('order_delivery_verification') == 1 && Helpers::get_mail_status('order_verification_mail_status_user')== '1' && $order->is_guest == 0) {
                     Mail::to($order->customer->email)->send(new OrderVerificationMail($order->otp,$order->customer->f_name));
                 }
             } catch (\Exception $exception) {
@@ -1894,16 +1914,28 @@ class Helpers
         return auth('vendor')->user()->restaurants[0];
     }
 
+    public static function getDisk()
+    {
+        $config=self::get_business_settings('local_storage');
+
+        return isset($config)?($config==0?'s3':'public'):'public';
+    }
+
     public static function upload(string $dir, string $format, $image = null)
     {
-        if ($image != null) {
-            $imageName = \Carbon\Carbon::now()->toDateString() . "-" . uniqid() . "." . $format;
-            if (!Storage::disk('public')->exists($dir)) {
-                Storage::disk('public')->makeDirectory($dir);
+        try {
+            if ($image != null) {
+                $imageName = \Carbon\Carbon::now()->toDateString() . "-" . uniqid() . "." . $format;
+                if (!Storage::disk(self::getDisk())->exists($dir)) {
+                    Storage::disk(self::getDisk())->makeDirectory($dir);
+                }
+                Storage::disk(self::getDisk())->putFileAs($dir, $image, $imageName);
+            } else {
+                $imageName = 'def.png';
             }
-            Storage::disk('public')->put($dir . $imageName, file_get_contents($image));
-            return $imageName;
+        } catch (\Exception $e) {
         }
+        return $imageName;
     }
 
     public static function update(string $dir, $old_image, string $format, $image = null)
@@ -1911,11 +1943,90 @@ class Helpers
         if ($image == null) {
             return $old_image;
         }
-        if (Storage::disk('public')->exists($dir . $old_image)) {
-            Storage::disk('public')->delete($dir . $old_image);
+        try {
+            if (Storage::disk(self::getDisk())->exists($dir . $old_image)) {
+                Storage::disk(self::getDisk())->delete($dir . $old_image);
+            }
+        } catch (\Exception $e) {
         }
         $imageName = Helpers::upload($dir, $format, $image);
         return $imageName;
+    }
+
+    public static function check_and_delete(string $dir, $old_image)
+    {
+
+        try {
+            if (Storage::disk('public')->exists($dir . $old_image)) {
+                Storage::disk('public')->delete($dir . $old_image);
+            }
+            if (Storage::disk('s3')->exists($dir . $old_image)) {
+                Storage::disk('s3')->delete($dir . $old_image);
+            }
+        } catch (\Exception $e) {
+        }
+
+        return true;
+    }
+
+    public static function get_full_url($path,$data,$type,$placeholder = null){
+        $place_holders = [
+            'default' => dynamicAsset('public/assets/admin/img/100x100/no-image-found.png'),
+            'admin' => dynamicAsset('public/assets/admin/img/160x160/img1.jpg'),
+            'restaurant' => dynamicAsset('public/assets/admin/img/100x100/1.png'),
+            'business' => dynamicAsset('public/assets/admin/img/160x160/img2.jpg'),
+            'product' => dynamicAsset('public/assets/admin/img/100x100/food-default-image.png'),
+            'payment_modules/gateway_image' => dynamicAsset('public/assets/admin/img/blank3.png'),
+            'banner' => dynamicAsset('public/assets/admin/img/900x400/img1.jpg'),
+            'upload_image' => dynamicAsset('public/assets/admin/img/upload-img.png'),
+            'upload_1_1' => dynamicAsset('public/assets/admin/img/upload-3.png'),
+            'upload_placeholder' => dynamicAsset('/public/assets/admin/img/upload-placeholder.png'),
+            'email_template' => dynamicAsset('/public/assets/admin/img/blank1.png'),
+            'campaign' => dynamicAsset('public/assets/admin/img/900x400/img1.png'),
+            'category' => dynamicAsset('public/assets/admin/img/900x400/img1.jpg'),
+            'cuisine' => dynamicAsset('/public/assets/admin/img/upload-6.png'),
+            'delivery-man' => dynamicAsset('public/assets/admin/img/160x160/img1.jpg'),
+            'react_promotional_banner' => dynamicAsset('public/assets/admin/img/upload-3.png'),
+            'react_service_image' => dynamicAsset('/public/assets/admin/img/aspect-1.png'),
+            'conversation' => dynamicAsset('public/assets/admin/img/900x400/img1.png'),
+            'notification' => dynamicAsset('public/assets/admin/img/900x400/img1.png'),
+            'vendor' => dynamicAsset('public/assets/admin/img/160x160/img1.jpg'),
+            'react_restaurant_section_image' => dynamicAsset('/public/assets/admin/img/upload-3.png'),
+            'react_delivery_section_image' => dynamicAsset('/public/assets/admin/img/upload-3.png'),
+            'favicon' => dynamicAsset('public/assets/admin/img/favicon.png'),
+            'authfav' => dynamicAsset('/public/assets/admin/img/auth-fav.png'),
+            'refund' => dynamicAsset('public/assets/admin/img/160x160/img2.jpg'),
+            'order' => dynamicAsset('public/assets/admin/img/160x160/img2.jpg'),
+            'ad_cover' => dynamicAsset('public/assets/admin/img/900x400/img1.png'),
+        ];
+
+        try {
+            if ($data && $type == 's3' && Storage::disk('s3')->exists($path .'/'. $data)) {
+                return Storage::disk('s3')->url($path .'/'. $data);
+//                $awsUrl = config('filesystems.disks.s3.url');
+//                $awsBucket = config('filesystems.disks.s3.bucket');
+//                return rtrim($awsUrl, '/') . '/' . ltrim($awsBucket . '/' . $path . '/' . $data, '/');
+            }
+        } catch (\Exception $e){
+        }
+
+        if ($data && Storage::disk('public')->exists($path .'/'. $data)) {
+            return dynamicStorage('storage/app/public') . '/' . $path . '/' . $data;
+        }
+
+        if (request()->is('api/*')) {
+            return null;
+        }
+
+        if(isset($placeholder) && array_key_exists($placeholder, $place_holders)){
+            return $place_holders[$placeholder];
+        }elseif(array_key_exists($path, $place_holders)){
+            return $place_holders[$path];
+        }else{
+            return $place_holders['default'];
+        }
+
+        return 'def.png';
     }
 
     public static function format_coordiantes($coordinates)
@@ -1978,7 +2089,7 @@ class Helpers
     }
 
 
-    public static function calculate_addon_price($addons, $add_on_qtys)
+    public static function calculate_addon_price($addons, $add_on_qtys , $incrementCount = false ,$old_selected_addons =[])
     {
         $add_ons_cost = 0;
         $data = [];
@@ -1989,6 +2100,28 @@ class Helpers
                 } else {
                     $add_on_qty = $add_on_qtys[$key2];
                 }
+                // if($add_on_qty > 0 ){
+                    if($addon->stock_type != 'unlimited'){
+
+                        $availableStock=$addon->addon_stock;
+
+                        if(data_get($old_selected_addons, $addon->id)){
+                            $availableStock= $availableStock + data_get($old_selected_addons, $addon->id);
+                        }
+
+                        if(  $availableStock <= 0 || $availableStock < $add_on_qty  ){
+                            return ['out_of_stock' => $addon->name .' ' . translate('Addon_is_out_of_stock_!!!'),
+                            'id'=>$addon->id,
+                            'current_stock' =>   $availableStock > 0 ?  $availableStock : 0 ,
+                            'type'=>'addon'
+                        ];
+                        }
+                    }
+                    if($incrementCount == true){
+                        $addon->increment('sell_count' ,$add_on_qty);
+                    }
+                // }
+
                 $data[] = ['id' => $addon->id, 'name' => $addon->name, 'price' => $addon->price, 'quantity' => $add_on_qty];
                 $add_ons_cost += $addon['price'] * $add_on_qty;
             }
@@ -2006,6 +2139,15 @@ class Helpers
             if (is_null($config)) {
                 $config = $data['value'];
             }
+        }
+        return $config;
+    }
+    public static function get_settings_storage($name)
+    {
+        $config = 'public';
+        $data = BusinessSetting::where(['key' => $name])->first();
+        if(isset($data) && count($data->storage)>0){
+            $config = $value->storage[0]['value'];
         }
         return $config;
     }
@@ -2324,7 +2466,7 @@ class Helpers
 
     public static function remove_invalid_charcaters($str)
     {
-        return str_ireplace(['\'', '"', ',', ';', '<', '>', '?'], ' ', $str);
+        return str_ireplace(['\'', '"',';', '<', '>'], ' ', $str);
     }
 
     public static function set_time_log($user_id , $date, $online = null, $offline = null,$shift_id = null)
@@ -3269,7 +3411,7 @@ class Helpers
         return BusinessSetting::where('key', $name)->first()?->value ?? 0;
     }
 
-    public static function text_variable_data_format($value,$user_name=null,$restaurant_name=null,$delivery_man_name=null,$transaction_id=null,$order_id=null)
+    public static function text_variable_data_format($value,$user_name=null,$restaurant_name=null,$delivery_man_name=null,$transaction_id=null,$order_id=null,$add_id= null)
     {
         $data = $value;
         if ($value) {
@@ -3291,6 +3433,9 @@ class Helpers
 
             if($order_id){
                 $data =  str_replace("{orderId}", $order_id, $data);
+            }
+            if($add_id){
+                $data =  str_replace("{advertisementId}", $add_id, $data);
             }
         }
 
@@ -3628,6 +3773,971 @@ class Helpers
                 }
         }
         return $result;
+    }
+
+
+    public static function getCalculatedCashBackAmount($amount,$customer_id){
+        $data=[
+            'calculated_amount'=> (float) 0,
+            'cashback_amount'=>0,
+            'cashback_type'=>'',
+            'min_purchase'=>0,
+            'max_discount'=>0,
+            'id'=>0,
+        ];
+
+        try {
+            $percent_bonus = CashBack::active()
+            ->where('cashback_type', 'percentage')
+            ->Running()
+            ->where('min_purchase', '<=', $amount)
+            ->where(function($query) use ($customer_id) {
+                $query->whereJsonContains('customer_id', [(string) $customer_id])->orWhereJsonContains('customer_id', ['all']);
+            })
+                ->when(is_numeric($customer_id), function($q) use ($customer_id){
+                $q->where('same_user_limit', '>', function($query) use ($customer_id) {
+                    $query->select(DB::raw('COUNT(*)'))
+                            ->from('cash_back_histories')
+                            ->where('user_id', $customer_id)
+                            ->whereColumn('cash_back_id', 'cash_backs.id');
+                    });
+                })
+
+            ->orderBy('cashback_amount', 'desc')
+            ->first();
+
+            $amount_bonus = CashBack::active()->where('cashback_type','amount')
+            ->Running()
+            ->where(function($query)use($customer_id){
+                $query->whereJsonContains('customer_id', [(string) $customer_id])->orWhereJsonContains('customer_id', ['all']);
+            })
+            ->where('min_purchase','<=',$amount )
+            ->when(is_numeric($customer_id), function($q) use ($customer_id){
+                $q->where('same_user_limit', '>', function($query) use ($customer_id) {
+                    $query->select(DB::raw('COUNT(*)'))
+                            ->from('cash_back_histories')
+                            ->where('user_id', $customer_id)
+                            ->whereColumn('cash_back_id', 'cash_backs.id');
+                    });
+                })
+            ->orderBy('cashback_amount','desc')->first();
+
+            if($percent_bonus && ($amount >=$percent_bonus->min_purchase)){
+                $p_bonus = ($amount  * $percent_bonus->cashback_amount)/100;
+                $p_bonus = $p_bonus > $percent_bonus->max_discount ? $percent_bonus->max_discount : $p_bonus;
+                $p_bonus = round($p_bonus,config('round_up_to_digit'));
+            }else{
+                $p_bonus = 0;
+            }
+
+            if($amount_bonus && ($amount >=$amount_bonus->min_purchase)){
+                $a_bonus = $amount_bonus?$amount_bonus->cashback_amount: 0;
+                $a_bonus = round($a_bonus,config('round_up_to_digit'));
+            }else{
+                $a_bonus = 0;
+            }
+
+            $cashback_amount = max([$p_bonus,$a_bonus]);
+
+            if($p_bonus ==  $cashback_amount){
+                $data=[
+                    'calculated_amount'=> (float)$cashback_amount,
+                    'cashback_amount'=>$percent_bonus?->cashback_amount ?? 0,
+                    'cashback_type'=>$percent_bonus?->cashback_type ?? '',
+                    'min_purchase'=>$percent_bonus?->min_purchase ?? 0,
+                    'max_discount'=>$percent_bonus?->max_discount ?? 0,
+                    'id'=>$percent_bonus?->id,
+                ];
+
+            } elseif($a_bonus == $cashback_amount){
+                $data=[
+                    'calculated_amount'=> (float)$cashback_amount,
+                    'cashback_amount'=>$amount_bonus?->cashback_amount ?? 0,
+                    'cashback_type'=>$amount_bonus?->cashback_type ?? '',
+                    'min_purchase'=>$amount_bonus?->min_purchase ?? 0,
+                    'max_discount'=>$amount_bonus?->max_discount ?? 0,
+                    'id'=>$amount_bonus?->id,
+                ];
+            }
+
+            return $data ;
+        } catch (\Exception $exception) {
+            info([$exception->getFile(),$exception->getLine(),$exception->getMessage()]);
+            return $data ;
+        }
+
+    }
+
+    public static function getCusromerFirstOrderDiscount($order_count, $user_creation_date,$refby, $price = null){
+
+        $data=[
+            'is_valid' => false,
+            'discount_amount' => 0,
+            'discount_amount_type' => '',
+            'validity' => '',
+            'calculated_amount' => 0,
+        ];
+        if($order_count > 0 || !$refby){
+            return $data?? [];
+        }
+        $settings =  array_column(BusinessSetting::whereIn('key',['new_customer_discount_status','new_customer_discount_amount','new_customer_discount_amount_type','new_customer_discount_amount_validity','new_customer_discount_validity_type',])->get()->toArray(), 'value', 'key');
+
+        $validity_value = data_get($settings,'new_customer_discount_amount_validity');
+        $validity_unit = data_get($settings,'new_customer_discount_validity_type');
+
+        if($validity_unit == 'day'){
+            $validity_end_date = (new DateTime($user_creation_date))->modify("+$validity_value day");
+
+        } elseif($validity_unit == 'month'){
+            $validity_end_date = (new DateTime($user_creation_date))->modify("+$validity_value month");
+
+        } elseif($validity_unit == 'year'){
+            $validity_end_date = (new DateTime($user_creation_date))->modify("+$validity_value year");
+        }
+        else{
+            $validity_end_date = (new DateTime($user_creation_date))->modify("-1 day");
+        }
+
+        $is_valid=false;
+        $current_date = new DateTime();
+        if($validity_end_date >= $current_date){
+        $is_valid=true;
+        }
+
+
+
+    if($order_count == 0 && $is_valid && data_get($settings,'new_customer_discount_status' ) == 1 && data_get($settings,'new_customer_discount_amount' ) > 0 ){
+        $calculated_amount=0;
+        if(data_get($settings,'new_customer_discount_amount_type') == 'percentage' && isset($price)){
+            $calculated_amount= ($price / 100) * data_get($settings,'new_customer_discount_amount');
+        } else{
+            $calculated_amount=data_get($settings,'new_customer_discount_amount');
+        }
+
+        $data=[
+            'is_valid' => $is_valid,
+            'discount_amount' => data_get($settings,'new_customer_discount_amount'),
+            'discount_amount_type' => data_get($settings,'new_customer_discount_amount_type'),
+            'validity' => data_get($settings,'new_customer_discount_amount_validity') .' '. translate(Str::plural((data_get($settings,'new_customer_discount_validity_type') ?? 'day'),data_get($settings,'new_customer_discount_amount_validity'))),
+            'calculated_amount' => round($calculated_amount,config('round_up_to_digit')),
+        ];
+    }
+
+    return $data?? [];
+    }
+
+
+
+
+    public static function addonAndVariationStockCheck($product, $quantity=1, $add_on_qtys=1, $variation_options=null,$add_on_ids= null ,$incrementCount = false ,$old_selected_variations=[] ,$old_selected_without_variation = 0,$old_selected_addons=[]){
+
+        if($product?->stock_type && $product?->stock_type !== 'unlimited'){
+            $availableMainStock=$product->item_stock + $old_selected_without_variation ;
+            if(  $availableMainStock <= 0 || $availableMainStock < $quantity  ){
+                return [
+                    'out_of_stock' =>$availableMainStock > 0 ? translate('Only') .' '.$availableMainStock . " ". translate('Quantity_is_abailable_for').' '.$product?->name : $product?->name.' ' . translate('is_out_of_stock_!!!') ,
+                    'id'=>$product->id,
+                'current_stock' =>  $availableMainStock > 0 ?  $availableMainStock : 0,
+                ];
+            }
+            if($product?->stock_type && $incrementCount == true){
+                $product->increment('sell_count',$quantity);
+            }
+
+            if(is_array($variation_options) && (data_get($variation_options,0) != ''|| data_get($variation_options,0)  != null)) {
+                $variation_options= VariationOption::whereIn('id', $variation_options)->get();
+                foreach($variation_options as $variation_option){
+                        if($variation_option->stock_type !== 'unlimited'){
+                            $availableStock=$variation_option->total_stock  - $variation_option->sell_count;
+                            if(is_array($old_selected_variations) && data_get($old_selected_variations, $variation_option->id) ){
+                                $availableStock= $availableStock + data_get($old_selected_variations, $variation_option->id);
+                            }
+                            if($availableStock <= 0 || $availableStock < $quantity){
+                                return ['out_of_stock' => $availableStock > 0 ? translate('Only') .' '.$availableStock . " ". translate('Quantity_is_abailable_for').' '.$product?->name.' \'s ' . $variation_option->option_name .' ' . translate('Variation_!!!') : $product?->name.' \'s ' . $variation_option->option_name .' ' . translate('Variation_is_out_of_stock_!!!') ,
+                                        'id'=>$variation_option->id,
+                                        'current_stock' =>  $availableStock > 0 ?  $availableStock : 0,
+                                        ];
+                            }
+                            if($incrementCount == true){
+                                $variation_option->increment('sell_count',$quantity);
+                            }
+                        }
+                    }
+            }
+        }
+
+        if(is_array($add_on_ids) && count($add_on_ids) > 0) {
+            return  Helpers::calculate_addon_price(addons: AddOn::whereIn('id',$add_on_ids)->get(), add_on_qtys: $add_on_qtys ,incrementCount:$incrementCount ,old_selected_addons:$old_selected_addons);
+        }
+        return null;
+    }
+
+
+    public static function decreaseSellCount($order_details){
+        foreach ($order_details as $detail) {
+            $optionIds=[];
+            if($detail->variation != '[]'){
+                foreach (json_decode($detail->variation, true) as $value) {
+                    foreach (data_get($value,'values' ,[]) as $item) {
+                        if(data_get($item, 'option_id', null ) != null){
+                            $optionIds[] = data_get($item, 'option_id', null );
+                        }
+                    }
+                }
+                VariationOption::whereIn('id', $optionIds)->where('sell_count', '>', 0)->decrement('sell_count' ,$detail->quantity);
+            }
+            $detail->food()->where('sell_count', '>', 0)->decrement('sell_count' ,$detail->quantity);
+
+            foreach (json_decode($detail->add_ons, true) as $add_ons) {
+                if(data_get($add_ons, 'id', null ) != null){
+                AddOn::where('id',data_get($add_ons, 'id', null ))->where('sell_count', '>', 0)->decrement('sell_count' ,data_get($add_ons, 'quantity', 1 ));
+                }
+            }
+        }
+        return true;
+    }
+
+
+    public static function notificationDataSetup(){
+        $data []=[
+            'title' => 'forget_password',
+            'key' => 'forget_password',
+            'type' => 'admin',
+            'mail_status' => 'active',
+            'sms_status' => 'active',
+            'push_notification_status' => 'disable',
+            'sub_title' => 'Sent_notification_on_forget_password',
+        ];
+        $data []=[
+            'title' => 'deliveryman_self_registration',
+            'key' => 'deliveryman_self_registration',
+            'type' => 'admin',
+            'mail_status' => 'active',
+            'sms_status' => 'disable',
+            'push_notification_status' => 'disable',
+            'sub_title' => 'Sent_notification_on_deliveryman_self_registration',
+        ];
+        $data []=[
+            'title' => 'restaurant_self_registration',
+            'key' => 'restaurant_self_registration',
+            'type' => 'admin',
+            'mail_status' => 'active',
+            'sms_status' => 'disable',
+            'push_notification_status' => 'disable',
+            'sub_title' => 'Sent_notification_on_restaurant_self_registration',
+        ];
+        $data []=[
+            'title' => 'campaign_join_request',
+            'key' => 'campaign_join_request',
+            'type' => 'admin',
+            'mail_status' => 'active',
+            'sms_status' => 'disable',
+            'push_notification_status' => 'disable',
+            'sub_title' => 'Sent_notification_on_campaign_join_request',
+        ];
+        $data []=[
+            'title' => 'withdraw_request',
+            'key' => 'withdraw_request',
+            'type' => 'admin',
+            'mail_status' => 'active',
+            'sms_status' => 'disable',
+            'push_notification_status' => 'disable',
+            'sub_title' => 'Sent_notification_on_withdraw_request',
+        ];
+        $data []=[
+            'title' => 'order_refund_request',
+            'key' => 'order_refund_request',
+            'type' => 'admin',
+            'mail_status' => 'active',
+            'sms_status' => 'disable',
+            'push_notification_status' => 'disable',
+            'sub_title' => 'Sent_notification_on_order_refund_request',
+        ];
+
+        $data []=[
+            'title' => 'advertisement_add',
+            'key' => 'advertisement_add',
+            'type' => 'admin',
+            'mail_status' => 'active',
+            'sms_status' => 'disable',
+            'push_notification_status' => 'disable',
+            'sub_title' => 'Sent_notification_on_advertisement_add',
+        ];
+        $data []=[
+            'title' => 'advertisement_update',
+            'key' => 'advertisement_update',
+            'type' => 'admin',
+            'mail_status' => 'active',
+            'sms_status' => 'disable',
+            'push_notification_status' => 'disable',
+            'sub_title' => 'Sent_notification_on_advertisement_update',
+        ];
+
+        //delivery man
+
+        $data []=[
+            'title' => 'deliveryman_registration',
+            'key' => 'deliveryman_registration',
+            'type' => 'deliveryman',
+            'mail_status' => 'active',
+            'sms_status' => 'disable',
+            'push_notification_status' => 'disable',
+            'sub_title' => 'Sent_notification_on_deliveryman_registration',
+        ];
+        $data []=[
+            'title' => 'deliveryman_registration_approval',
+            'key' => 'deliveryman_registration_approval',
+            'type' => 'deliveryman',
+            'mail_status' => 'active',
+            'sms_status' => 'disable',
+            'push_notification_status' => 'disable',
+            'sub_title' => 'Sent_notification_on_deliveryman_registration_approval',
+        ];
+        $data []=[
+            'title' => 'deliveryman_registration_deny',
+            'key' => 'deliveryman_registration_deny',
+            'type' => 'deliveryman',
+            'mail_status' => 'active',
+            'sms_status' => 'disable',
+            'push_notification_status' => 'disable',
+            'sub_title' => 'Sent_notification_on_deliveryman_registration_deny',
+        ];
+        $data []=[
+            'title' => 'deliveryman_account_block',
+            'key' => 'deliveryman_account_block',
+            'type' => 'deliveryman',
+            'mail_status' => 'active',
+            'sms_status' => 'disable',
+            'push_notification_status' => 'active',
+            'sub_title' => 'Sent_notification_on_deliveryman_account_block',
+        ];
+        $data []=[
+            'title' => 'deliveryman_account_unblock',
+            'key' => 'deliveryman_account_unblock',
+            'type' => 'deliveryman',
+            'mail_status' => 'active',
+            'sms_status' => 'disable',
+            'push_notification_status' => 'active',
+            'sub_title' => 'Sent_notification_on_deliveryman_account_unblock',
+        ];
+        $data []=[
+            'title' => 'deliveryman_forget_password',
+            'key' => 'deliveryman_forget_password',
+            'type' => 'deliveryman',
+            'mail_status' => 'active',
+            'sms_status' => 'active',
+            'push_notification_status' => 'disable',
+            'sub_title' => 'Sent_notification_on_deliveryman_forget_password',
+        ];
+        $data []=[
+            'title' => 'deliveryman_collect_cash',
+            'key' => 'deliveryman_collect_cash',
+            'type' => 'deliveryman',
+            'mail_status' => 'active',
+            'sms_status' => 'disable',
+            'push_notification_status' => 'active',
+            'sub_title' => 'Sent_notification_on_deliveryman_collect_cash',
+        ];
+
+        $data []=[
+            'title' => 'deliveryman_order_notification',
+            'key' => 'deliveryman_order_notification',
+            'type' => 'deliveryman',
+            'mail_status' => 'disable',
+            'sms_status' => 'disable',
+            'push_notification_status' => 'active',
+            'sub_title' => 'Sent_notification_order_notification_to_deliveryman',
+        ];
+        $data []=[
+            'title' => 'deliveryman_order_assign_or_unassign',
+            'key' => 'deliveryman_order_assign_unassign',
+            'type' => 'deliveryman',
+            'mail_status' => 'disable',
+            'sms_status' => 'disable',
+            'push_notification_status' => 'active',
+            'sub_title' => 'Sent_notification_on_deliveryman_order_assign_or_unassign',
+        ];
+
+
+
+        // restaurant
+
+        $data []=[
+            'title' => 'restaurant_registration',
+            'key' => 'restaurant_registration',
+            'type' => 'restaurant',
+            'mail_status' => 'active',
+            'sms_status' => 'disable',
+            'push_notification_status' => 'disable',
+            'sub_title' => 'Sent_notification_on_restaurant_registration',
+        ];
+        $data []=[
+            'title' => 'restaurant_registration_approval',
+            'key' => 'restaurant_registration_approval',
+            'type' => 'restaurant',
+            'mail_status' => 'active',
+            'sms_status' => 'disable',
+            'push_notification_status' => 'disable',
+            'sub_title' => 'Sent_notification_on_restaurant_registration_approval',
+        ];
+        $data []=[
+            'title' => 'restaurant_registration_deny',
+            'key' => 'restaurant_registration_deny',
+            'type' => 'restaurant',
+            'mail_status' => 'active',
+            'sms_status' => 'disable',
+            'push_notification_status' => 'disable',
+            'sub_title' => 'Sent_notification_on_restaurant_registration_deny',
+        ];
+        $data []=[
+            'title' => 'restaurant_account_block',
+            'key' => 'restaurant_account_block',
+            'type' => 'restaurant',
+            'mail_status' => 'active',
+            'sms_status' => 'disable',
+            'push_notification_status' => 'active',
+            'sub_title' => 'Sent_notification_on_restaurant_account_block',
+        ];
+        $data []=[
+            'title' => 'restaurant_account_unblock',
+            'key' => 'restaurant_account_unblock',
+            'type' => 'restaurant',
+            'mail_status' => 'active',
+            'sms_status' => 'disable',
+            'push_notification_status' => 'active',
+            'sub_title' => 'Sent_notification_on_restaurant_account_unblock',
+        ];
+        $data []=[
+            'title' => 'restaurant_withdraw_approve',
+            'key' => 'restaurant_withdraw_approve',
+            'type' => 'restaurant',
+            'mail_status' => 'active',
+            'sms_status' => 'disable',
+            'push_notification_status' => 'active',
+            'sub_title' => 'Sent_notification_on_restaurant_withdraw_approve',
+        ];
+        $data []=[
+            'title' => 'restaurant_withdraw_rejaction',
+            'key' => 'restaurant_withdraw_rejaction',
+            'type' => 'restaurant',
+            'mail_status' => 'active',
+            'sms_status' => 'disable',
+            'push_notification_status' => 'active',
+            'sub_title' => 'Sent_notification_on_restaurant_withdraw_rejaction',
+        ];
+        $data []=[
+            'title' => 'restaurant_campaign_join_request',
+            'key' => 'restaurant_campaign_join_request',
+            'type' => 'restaurant',
+            'mail_status' => 'active',
+            'sms_status' => 'disable',
+            'push_notification_status' => 'disable',
+            'sub_title' => 'Sent_notification_on_restaurant_campaign_join_request',
+        ];
+        $data []=[
+            'title' => 'restaurant_campaign_join_rejaction',
+            'key' => 'restaurant_campaign_join_rejaction',
+            'type' => 'restaurant',
+            'mail_status' => 'active',
+            'sms_status' => 'disable',
+            'push_notification_status' => 'active',
+            'sub_title' => 'Sent_notification_on_restaurant_campaign_join_rejaction',
+        ];
+        $data []=[
+            'title' => 'restaurant_campaign_join_approval',
+            'key' => 'restaurant_campaign_join_approval',
+            'type' => 'restaurant',
+            'mail_status' => 'active',
+            'sms_status' => 'disable',
+            'push_notification_status' => 'active',
+            'sub_title' => 'Sent_notification_on_restaurant_campaign_join_approval',
+        ];
+        $data []=[
+            'title' => 'restaurant_order_notification',
+            'key' => 'restaurant_order_notification',
+            'type' => 'restaurant',
+            'mail_status' => 'disable',
+            'sms_status' => 'disable',
+            'push_notification_status' => 'active',
+            'sub_title' => 'Sent_notification_on_restaurant_order_notification',
+        ];
+
+        $data []=[
+            'title' => 'restaurant_advertisement_create_by_admin',
+            'key' => 'restaurant_advertisement_create_by_admin',
+            'type' => 'restaurant',
+            'mail_status' => 'active',
+            'sms_status' => 'disable',
+            'push_notification_status' => 'active',
+            'sub_title' => 'Sent_notification_on_restaurant_advertisement_create_by_admin',
+        ];
+        $data []=[
+            'title' => 'restaurant_advertisement_approval',
+            'key' => 'restaurant_advertisement_approval',
+            'type' => 'restaurant',
+            'mail_status' => 'active',
+            'sms_status' => 'disable',
+            'push_notification_status' => 'active',
+            'sub_title' => 'Sent_notification_on_restaurant_advertisement_approval',
+        ];
+        $data []=[
+            'title' => 'restaurant_advertisement_deny',
+            'key' => 'restaurant_advertisement_deny',
+            'type' => 'restaurant',
+            'mail_status' => 'active',
+            'sms_status' => 'disable',
+            'push_notification_status' => 'active',
+            'sub_title' => 'Sent_notification_on_restaurant_advertisement_deny',
+        ];
+        $data []=[
+            'title' => 'restaurant_advertisement_resume',
+            'key' => 'restaurant_advertisement_resume',
+            'type' => 'restaurant',
+            'mail_status' => 'active',
+            'sms_status' => 'disable',
+            'push_notification_status' => 'active',
+            'sub_title' => 'Sent_notification_on_restaurant_advertisement_resume',
+        ];
+        $data []=[
+            'title' => 'restaurant_advertisement_pause',
+            'key' => 'restaurant_advertisement_pause',
+            'type' => 'restaurant',
+            'mail_status' => 'active',
+            'sms_status' => 'disable',
+            'push_notification_status' => 'active',
+            'sub_title' => 'Sent_notification_on_restaurant_advertisement_pause',
+        ];
+
+        // Customer
+        $data []=[
+            'title' => 'customer_registration',
+            'key' => 'customer_registration',
+            'type' => 'customer',
+            'mail_status' => 'active',
+            'sms_status' => 'disable',
+            'push_notification_status' => 'disable',
+            'sub_title' => 'Sent_notification_on_customer_registration',
+        ];
+        $data []=[
+            'title' => 'customer_pos_registration',
+            'key' => 'customer_pos_registration',
+            'type' => 'customer',
+            'mail_status' => 'active',
+            'sms_status' => 'disable',
+            'push_notification_status' => 'disable',
+            'sub_title' => 'Sent_notification_on_customer_pos_registration',
+        ];
+        $data []=[
+            'title' => 'customer_registration_otp',
+            'key' => 'customer_registration_otp',
+            'type' => 'customer',
+            'mail_status' => 'active',
+            'sms_status' => 'active',
+            'push_notification_status' => 'disable',
+            'sub_title' => 'Sent_notification_on_customer_registration_otp',
+        ];
+        $data []=[
+            'title' => 'customer_login_otp',
+            'key' => 'customer_login_otp',
+            'type' => 'customer',
+            'mail_status' => 'active',
+            'sms_status' => 'active',
+            'push_notification_status' => 'disable',
+            'sub_title' => 'Sent_notification_on_customer_login_otp',
+        ];
+        $data []=[
+            'title' => 'customer_forget_password',
+            'key' => 'customer_forget_password',
+            'type' => 'customer',
+            'mail_status' => 'active',
+            'sms_status' => 'active',
+            'push_notification_status' => 'disable',
+            'sub_title' => 'Sent_notification_on_customer_forget_password',
+        ];
+
+        $data []=[
+            'title' => 'customer_order_notification',
+            'key' => 'customer_order_notification',
+            'type' => 'customer',
+            'mail_status' => 'active',
+            'sms_status' => 'disable',
+            'push_notification_status' => 'active',
+            'sub_title' => 'Sent_notification_on_customer_order_notification',
+        ];
+
+        $data []=[
+            'title' => 'customer_delivery_verification',
+            'key' => 'customer_delivery_verification',
+            'type' => 'customer',
+            'mail_status' => 'active',
+            'sms_status' => 'disable',
+            'push_notification_status' => 'active',
+            'sub_title' => 'Sent_notification_on_customer_delivery_verification',
+        ];
+
+        $data []=[
+            'title' => 'customer_refund_request_approval',
+            'key' => 'customer_refund_request_approval',
+            'type' => 'customer',
+            'mail_status' => 'active',
+            'sms_status' => 'disable',
+            'push_notification_status' => 'active',
+            'sub_title' => 'Sent_notification_on_customer_refund_request_approval',
+        ];
+        $data []=[
+            'title' => 'customer_refund_request_rejaction',
+            'key' => 'customer_refund_request_rejaction',
+            'type' => 'customer',
+            'mail_status' => 'active',
+            'sms_status' => 'disable',
+            'push_notification_status' => 'active',
+            'sub_title' => 'Sent_notification_on_customer_refund_request_rejaction',
+        ];
+        $data []=[
+            'title' => 'customer_add_fund_to_wallet',
+            'key' => 'customer_add_fund_to_wallet',
+            'type' => 'customer',
+            'mail_status' => 'active',
+            'sms_status' => 'disable',
+            'push_notification_status' => 'active',
+            'sub_title' => 'Sent_notification_on_customer_add_fund_to_wallet',
+        ];
+        $data []=[
+            'title' => 'customer_offline_payment_approve',
+            'key' => 'customer_offline_payment_approve',
+            'type' => 'customer',
+            'mail_status' => 'active',
+            'sms_status' => 'disable',
+            'push_notification_status' => 'active',
+            'sub_title' => 'Sent_notification_on_customer_offline_payment_approve',
+        ];
+        $data []=[
+            'title' => 'customer_offline_payment_deny',
+            'key' => 'customer_offline_payment_deny',
+            'type' => 'customer',
+            'mail_status' => 'active',
+            'sms_status' => 'disable',
+            'push_notification_status' => 'active',
+            'sub_title' => 'Sent_notification_on_customer_offline_payment_deny',
+        ];
+        $data []=[
+            'title' => 'customer_account_block',
+            'key' => 'customer_account_block',
+            'type' => 'customer',
+            'mail_status' => 'active',
+            'sms_status' => 'disable',
+            'push_notification_status' => 'active',
+            'sub_title' => 'Sent_notification_on_customer_account_block',
+        ];
+        $data []=[
+            'title' => 'customer_account_unblock',
+            'key' => 'customer_account_unblock',
+            'type' => 'customer',
+            'mail_status' => 'active',
+            'sms_status' => 'disable',
+            'push_notification_status' => 'active',
+            'sub_title' => 'Sent_notification_on_customer_account_unblock',
+        ];
+        $data []=[
+            'title' => 'customer_cashback',
+            'key' => 'customer_cashback',
+            'type' => 'customer',
+            'mail_status' => 'disable',
+            'sms_status' => 'disable',
+            'push_notification_status' => 'active',
+            'sub_title' => 'Sent_notification_on_customer_cashback',
+        ];
+        $data []=[
+            'title' => 'customer_referral_bonus_earning',
+            'key' => 'customer_referral_bonus_earning',
+            'type' => 'customer',
+            'mail_status' => 'disable',
+            'sms_status' => 'disable',
+            'push_notification_status' => 'active',
+            'sub_title' => 'Sent_notification_on_customer_referral_bonus_earning',
+        ];
+        $data []=[
+            'title' => 'customer_new_referral_join',
+            'key' => 'customer_new_referral_join',
+            'type' => 'customer',
+            'mail_status' => 'disable',
+            'sms_status' => 'disable',
+            'push_notification_status' => 'active',
+            'sub_title' => 'Sent_notification_on_customer_new_referral_join',
+        ];
+
+
+        $data = NotificationSetting::upsert($data,['key','type'],['title','mail_status','sms_status','push_notification_status','sub_title']);
+    }
+
+    public static function getNotificationStatusData($user_type,$key){
+        $data= NotificationSetting::where('type',$user_type)->where('key',$key)->select(['mail_status','push_notification_status','sms_status'])->first();
+        return $data ?? null ;
+    }
+
+    public static function restaurantNotificationDataSetup($id){
+        $data []=[
+            'title' => 'restaurant_account_block',
+            'key' => 'restaurant_account_block',
+            'restaurant_id' => $id,
+            'mail_status' => 'active',
+            'sms_status' => 'disable',
+            'push_notification_status' => 'active',
+            'sub_title' => 'Get_notification_on_restaurant_account_block',
+        ];
+        $data []=[
+            'title' => 'restaurant_account_unblock',
+            'key' => 'restaurant_account_unblock',
+            'restaurant_id' => $id,
+            'mail_status' => 'active',
+            'sms_status' => 'disable',
+            'push_notification_status' => 'active',
+            'sub_title' => 'Get_notification_on_restaurant_account_unblock',
+        ];
+        $data []=[
+            'title' => 'restaurant_withdraw_approve',
+            'key' => 'restaurant_withdraw_approve',
+            'restaurant_id' => $id,
+            'mail_status' => 'active',
+            'sms_status' => 'disable',
+            'push_notification_status' => 'active',
+            'sub_title' => 'Get_notification_on_restaurant_withdraw_approve',
+        ];
+        $data []=[
+            'title' => 'restaurant_withdraw_rejaction',
+            'key' => 'restaurant_withdraw_rejaction',
+            'restaurant_id' => $id,
+            'mail_status' => 'active',
+            'sms_status' => 'disable',
+            'push_notification_status' => 'active',
+            'sub_title' => 'Get_notification_on_restaurant_withdraw_rejaction',
+        ];
+        $data []=[
+            'title' => 'restaurant_campaign_join_request',
+            'key' => 'restaurant_campaign_join_request',
+            'restaurant_id' => $id,
+            'mail_status' => 'active',
+            'sms_status' => 'disable',
+            'push_notification_status' => 'disable',
+            'sub_title' => 'Get_notification_on_restaurant_campaign_join_request',
+        ];
+        $data []=[
+            'title' => 'restaurant_campaign_join_rejaction',
+            'key' => 'restaurant_campaign_join_rejaction',
+            'restaurant_id' => $id,
+            'mail_status' => 'active',
+            'sms_status' => 'disable',
+            'push_notification_status' => 'active',
+            'sub_title' => 'Get_notification_on_restaurant_campaign_join_rejaction',
+        ];
+        $data []=[
+            'title' => 'restaurant_campaign_join_approval',
+            'key' => 'restaurant_campaign_join_approval',
+            'restaurant_id' => $id,
+            'mail_status' => 'active',
+            'sms_status' => 'disable',
+            'push_notification_status' => 'active',
+            'sub_title' => 'Get_notification_on_restaurant_campaign_join_approval',
+        ];
+        $data []=[
+            'title' => 'restaurant_order_notification',
+            'key' => 'restaurant_order_notification',
+            'restaurant_id' => $id,
+            'mail_status' => 'disable',
+            'sms_status' => 'disable',
+            'push_notification_status' => 'active',
+            'sub_title' => 'Get_notification_on_restaurant_order_notification',
+        ];
+
+        $data []=[
+            'title' => 'restaurant_advertisement_create_by_admin',
+            'key' => 'restaurant_advertisement_create_by_admin',
+            'restaurant_id' => $id,
+            'mail_status' => 'active',
+            'sms_status' => 'disable',
+            'push_notification_status' => 'active',
+            'sub_title' => 'Get_notification_on_restaurant_advertisement_create_by_admin',
+        ];
+        $data []=[
+            'title' => 'restaurant_advertisement_approval',
+            'key' => 'restaurant_advertisement_approval',
+            'restaurant_id' => $id,
+            'mail_status' => 'active',
+            'sms_status' => 'disable',
+            'push_notification_status' => 'active',
+            'sub_title' => 'Get_notification_on_restaurant_advertisement_approval',
+        ];
+        $data []=[
+            'title' => 'restaurant_advertisement_deny',
+            'key' => 'restaurant_advertisement_deny',
+            'restaurant_id' => $id,
+            'mail_status' => 'active',
+            'sms_status' => 'disable',
+            'push_notification_status' => 'active',
+            'sub_title' => 'Get_notification_on_restaurant_advertisement_deny',
+        ];
+        $data []=[
+            'title' => 'restaurant_advertisement_resume',
+            'key' => 'restaurant_advertisement_resume',
+            'restaurant_id' => $id,
+            'mail_status' => 'active',
+            'sms_status' => 'disable',
+            'push_notification_status' => 'active',
+            'sub_title' => 'Get_notification_on_restaurant_advertisement_resume',
+        ];
+        $data []=[
+            'title' => 'restaurant_advertisement_pause',
+            'key' => 'restaurant_advertisement_pause',
+            'restaurant_id' => $id,
+            'mail_status' => 'active',
+            'sms_status' => 'disable',
+            'push_notification_status' => 'active',
+            'sub_title' => 'Get_notification_on_restaurant_advertisement_pause',
+        ];
+
+
+        $data = RestaurantNotificationSetting::upsert($data,['key','restaurant_id'],['title','mail_status','sms_status','push_notification_status','sub_title']);
+    }
+
+    public static function getRestaurantNotificationStatusData($restaurant_id,$key){
+        $data= RestaurantNotificationSetting::where('restaurant_id',$restaurant_id)->where('key',$key)->select(['mail_status','push_notification_status','sms_status'])->first();
+        if(!$data){
+            self::restaurantNotificationDataSetup($restaurant_id);
+            $data= RestaurantNotificationSetting::where('restaurant_id',$restaurant_id)->where('key',$key)->select(['mail_status','push_notification_status','sms_status'])->first();
+        }
+        return $data ?? null ;
+    }
+
+
+    public static function getActivePaymentGateways(){
+
+        if (!Schema::hasTable('addon_settings')) {
+            return [];
+        }
+
+        $published_status = 0;
+        $payment_published_status = config('get_payment_publish_status');
+        if (isset($payment_published_status[0]['is_published'])) {
+            $published_status = $payment_published_status[0]['is_published'];
+        }
+
+
+        if($published_status == 1){
+            $methods = DB::table('addon_settings')->where('is_active',1)->where('settings_type', 'payment_config')->get();
+            $env = env('APP_ENV') == 'live' ? 'live' : 'test';
+            $credentials = $env . '_values';
+
+        } else{
+            $methods = DB::table('addon_settings')->where('is_active',1)->whereIn('settings_type', ['payment_config'])->whereIn('key_name', ['ssl_commerz','paypal','stripe','razor_pay','senang_pay','paytabs','paystack','paymob_accept','paytm','flutterwave','liqpay','bkash','mercadopago'])->get();
+            $env = env('APP_ENV') == 'live' ? 'live' : 'test';
+            $credentials = $env . '_values';
+
+        }
+
+            $data = [];
+            foreach ($methods as $method) {
+                $credentialsData = json_decode($method->$credentials);
+                $additional_data = json_decode($method->additional_data);
+                if ($credentialsData->status == 1) {
+                    $data[] = [
+                        'gateway' => $method->key_name,
+                        'gateway_title' => $additional_data?->gateway_title,
+                        'gateway_image' => $additional_data?->gateway_image,
+                        'gateway_image_full_url' => Helpers::get_full_url('payment_modules/gateway_image',$additional_data?->gateway_image,$additional_data?->storage ?? 'public')
+                    ];
+                }
+            }
+            return $data;
+
+    }
+
+
+
+    public static function checkCurrency($data , $type= null){
+
+        $digital_payment=self::get_business_settings('digital_payment');
+
+        if($digital_payment && $digital_payment['status']==1){
+            if($type === null){
+                if(is_array(self::getActivePaymentGateways())){
+                    foreach(self::getActivePaymentGateways() as $payment_gateway){
+
+                        if(!empty(self::getPaymentGatewaySupportedCurrencies($payment_gateway['gateway'])) && !array_key_exists($data,self::getPaymentGatewaySupportedCurrencies($payment_gateway['gateway']))    ){
+                            return  $payment_gateway['gateway'];
+                        }
+                    }
+                }
+            }
+            elseif($type == 'payment_gateway'){
+                $currency=  BusinessSetting::where('key','currency')->first()?->value;
+                    if(!empty(self::getPaymentGatewaySupportedCurrencies($data)) && !array_key_exists($currency,self::getPaymentGatewaySupportedCurrencies($data))    ){
+                        return  $data;
+                    }
+            }
+        }
+
+        return true;
+        }
+
+    public static function updateStorageTable($dataType, $dataId, $image)
+    {
+        $value = Helpers::getDisk();
+        DB::table('storages')->updateOrInsert([
+            'data_type' => $dataType,
+            'data_id' => $dataId,
+            'key' => 'image',
+        ], [
+            'value' => $value,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+
+
+        public static function add_fund_push_notification($user_id){
+            $customer_push_notification_status=self::getNotificationStatusData('customer','customer_add_fund_to_wallet');
+
+            $user= User::where('id',$user_id)->first();
+            if ($customer_push_notification_status?->push_notification_status  == 'active' && $user?->cm_firebase_token) {
+                $data = [
+                    'title' => translate('messages.Fund_added'),
+                    'description' => translate('messages.Fund_added_to_your_wallet'),
+                    'order_id' => '',
+                    'image' => '',
+                    'type' => 'add_fund',
+                    'order_status' =>'',
+                ];
+                self::send_push_notif_to_device($user?->cm_firebase_token, $data);
+
+                DB::table('user_notifications')->insert([
+                    'data' => json_encode($data),
+                    'user_id' => $user_id,
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]);
+            }
+            return true;
+        }
+
+        public static function  getImageForExport($imagePath)
+    {
+        $temporaryImage = self::getTemporaryImageForExport($imagePath);
+        $pngImage = imagecreatetruecolor(imagesx($temporaryImage), imagesy($temporaryImage));
+        imagealphablending($pngImage, false);
+        imagesavealpha($pngImage, true);
+        imagecopy($pngImage, $temporaryImage, 0, 0, 0, 0, imagesx($temporaryImage), imagesy($temporaryImage));
+        return $pngImage;
+    }
+    public static function  getTemporaryImageForExport($imagePath)
+    {
+        try {
+            $imageData = file_get_contents($imagePath);
+            return imagecreatefromstring($imageData);
+            } catch (\Throwable $th) {
+            $imageData = file_get_contents(dynamicAsset('public/assets/admin/img/100x100/no-image-found.png'));
+            return imagecreatefromstring($imageData);
+
+        }
     }
 
 }

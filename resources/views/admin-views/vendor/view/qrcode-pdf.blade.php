@@ -90,7 +90,7 @@
                                 <div class="d-flex justify-content-center">
                                     <a href="#" class="qr-logo">
                                                 <img width="200" class="img--110 onerror-image"
-                                                src="{{\App\CentralLogics\Helpers::onerror_image_helper($restaurant?->logo, dynamicStorage('storage/app/public/restaurant').'/'.$restaurant?->logo, dynamicAsset('public/assets/admin/img/logo2.png'), 'restaurant/') }}"
+                                                src="{{ $restaurant?->logo_full_url ?? dynamicAsset('public/assets/admin/img/logo2.png') }}"
                                                 data-onerror-image="{{ dynamicAsset('public/assets/admin/img/logo2.png') }}" alt="image">
 
                                     </a>

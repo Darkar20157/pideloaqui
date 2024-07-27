@@ -245,12 +245,7 @@
                                                 <a class="media align-foods-center"
                                                     href="{{ route('vendor.food.view', [$food['id']]) }}">
                                                     <img class="avatar avatar-lg mr-3 onerror-image"
-                                                         src="{{ \App\CentralLogics\Helpers::onerror_image_helper(
-                                                            $food['image'] ?? '',
-                                                            dynamicStorage('storage/app/public/product').'/'.$food['image'] ?? '',
-                                                            dynamicAsset('public/assets/admin/img/100x100/food-default-image.png'),
-                                                            'product/'
-                                                        ) }}"
+                                                         src="{{ $food['image_full_url'] ?? dynamicAsset('public/assets/admin/img/100x100/food-default-image.png') }}"
                                                          data-onerror-image="{{dynamicAsset('public/assets/admin/img/100x100/food-default-image.png')}}"
                                                         alt="{{ $food->name }} image">
                                                     <div class="media-body">

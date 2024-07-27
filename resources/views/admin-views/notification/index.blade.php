@@ -63,7 +63,7 @@
 
                                 <div class="image-box banner">
                                     <label for="image-input" class="d-flex flex-column align-items-center justify-content-center h-100 cursor-pointer gap-2">
-                                        <img width="30" class="upload-icon" src="{{asset('public/assets/admin/img/upload-icon.png')}}" alt="Upload Icon">
+                                        <img width="30" class="upload-icon" src="{{dynamicAsset('public/assets/admin/img/upload-icon.png')}}" alt="Upload Icon">
                                         <span class="upload-text">{{ translate('Upload Image')}}</span>
                                         <img src="#" alt="Preview Image" class="preview-image">
                                     </label>
@@ -177,12 +177,7 @@
                             </td>
                             <td>
                                 <img class="initial-31 onerror-image"
-                                     src="{{ \App\CentralLogics\Helpers::onerror_image_helper(
-                                                $notification['image'] ?? '',
-                                                dynamicStorage('storage/app/public/notification').'/'.$notification['image'],
-                                                dynamicAsset('public/assets/admin/img/900x400/img1.jpg'),
-                                                'notification/'
-                                            ) }}"
+                                     src="{{ $notification['image_full_url'] }}"
                                      data-onerror-image="{{dynamicAsset('public/assets/admin/img/900x400/img1.jpg')}}">
                             </td>
                             <td>

@@ -1,14 +1,18 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Admin\CashBackController;
 
 
 Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
 
     Route::group(['middleware' => ['admin']], function () {
-
+        // Route::get("/new-page", function(){
+        //     return view("admin-views.create-advertisement");
+        // });
         Route::get('lang/{locale}', 'LanguageController@lang')->name('lang');
         Route::get('settings', 'SystemController@settings')->name('settings');
+        Route::get('system-currency', 'SystemController@system_currency')->name('system_currency');
         Route::post('settings', 'SystemController@settings_update');
         Route::post('settings-password', 'SystemController@settings_password_update')->name('settings-password');
         Route::get('/get-restaurant-data', 'SystemController@restaurant_data')->name('get-restaurant-data');
@@ -73,6 +77,7 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
             Route::post('search-restaurant', 'FoodController@search_vendor')->name('search-restaurant');
             Route::get('reviews', 'FoodController@review_list')->name('reviews');
             Route::post('restaurant-food-export', 'FoodController@restaurant_food_export')->name('restaurant-food-export');
+            Route::post('update-stock', 'FoodController@updateStock')->name('updateStock');
             Route::get('restaurant-food-export/{type}/{restaurant_id}', 'FoodController@restaurant_food_export')->name('restaurant-food-export');
 
             Route::get('view/{id}', 'FoodController@view')->name('view');
@@ -125,6 +130,26 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
             Route::get('food-campaign-order-list-export', 'CampaignController@food_campaign_list_export')->name('food_campaign_list_export');
         });
 
+        Route::group([ 'prefix' => 'advertisement', 'as' => 'advertisement.' ,'middleware' => ['module:advertisement']], function () {
+
+            Route::get('/', 'AdvertisementController@index')->name('index');
+            Route::get('create/', 'AdvertisementController@create')->name('create');
+            Route::get('details/{advertisement}', 'AdvertisementController@show')->name('show');
+            Route::get('{advertisement}/edit', 'AdvertisementController@edit')->name('edit');
+            Route::post('store', 'AdvertisementController@store')->name('store');
+            Route::put('update/{advertisement}', 'AdvertisementController@update')->name('update');
+            Route::delete('delete/{id}', 'AdvertisementController@destroy')->name('destroy');
+
+            Route::get('/status', 'AdvertisementController@status')->name('status');
+            Route::get('/paidStatus', 'AdvertisementController@paidStatus')->name('paidStatus');
+            Route::get('/priority', 'AdvertisementController@priority')->name('priority');
+            Route::get('/requests', 'AdvertisementController@requestList')->name('requestList');
+            Route::get('/copy-advertisement/{advertisement}', 'AdvertisementController@copyAdd')->name('copyAdd');
+            Route::get('/updateDate/{advertisement}', 'AdvertisementController@updateDate')->name('updateDate');
+            Route::post('/copy-add-post/{advertisement}', 'AdvertisementController@copyAddPost')->name('copyAddPost');
+
+        });
+
         Route::group(['prefix' => 'coupon', 'as' => 'coupon.', 'middleware' => ['module:coupon']], function () {
             Route::get('add-new', 'CouponController@add_new')->name('add-new');
             Route::post('store', 'CouponController@store')->name('store');
@@ -135,6 +160,15 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
             // Route::post('search', 'CouponController@search')->name('search');
             Route::get('coupon-export', 'CouponController@coupon_export')->name('coupon_export');
 
+        });
+
+        Route::group(['prefix' => 'cashback', 'as' => 'cashback.'], function () {
+            Route::get('/', [CashBackController::class,'index'])->name('add-new');
+            Route::post('store', [CashBackController::class,'add'])->name('store');
+            Route::get('edit/{id}', [CashBackController::class,'getUpdateView'])->name('edit');
+            Route::post('edit/{id}', [CashBackController::class,'update'])->name('update');
+            Route::delete('delete/{id}', [CashBackController::class,'delete'])->name('delete');
+            Route::get('status/{id}/{status}', [CashBackController::class,'updateStatus'])->name('status');
         });
 
         Route::group(['prefix' => 'attribute', 'as' => 'attribute.', 'middleware' => ['module:attribute']], function () {
@@ -154,6 +188,7 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
         });
 
         Route::get('restaurant/get-restaurants', 'VendorController@get_restaurants')->name('restaurant.get-restaurants');
+        Route::get('restaurant/get-restaurant-ratings', 'VendorController@get_restaurant_ratings')->name('restaurant.get-restaurant-ratings');
         Route::group(['prefix' => 'restaurant', 'as' => 'restaurant.','middleware'=>['module:restaurant']], function () {
             Route::get('get-restaurants-data/{restaurant}', 'VendorController@get_restaurant_data')->name('get-restaurants-data');
             Route::get('restaurant-filter/{id}', 'VendorController@restaurant_filter')->name('restaurantfilter');
@@ -354,6 +389,7 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
             Route::post('update-dm', 'BusinessSettingsController@update_dm')->name('update-dm');
             Route::post('update-disbursement', 'BusinessSettingsController@update_disbursement')->name('update-disbursement');
             Route::post('update-order', 'BusinessSettingsController@update_order')->name('update-order');
+            Route::post('update-priority', 'BusinessSettingsController@update_priority')->name('update-priority');
             Route::post('update-restaurant', 'BusinessSettingsController@update_restaurant')->name('update-restaurant');
             Route::get('config-setup', 'BusinessSettingsController@config_setup')->name('config-setup');
             Route::post('config-update', 'BusinessSettingsController@config_update')->name('config-update');
@@ -367,6 +403,8 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
             Route::get('landing-page-settings/{tab?}', 'BusinessSettingsController@landing_page_settings')->name('landing-page-settings');
             Route::POST('landing-page-settings/{tab}', 'BusinessSettingsController@update_landing_page_settings')->name('landing-page-settings');
             Route::DELETE('landing-page-settings/{tab}/{key}', 'BusinessSettingsController@delete_landing_page_settings')->name('landing-page-settings-delete');
+            Route::get('notification-setup', 'BusinessSettingsController@notification_setup')->name('notification_setup');
+            Route::get('notification-status-change/{key}/{user_type}/{type}', 'BusinessSettingsController@notification_status_change')->name('notification_status_change');
 
             Route::get('toggle-settings/{key}/{value}', 'BusinessSettingsController@toggle_settings')->name('toggle-settings');
 
@@ -421,6 +459,9 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
             Route::get('social-media/fetch', 'SocialMediaController@fetch')->name('social-media.fetch');
             Route::get('social-media/status-update', 'SocialMediaController@social_media_status_update')->name('social-media.status-update');
             Route::resource('social-media', 'SocialMediaController');
+            //file_system
+            Route::get('storage-connection', 'BusinessSettingsController@storage_connection_index')->name('storage_connection_index');
+            Route::post('storage-connection-update/{name}', 'BusinessSettingsController@storage_connection_update')->name('storage_connection_update');
 
             //db clean
             Route::get('db-index', 'DatabaseSettingController@db_index')->name('db-index');
@@ -691,8 +732,8 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
 
 
         Route::group(['prefix' => 'file-manager', 'as' => 'file-manager.'], function () {
-            Route::get('/download/{file_name}', 'FileManagerController@download')->name('download');
-            Route::get('/index/{folder_path?}', 'FileManagerController@index')->name('index');
+            Route::get('/download/{file_name}/{storage?}', 'FileManagerController@download')->name('download');
+            Route::get('/index/{folder_path?}/{storage?}', 'FileManagerController@index')->name('index');
             Route::post('/image-upload', 'FileManagerController@upload')->name('image-upload');
             Route::delete('/delete/{file_path}', 'FileManagerController@destroy')->name('destroy');
         });
@@ -802,6 +843,7 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
             Route::post('language/remove-key/{lang}', 'LanguageController@translate_key_remove')->name('remove-key');
             Route::get('language/delete/{lang}', 'LanguageController@delete')->name('delete');
             Route::any('language/auto-translate/{lang}', 'LanguageController@auto_translate')->name('auto-translate');
+            Route::get('language/auto-translate-all/{lang}', 'LanguageController@auto_translate_all')->name('auto_translate_all');
         });
 
         Route::group(['prefix' => 'business-settings', 'as' => 'refund.', 'middleware' => ['module:order']], function () {

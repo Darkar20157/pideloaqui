@@ -40,7 +40,7 @@ class ConfigController extends Controller
             'loyalty_point_exchange_rate', 'loyalty_point_item_purchase_point', 'loyalty_point_status', 'loyalty_point_minimum_point', 'wallet_status', 'schedule_order', 'dm_tips_status', 'ref_earning_status', 'ref_earning_exchange_rate', 'theme','business_model','admin_commission','footer_text' ,'icon','refund_active_status',
             'refund_policy','shipping_policy','cancellation_policy','free_trial_period','app_minimum_version_android_restaurant',
             'app_url_android_restaurant','app_minimum_version_ios_restaurant','app_url_ios_restaurant','app_minimum_version_android_deliveryman','tax_included','order_subscription',
-            'app_url_android_deliveryman','app_minimum_version_ios_deliveryman','app_url_ios_deliveryman', 'cookies_text','take_away','repeat_order_option','home_delivery','add_fund_status','partial_payment_status','partial_payment_method','additional_charge','additional_charge_status','additional_charge_name','dm_picture_upload_status','offline_payment_status','instant_order','customer_date_order_sratus' ,'customer_order_date','free_delivery_distance','guest_checkout_status','disbursement_type','restaurant_disbursement_waiting_time','dm_disbursement_waiting_time', 'min_amount_to_pay_restaurant' ,'min_amount_to_pay_dm'
+            'app_url_android_deliveryman','app_minimum_version_ios_deliveryman','app_url_ios_deliveryman', 'cookies_text','take_away','repeat_order_option','home_delivery','add_fund_status','partial_payment_status','partial_payment_method','additional_charge','additional_charge_status','additional_charge_name','dm_picture_upload_status','offline_payment_status','instant_order','customer_date_order_sratus' ,'customer_order_date','free_delivery_distance','guest_checkout_status','country_picker_status','disbursement_type','restaurant_disbursement_waiting_time','dm_disbursement_waiting_time', 'min_amount_to_pay_restaurant', 'extra_packaging_charge' ,'min_amount_to_pay_dm','restaurant_review_reply'
         ];
 
 
@@ -51,6 +51,8 @@ class ConfigController extends Controller
         $restaurant_additional_join_us_page_data =  $restaurant_additional_join_us_page_data && count(json_decode($restaurant_additional_join_us_page_data ,true))  > 0 ? json_decode($restaurant_additional_join_us_page_data ,true)  : null;
 
         $banner_data=  DataSetting::where('type','promotional_banner')->whereIn('key' ,['promotional_banner_title' ,'promotional_banner_image'])->pluck('value','key')->toArray();
+        $banner_data_storage=DataSetting::where('type','promotional_banner')->where('key' ,'promotional_banner_image')->first()?->storage[0]?->value ??'public';
+        $banner_data['promotional_banner_image_full_url'] = Helpers::get_full_url('banner',$banner_data['promotional_banner_image'],$banner_data_storage);
         $social_login = [];
         $social_login_data=Helpers::get_business_settings('social_login') ?? [];
         foreach ($social_login_data as $social) {
@@ -72,6 +74,14 @@ class ConfigController extends Controller
 
 
         $settings =  array_column(BusinessSetting::whereIn('key', $key)->get()->toArray(), 'value', 'key');
+
+        $image_key = ['logo','icon'];
+        $data = [];
+
+        foreach ($image_key as $value){
+            $data[$value.'_storage'] = BusinessSetting::where('key',$value)->first()?->storage[0]?->value ??'public';
+        }
+
         $currency_symbol = Currency::where(['currency_code' => Helpers::currency_code()])->first()?->currency_symbol;
         $cod = json_decode($settings['cash_on_delivery'], true);
         $business_plan = isset($settings['business_model']) ? json_decode($settings['business_model'], true) : [
@@ -118,6 +128,7 @@ class ConfigController extends Controller
         return response()->json([
             'business_name' => $settings['business_name'],
             'logo' => $settings['logo'],
+            'logo_full_url' => Helpers::get_full_url('business',$settings['logo'],$data['logo_storage']??'public'),
             'address' => $settings['address'],
             'phone' => $settings['phone'],
             'email' => $settings['email_address'],
@@ -191,6 +202,7 @@ class ConfigController extends Controller
             'admin_commission' => (float)(isset($settings['admin_commission']) ? $settings['admin_commission'] : 0),
             'footer_text' => $settings['footer_text'],
             'fav_icon' => $settings['icon'],
+            'fav_icon_full_url' => Helpers::get_full_url('business',$settings['icon'],$data['icon_storage']??'public'),
             'refund_active_status' => (bool)(isset($settings['refund_active_status']) ? $settings['refund_active_status'] : 0),
 
             'free_trial_period_status' => (int)(isset($settings['free_trial_period']) ? json_decode($settings['free_trial_period'], true)['status'] : 0),
@@ -235,8 +247,10 @@ class ConfigController extends Controller
             'banner_data' => count($banner_data) > 0 ? $banner_data :null,
             'offline_payment_status' => (int)(isset($settings['offline_payment_status']) ? $settings['offline_payment_status'] : 0),
             'guest_checkout_status' => (int)(isset($settings['guest_checkout_status']) ? $settings['guest_checkout_status'] : 0),
+            'country_picker_status' => (int)(isset($settings['country_picker_status']) ? $settings['country_picker_status'] : 0),
 
             'instant_order' => (bool)(isset($settings['instant_order']) ? $settings['instant_order'] : 0),
+            'extra_packaging_charge' => (bool)(isset($settings['extra_packaging_charge']) ? $settings['extra_packaging_charge'] : 0),
             'customer_date_order_sratus' => (bool)(isset($settings['customer_date_order_sratus']) ? $settings['customer_date_order_sratus'] : 0),
             'customer_order_date' => (int)(isset($settings['customer_order_date']) ? $settings['customer_order_date'] : 0),
             'deliveryman_additional_join_us_page_data' => $deliveryman_additional_join_us_page_data,
@@ -246,6 +260,7 @@ class ConfigController extends Controller
             'dm_disbursement_waiting_time' => (int)(isset($settings['dm_disbursement_waiting_time']) ? $settings['dm_disbursement_waiting_time'] : 0),
             'min_amount_to_pay_restaurant' => (float)(isset($settings['min_amount_to_pay_restaurant']) ? $settings['min_amount_to_pay_restaurant'] : 0),
             'min_amount_to_pay_dm' => (float)(isset($settings['min_amount_to_pay_dm']) ? $settings['min_amount_to_pay_dm'] : 0),
+            'restaurant_review_reply' => (bool)(isset($settings['restaurant_review_reply']) ? $settings['restaurant_review_reply'] : false),
         ]);
     }
 
@@ -355,21 +370,70 @@ class ConfigController extends Controller
         'react_feature' ,'discount_banner','landing_page_links','react_self_registration_restaurant','react_self_registration_delivery_man'];
         $settings =  array_column(BusinessSetting::whereIn('key', $key)->get()->toArray(), 'value', 'key');
 
+        $image_key = ['react_header_banner','footer_logo'];
+        $data = [];
+
+        foreach ($image_key as $value){
+            $data[$value.'_storage'] = BusinessSetting::where('key',$value)->first()?->storage[0]?->value ??'public';
+        }
+
+
         $app_section_image = isset($settings['app_section_image']) ? json_decode($settings['app_section_image'], true) : [];
+
+        $banner_section_full= (isset($settings['banner_section_full']) )  ? json_decode($settings['banner_section_full'], true) : null ;
+        if($banner_section_full){
+            $banner_section_full['banner_section_img_full_url']= Helpers::get_full_url('react_landing',$banner_section_full['banner_section_img_full']?? null,$banner_section_full['storage']??'public');
+        }
+
+        $banner_section_half_data = [];
+        $banner_section_half=(isset($settings['banner_section_half']) )  ? json_decode($settings['banner_section_half'], true) : [];
+        foreach ($banner_section_half as $value){
+            $value['img_full_url'] = Helpers::get_full_url('react_landing',$value['img']?? null,$value['storage']??'public');
+            array_push($banner_section_half_data, $value);
+        }
+        $banner_section_half = $banner_section_half_data;
+
+        $react_feature_data = [];
+        $react_feature= (isset($settings['react_feature'])) ? json_decode($settings['react_feature'], true) : [];
+        foreach ($react_feature as $value){
+            $value['img_full_url'] = Helpers::get_full_url('react_landing',$value['img']?? null,$value['storage']??'public');
+            array_push($react_feature_data, $value);
+        }
+        $react_feature = $react_feature_data;
+
+        $discount_banner= (isset($settings['discount_banner'])) ? json_decode($settings['discount_banner'], true) : null;
+        if($discount_banner){
+            $discount_banner['img_full_url']= Helpers::get_full_url('react_landing',$discount_banner['img']?? null,$discount_banner['storage']??'public');
+        }
+
+        $react_self_registration_restaurant= (isset($settings['react_self_registration_restaurant'])) ? json_decode($settings['react_self_registration_restaurant'], true) : null;
+        if($react_self_registration_restaurant){
+            $react_self_registration_restaurant['image_full_url']= Helpers::get_full_url('react_landing',$react_self_registration_restaurant['image']?? null,$react_self_registration_restaurant['storage']??'public');
+        }
+
+        $react_self_registration_delivery_man= (isset($settings['react_self_registration_delivery_man'])) ? json_decode($settings['react_self_registration_delivery_man'], true) : null;
+        if($react_self_registration_delivery_man){
+            $react_self_registration_delivery_man['image_full_url']= Helpers::get_full_url('react_landing',$react_self_registration_delivery_man['image']?? null,$react_self_registration_delivery_man['storage']??'public');
+        }
+
 
         return  response()->json(
             [
                 'react_header_banner'=>(isset($settings['react_header_banner']) )  ? $settings['react_header_banner'] : null ,
+                'react_header_banner_full_url'=>Helpers::get_full_url('react_landing',$settings['react_header_banner']??null,$data['react_header_banner_storage']??'public'),
                 'app_section_image'=> (isset($app_section_image['app_section_image'])) ?  $app_section_image['app_section_image'] : null,
+                'app_section_image_full_url'=> Helpers::get_full_url('react_landing',$app_section_image['app_section_image']?? null,$app_section_image['app_section_image_storage']??'public'),
                 'app_section_image_2'=> (isset($app_section_image['app_section_image_2'])) ?  $app_section_image['app_section_image_2'] : null,
+                'app_section_image_2_full_url'=> Helpers::get_full_url('react_landing',$app_section_image['app_section_image_2']?? null,$app_section_image['app_section_image_2_storage']??'public'),
                 'footer_logo'=> (isset($settings['footer_logo'])) ? $settings['footer_logo'] : null,
-                'banner_section_full'=> (isset($settings['banner_section_full']) )  ? json_decode($settings['banner_section_full'], true) : null ,
-                'banner_section_half'=>(isset($settings['banner_section_half']) )  ? json_decode($settings['banner_section_half'], true) : [],
-                'react_feature'=> (isset($settings['react_feature'])) ? json_decode($settings['react_feature'], true) : [],
-                'discount_banner'=> (isset($settings['discount_banner'])) ? json_decode($settings['discount_banner'], true) : null,
+                'footer_logo_full_url'=> Helpers::get_full_url('react_landing',$settings['footer_logo'],$data['footer_logo_storage']??'public'),
+                'banner_section_full'=> $banner_section_full ,
+                'banner_section_half'=>$banner_section_half,
+                'react_feature'=> $react_feature,
+                'discount_banner'=> $discount_banner,
                 'landing_page_links'=> (isset($settings['landing_page_links'])) ? json_decode($settings['landing_page_links'], true) : null,
-                'react_self_registration_restaurant'=> (isset($settings['react_self_registration_restaurant'])) ? json_decode($settings['react_self_registration_restaurant'], true) : null,
-                'react_self_registration_delivery_man'=> (isset($settings['react_self_registration_delivery_man'])) ? json_decode($settings['react_self_registration_delivery_man'], true) : null,
+                'react_self_registration_restaurant'=> $react_self_registration_restaurant,
+                'react_self_registration_delivery_man'=> $react_self_registration_delivery_man,
         ]);
     }
 
@@ -395,9 +459,6 @@ class ConfigController extends Controller
         return response()->json($data, 200);
     }
 
-
-
-
     public function react_landing_page()
     {
         // $settings =  DataSetting::where('type','react_landing_page')->pluck('value','key')->toArray();
@@ -414,6 +475,13 @@ class ConfigController extends Controller
                     $value->key => $value->value,
                 ];
                 array_push($data,$cred);
+            }
+            if (isset($value->storage)) {
+
+                $cred = [
+                    $value->key.'_storage' => $value?->storage[0]?->value ?? 'public',
+                ];
+                array_push($data, $cred);
             }
         }
         $settings = [];
@@ -437,6 +505,7 @@ class ConfigController extends Controller
                 'react_restaurant_section_link' => isset($settings['react_restaurant_section_link_data'])   ? $settings['react_restaurant_section_link_data'] : null,
             ],
             'react_restaurant_section_image'=> (isset($settings['react_restaurant_section_image']) )  ? $settings['react_restaurant_section_image']  : null ,
+            'react_restaurant_section_image_full_url'=>Helpers::get_full_url('react_restaurant_section_image',(isset($settings['react_restaurant_section_image']) )  ? $settings['react_restaurant_section_image'] : null,isset($settings['react_restaurant_section_image_storage'])   ? $settings['react_restaurant_section_image_storage'] : 'public') ,
         ];
         $delivery_section= [
             'react_delivery_section_title'=>(isset($settings['react_delivery_section_title']) )  ? $settings['react_delivery_section_title'] : null ,
@@ -448,10 +517,13 @@ class ConfigController extends Controller
                 'react_delivery_section_link' =>  (isset($settings['react_delivery_section_link_data']) )  ? $settings['react_delivery_section_link_data'] : null,
                 ],
             'react_delivery_section_image'=> (isset($settings['react_delivery_section_image']) )  ? $settings['react_delivery_section_image'] : null ,
+            'react_delivery_section_image_full_url'=>Helpers::get_full_url('react_delivery_section_image',(isset($settings['react_delivery_section_image']) )  ? $settings['react_delivery_section_image'] : null,isset($settings['react_delivery_section_image_storage'])   ? $settings['react_delivery_section_image_storage'] : 'public') ,
             ];
         $download_app_section= [
             'react_download_apps_banner_image'=>(isset($settings['react_download_apps_banner_image']) )  ? $settings['react_download_apps_banner_image'] : null ,
+            'react_download_apps_banner_image_full_url'=>Helpers::get_full_url('react_download_apps_image',(isset($settings['react_download_apps_banner_image']) )  ? $settings['react_download_apps_banner_image'] : null,isset($settings['react_download_apps_banner_image_storage'])   ? $settings['react_download_apps_banner_image_storage'] : 'public') ,
             'react_download_apps_image'=>(isset($settings['react_download_apps_image']) )  ? $settings['react_download_apps_image'] : null ,
+            'react_download_apps_image_full_url'=>Helpers::get_full_url('react_download_apps_image',(isset($settings['react_download_apps_image']) )  ? $settings['react_download_apps_image'] : null,isset($settings['react_download_apps_image_storage'])   ? $settings['react_download_apps_image_storage'] : 'public') ,
             'react_download_apps_title'=>(isset($settings['react_download_apps_title']) )  ? $settings['react_download_apps_title'] : null ,
             'react_download_apps_tag'=>(isset($settings['react_download_apps_tag']) )  ? $settings['react_download_apps_tag'] : null ,
             'react_download_apps_sub_title'=>(isset($settings['react_download_apps_sub_title']) )  ? $settings['react_download_apps_sub_title'] : null ,
@@ -480,6 +552,7 @@ class ConfigController extends Controller
                 'react_header_title'=>(isset($settings['react_header_title']) )  ? $settings['react_header_title'] : null ,
                 'react_header_sub_title'=>(isset($settings['react_header_sub_title']) )  ? $settings['react_header_sub_title'] : null ,
                 'react_header_image'=>(isset($settings['react_header_image']) )  ? $settings['react_header_image'] : null ,
+                'react_header_image_full_url'=>Helpers::get_full_url('react_header',(isset($settings['react_header_image']) )  ? $settings['react_header_image'] : null,isset($settings['react_header_image_storage'])   ? $settings['react_header_image_storage'] : 'public') ,
 
                 'react_services' => $services ?? [],
                 'react_promotional_banner' => $ReactPromotionalBanner ?? [],
@@ -513,7 +586,8 @@ class ConfigController extends Controller
                 $data[] = [
                     'gateway' => $method->key_name,
                     'gateway_title' => $additional_data?->gateway_title,
-                    'gateway_image' => $additional_data?->gateway_image
+                    'gateway_image' => $additional_data?->gateway_image,
+                    'gateway_image_full_url' => Helpers::get_full_url('payment_modules/gateway_image',$additional_data?->gateway_image,$additional_data?->storage ?? 'public')
                 ];
             }
         }
@@ -540,7 +614,8 @@ class ConfigController extends Controller
                 $data[] = [
                     'gateway' => $method->key_name,
                     'gateway_title' => $additional_data?->gateway_title,
-                    'gateway_image' => $additional_data?->gateway_image
+                    'gateway_image' => $additional_data?->gateway_image,
+                    'gateway_image_full_url' => Helpers::get_full_url('payment_modules/gateway_image',$additional_data?->gateway_image,$additional_data?->storage ?? 'public')
                 ];
             }
         }

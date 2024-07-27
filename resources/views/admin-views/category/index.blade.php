@@ -60,7 +60,7 @@
                                 @foreach(json_decode($language) as $lang)
                                     <div class="form-group d-none lang_form" id="{{$lang}}-form">
                                         <label class="input-label" for="exampleFormControlInput1">{{translate('messages.name')}} ({{strtoupper($lang)}})</label>
-                                        <input id="name" type="text" name="name[]" class="form-control" placeholder="{{ translate('Ex:_Category_Name') }}" maxlength="191" oninvalid="document.getElementById('en-link').click()">
+                                        <input id="name" type="text" name="name[]" class="form-control" placeholder="{{ translate('Ex:_Category_Name') }}" maxlength="191"  >
                                         <input type="hidden" name="lang[]" value="{{$lang}}">
                                     </div>
                                 @endforeach
@@ -189,7 +189,7 @@
                                 <div class="">
                                     <img class="avatar border"
 
-                                    src="{{\App\CentralLogics\Helpers::onerror_image_helper($category['image'], dynamicStorage('storage/app/public/category/').'/'.$category['image'], dynamicAsset('/public/assets/admin/img/900x400/img1.jpg'), 'category/') }}"
+                                    src="{{ $category['image_full_url'] }}"
 
 
                                   alt="{{Str::limit($category['name'], 20,'...')}}">

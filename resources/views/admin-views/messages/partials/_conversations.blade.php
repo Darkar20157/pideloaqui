@@ -4,7 +4,7 @@
         <div class="chat-user-info w-100 d-flex align-items-center">
             <div class="chat-user-info-img">
                 <img class="avatar-img onerror-image"
-                     src="{{\App\CentralLogics\Helpers::onerror_image_helper($user['image'], dynamicStorage('storage/app/public/profile/').'/'.$user['image'], dynamicAsset('public/assets/admin/img/160x160/img1.jpg'), 'profile/') }}"
+                     src="{{$user['image_full_url']}}"
                      data-onerror-image="{{dynamicAsset('public/assets/admin')}}/img/160x160/img1.jpg"
                      alt="Image Description">
             </div>
@@ -38,12 +38,11 @@
                         <div class="conv-reply-1">
                                 <h5>{{$con->message}}</h5>
                                 @if($con->file!=null)
-                                @foreach (json_decode($con->file) as $img)
+                                @foreach ($con->file_full_url as $img)
                                 <br>
                                     <img class="w-100"
 
-                                    src="{{\App\CentralLogics\Helpers::onerror_image_helper($img, dynamicStorage('storage/app/public/conversation/').'/'.$img, dynamicAsset('public/assets/admin/img/900x400/img1.png'), 'conversation/') }}"
-                                    {{-- src="{{dynamicStorage('storage/app/public/conversation').'/'.$img}}" --}}
+                                    src="{{$img }}"
                                     >
                                     @endforeach
                                 @endif
@@ -59,10 +58,10 @@
                         <div class="conv-reply-2">
                             <h5>{{$con->message}}</h5>
                             @if($con->file!=null)
-                            @foreach (json_decode($con->file) as $img)
+                            @foreach ($con->file_full_url as $img)
                             <br>
                                 <img class="w-100"
-                                src="{{\App\CentralLogics\Helpers::onerror_image_helper($img, dynamicStorage('storage/app/public/conversation/').'/'.$img, dynamicAsset('public/assets/admin/img/900x400/img1.png'), 'conversation/') }}"
+                                src="{{ $img }}"
                                 >
                                 @endforeach
                             @endif

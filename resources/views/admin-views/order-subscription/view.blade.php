@@ -21,7 +21,7 @@
                                 <div class="page-header">
                                     <div class="d-flex flex-wrap justify-content-between align-items-center __gap-15px">
                                         <h1 class="page-header-title">
-                                            <img src="{{asset('/public/assets/admin/img/orders.png')}}" class="mr-1" alt=""> {{translate('messages.subscription_order_details')}}
+                                            <img src="{{dynamicAsset('public/assets/admin/img/orders.png')}}" class="mr-1" alt=""> {{translate('messages.subscription_order_details')}}
                                         </h1>
                                     </div>
                                 </div>
@@ -46,7 +46,7 @@
                                 </div>
                                 <div class="d-flex flex-wrap g-1 justify-content-between mt-3">
                                     <div class="d-flex gap-1 align-items-center">
-                                        <img src="{{asset('/public/assets/admin/img/store.png')}}"  width="22" alt=""> <strong>{{ translate('Restaurant') }} :</strong> <a href="{{route('admin.restaurant.view', $subscription->restaurant_id)}}" class="text-primary font-semibold">{{ $subscription->restaurant->name }}</a>
+                                        <img src="{{dynamicAsset('public/assets/admin/img/store.png')}}"  width="22" alt=""> <strong>{{ translate('Restaurant') }} :</strong> <a href="{{route('admin.restaurant.view', $subscription->restaurant_id)}}" class="text-primary font-semibold">{{ $subscription->restaurant->name }}</a>
                                     </div>
                                     <div class="d-flex gap-2">
                                         <span> {{ translate('Payment_Method') }}   :</span>
@@ -70,7 +70,7 @@
                                     @endif
                                 </div>
                                     <a href="#" class="btn btn-outline-primary font-semibold map-view-button text-nowrap px-2 rounded" data-toggle="modal" data-target="#locationModal">
-                                        <img src="{{asset('/public/assets/admin/img/mapview.png')}}" class="rounded px-1" alt="">{{ translate('Open_Map_View') }}
+                                        <img src="{{dynamicAsset('public/assets/admin/img/mapview.png')}}" class="rounded px-1" alt="">{{ translate('Open_Map_View') }}
                                     </a>
                                 </div>
 
@@ -273,12 +273,7 @@
                                     href="{{ route('admin.customer.view', [$subscription?->customer['id']]) }}">
                                     <div class="avatar avatar-circle">
                                         <img class="avatar-img onerror-image"
-                                        src="{{ \App\CentralLogics\Helpers::onerror_image_helper(
-                                            $subscription?->customer?->image ?? '',
-                                            dynamicStorage('storage/app/public/profile/') .'/'. ($subscription?->customer?->image ?? ''),
-                                            dynamicAsset('public/assets/admin/img/160x160/img1.png'),
-                                            'profile/'
-                                         ) }}"
+                                        src="{{ $subscription?->customer?->image_full_url ?? dynamicAsset('public/assets/admin/img/160x160/img1.png') }}"
                                             alt="Image Description"
                                             data-onerror-image="{{ dynamicAsset('public/assets/admin/img/160x160/img1.png') }}">
 
@@ -318,12 +313,7 @@
                                     <!-- End Header -->
                                     <a class="media align-items-center deco-none resturant--information-single" href="{{route('admin.restaurant.view', $subscription->restaurant_id)}}">
                                         <div class="avatar avatar-circle">
-                                                <img class="avatar-img w-75px" src="{{ \App\CentralLogics\Helpers::onerror_image_helper(
-                                                    $subscription?->restaurant?->logo,
-                                                    dynamicStorage('storage/app/public/restaurant').'/'.$subscription?->restaurant?->logo,
-                                                    dynamicAsset('public/assets/admin/img/100x100/food-default-image.png'),
-                                                    'restaurant/'
-                                                ) }}" alt="image">
+                                                <img class="avatar-img w-75px" src="{{ $subscription?->restaurant?->logo_full_url ?? dynamicAsset('public/assets/admin/img/100x100/food-default-image.png') }}" alt="image">
 
                                         </div>
                                         <div class="media-body">

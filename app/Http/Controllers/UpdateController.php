@@ -15,6 +15,7 @@ use App\Models\BusinessSetting;
 use App\Traits\ActivationClass;
 use Illuminate\Support\Facades\DB;
 use App\CentralLogics\ProductLogic;
+use App\Models\NotificationSetting;
 use Brian2694\Toastr\Facades\Toastr;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
@@ -34,7 +35,7 @@ class UpdateController extends Controller
         Helpers::setEnvironmentValue('BUYER_USERNAME',$request['username']);
         Helpers::setEnvironmentValue('PURCHASE_CODE',$request['purchase_key']);
         Helpers::setEnvironmentValue('APP_MODE','live');
-        Helpers::setEnvironmentValue('SOFTWARE_VERSION','7.5.0');
+        Helpers::setEnvironmentValue('SOFTWARE_VERSION','7.7');
         Helpers::setEnvironmentValue('APP_NAME','stackfood'.time());
         Helpers::setEnvironmentValue('REACT_APP_KEY','43218516');
 
@@ -175,7 +176,7 @@ class UpdateController extends Controller
         }
 
         Helpers::insert_business_settings_key('instant_order', '1');
-
+        Helpers::insert_business_settings_key('check_daily_stock_on', date('Y-m-d'));
 
         try {
             if (!Schema::hasTable('addon_settings')) {
@@ -221,6 +222,10 @@ class UpdateController extends Controller
             return back();
             }
 
+            if(NotificationSetting::count() == 0 ){
+                Helpers::notificationDataSetup();
+            }
+            Helpers::insert_business_settings_key('country_picker_status', '1');
 
         $data = DataSetting::where('type', 'login_admin')->pluck('value')->first();
         return redirect('/login/'.$data);
@@ -352,7 +357,7 @@ class UpdateController extends Controller
             $credentials= json_encode(array_merge($data, $additional_data));
 
             $payment_additional_data=['gateway_title' => ucfirst(str_replace('_',' ',$gateway)),
-                                    'gateway_image' => null];
+                                    'gateway_image' => null,'storage' => 'public'];
 
             DB::table('addon_settings')->updateOrInsert(['key_name' => $gateway, 'settings_type' => 'payment_config'], [
             'key_name' => $gateway,

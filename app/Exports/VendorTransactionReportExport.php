@@ -42,8 +42,8 @@ class VendorTransactionReportExport implements  FromView, ShouldAutoSize, WithSt
     }
 
     public function styles(Worksheet $sheet) {
-        $sheet->getStyle('A2:U3')->getFont()->setBold(true);
-        $sheet->getStyle('A4:U4')->getFill()->applyFromArray([
+        $sheet->getStyle('A2:W3')->getFont()->setBold(true);
+        $sheet->getStyle('A4:W4')->getFill()->applyFromArray([
             'fillType' => 'solid',
             'rotation' => 0,
             'color' => ['rgb' => '9F9F9F'],
@@ -63,7 +63,7 @@ class VendorTransactionReportExport implements  FromView, ShouldAutoSize, WithSt
         $sheet->getStyle('A1:C1')->applyFromArray($styleArray);
         return [
             // Define the style for cells with data
-            'A1:U'.$this->data['order_transactions']->count() +4 => [
+            'A1:W'.$this->data['order_transactions']->count() +4 => [
                 'borders' => [
                     'allBorders' => [
                         'borderStyle' => Border::BORDER_THIN,
@@ -79,7 +79,7 @@ class VendorTransactionReportExport implements  FromView, ShouldAutoSize, WithSt
     {
         return [
             AfterSheet::class => function(AfterSheet $event) {
-                $event->sheet->getStyle('A1:U1') // Adjust the range as per your needs
+                $event->sheet->getStyle('A1:W1') // Adjust the range as per your needs
                     ->getAlignment()
                     ->setHorizontal(Alignment::HORIZONTAL_CENTER)
                     ->setVertical(Alignment::VERTICAL_CENTER);
@@ -93,26 +93,26 @@ class VendorTransactionReportExport implements  FromView, ShouldAutoSize, WithSt
                     ->setVertical(Alignment::VERTICAL_CENTER);
 
 
-                $event->sheet->getStyle('A3:U'.$this->data['order_transactions']->count() +4)
+                $event->sheet->getStyle('A3:W'.$this->data['order_transactions']->count() +4)
                     ->getAlignment()
                     ->setHorizontal(Alignment::HORIZONTAL_CENTER)
                     ->setVertical(Alignment::VERTICAL_CENTER);
-                $event->sheet->getStyle('D2:U2')
+                $event->sheet->getStyle('D2:W2')
                     ->getAlignment()
                     ->setHorizontal(Alignment::HORIZONTAL_LEFT)
                     ->setVertical(Alignment::VERTICAL_CENTER);
-                $event->sheet->getStyle('D3:U3')
+                $event->sheet->getStyle('D3:W3')
                     ->getAlignment()
                     ->setHorizontal(Alignment::HORIZONTAL_LEFT)
                     ->setVertical(Alignment::VERTICAL_CENTER);
 
 
 
-                    $event->sheet->mergeCells('A1:U1');
+                    $event->sheet->mergeCells('A1:W1');
                     $event->sheet->mergeCells('A2:C2');
-                    $event->sheet->mergeCells('D2:U2');
+                    $event->sheet->mergeCells('D2:W2');
                     $event->sheet->mergeCells('A3:C3');
-                    $event->sheet->mergeCells('D3:U3');
+                    $event->sheet->mergeCells('D3:W3');
 
 
 
