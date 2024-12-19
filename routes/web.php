@@ -19,7 +19,7 @@ use App\Http\Controllers\PaystackController;
 use App\Http\Controllers\FirebaseController;
 /*
 |--------------------------------------------------------------------------
-| Web Routes
+| Web Routes 
 |--------------------------------------------------------------------------
 |
 | Here is where you can register web routes for your application. These
