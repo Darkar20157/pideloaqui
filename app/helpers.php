@@ -256,7 +256,7 @@ if (!function_exists('dynamicAsset')) {
 if (!function_exists('dynamicStorage')) {
     function dynamicStorage(string $directory): string
     {
-        if (DOMAIN_POINTED_DIRECTORY == 'public') {
+        if (DOMAIN_POINTED_DIRECTORY !== 'public') {
             $result = str_replace('storage/app/public', 'storage', $directory);
         } else {
             $result = $directory;

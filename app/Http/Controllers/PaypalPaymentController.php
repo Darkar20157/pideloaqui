@@ -44,11 +44,12 @@ class PaypalPaymentController extends Controller
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
         curl_setopt($ch, CURLOPT_POST, 1);
         curl_setopt($ch, CURLOPT_POSTFIELDS, "grant_type=client_credentials");
-        curl_setopt($ch, CURLOPT_USERPWD, $this->config_values->client_id . ':' . $this->config_values->client_secret);
+//        curl_setopt($ch, CURLOPT_USERPWD, $this->config_values->client_id . ':' . $this->config_values->client_secret);
 
         $headers = array();
         $headers[] = 'Content-Type: application/x-www-form-urlencoded';
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+	$headers[] = 'Authorization: Basic '.base64_encode($this->config_values->client_id . ':' . $this->config_values->client_secret);
+      curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
 
         $accessToken = curl_exec($ch);
         if (curl_errno($ch)) {
@@ -85,7 +86,6 @@ class PaypalPaymentController extends Controller
         }
 
         $accessToken = json_decode($this->token(),true);
-
         if ( isset($accessToken['access_token'])) {
             $accessToken = $accessToken['access_token'];
             $payment_data = [];
@@ -95,8 +95,8 @@ class PaypalPaymentController extends Controller
                     'name' => $business_name,
                     'desc'  => 'payment ID :' . $data->id,
                     'amount' => [
-                        'currency_code' => $data->currency_code ?? 'USD',
-                        'value' => round($data->payment_amount, 2)
+                        'currency_code' => 'USD',
+                        'value' => round($data->payment_amount * 0.017, 2)
                     ]
                 ]
             ];
@@ -132,7 +132,6 @@ class PaypalPaymentController extends Controller
         }
 
         $response = json_decode($response);
-
         $links = $response->links;
         return Redirect::away($links[1]->href);
 

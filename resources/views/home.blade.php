@@ -11,6 +11,7 @@
 
         <!-- Main Banner Content -->
         <div class="container">
+           
             <div class="banner-wrapper">
                 <div class="banner-thumb wow fadeInUp">
                     <img class="main-img"
@@ -6131,3 +6132,135 @@
     @endsection
     @push('script_2')
     @endpush
+
+
+    <!-- Modal HTML -->
+<div id="termsModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <h2>Términos y Condiciones</h2>
+        <p>
+            Al continuar usando este sitio web, aceptas nuestros 
+            <a href="/terms" target="_blank" class="link">Términos y Condiciones</a> y nuestra 
+            <a href="/privacy" target="_blank" class="link">Política de Privacidad</a>.
+        </p>
+        <button id="acceptTerms" class="btn-primary">Acepto</button>
+    </div>
+</div>
+
+<!-- Modal CSS -->
+<style>
+    /* Modal Background */
+    .modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.85); /* Fondo oscuro con transparencia */
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+    }
+
+    /* Modal Content */
+    .modal-content {
+        background: #ffffff; /* Fondo blanco */
+        padding: 25px 30px;
+        border-radius: 16px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+        text-align: center;
+        max-width: 400px;
+        width: 90%;
+        animation: fadeIn 0.4s ease-in-out;
+        border: 2px solid rgba(0, 0, 0, 0.1);
+    }
+
+    /* Modal Title */
+    .modal-content h2 {
+        font-size: 24px;
+        font-weight: bold;
+        color: #333333; /* Tono oscuro */
+        margin-bottom: 15px;
+    }
+
+    /* Modal Text */
+    .modal-content p {
+        font-size: 16px;
+        color: #555555; /* Tono neutro */
+        margin-bottom: 25px;
+        line-height: 1.5;
+    }
+
+    /* Links Styling */
+    .modal-content a.link {
+        color: #4f6d56; /* Color principal */
+        text-decoration: none;
+        font-weight: bold;
+        transition: color 0.3s ease;
+    }
+
+    .modal-content a.link:hover {
+        color: #3b523f; /* Color más oscuro en hover */
+        text-decoration: underline;
+    }
+
+    /* Button Styling */
+    .btn-primary {
+        background-color: #4f6d56; /* Fondo del botón */
+        color: #ffffff; /* Texto blanco */
+        font-size: 16px;
+        font-weight: bold;
+        padding: 12px 24px;
+        border-radius: 8px;
+        border: none;
+        cursor: pointer;
+        box-shadow: 0 4px 12px rgba(79, 109, 86, 0.4);
+        transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .btn-primary:hover {
+        background-color: #3b523f; /* Fondo más oscuro en hover */
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(59, 82, 63, 0.5);
+    }
+
+    .btn-primary:active {
+        transform: translateY(0);
+    }
+
+    /* Animation */
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: scale(0.9);
+        }
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+</style>
+
+<!-- Modal JavaScript -->
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const modal = document.getElementById('termsModal');
+        const acceptButton = document.getElementById('acceptTerms');
+
+        // Show the modal
+        modal.style.display = 'flex';
+
+        // Handle acceptance
+        acceptButton.addEventListener('click', function () {
+            localStorage.setItem('termsAccepted', 'true');
+            modal.style.display = 'none';
+        });
+
+        // Check if terms are already accepted
+        if (localStorage.getItem('termsAccepted') === 'true') {
+            modal.style.display = 'none';
+        }
+    });
+</script>
+

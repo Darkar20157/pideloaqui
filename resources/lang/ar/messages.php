@@ -3216,4 +3216,5 @@
   'disbursement_management' => 'Disbursement management',
   'withdraw_method' => 'Withdraw method',
   'Are you sure?' => 'Are you sure ',
+  'guest_varified' => 'Guest varified',
 );
